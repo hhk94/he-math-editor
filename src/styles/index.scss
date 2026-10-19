@@ -1,0 +1,27 @@
+/* heMathEditor 全局样式 */
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+	width: 100%;
+	min-height: 100%;
+}
+
+body {
+	font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+	font-size: 14px;
+	color: #1f2329;
+	background: #f5f7fa;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* MathLive 虚拟键盘挂在 body 上，默认 z-index 仅 105，需高于编辑器弹窗 */
+body > .ML__keyboard {
+	z-index: 3000;
+}

@@ -1,0 +1,24 @@
+{
+	"name": "he-math-editor",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "heMathEditor - 基于 MathLive + MathJax 的数学公式编辑器",
+	"scripts": {
+		"dev": "vite",
+		"build": "vue-tsc --noEmit && vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"mathlive": "^0.100.0",
+		"vue": "^3.5.13"
+	},
+	"devDependencies": {
+		"@types/node": "^20.11.28",
+		"@vitejs/plugin-vue": "^5.2.4",
+		"sass": "^1.72.0",
+		"typescript": "~5.4.2",
+		"vite": "^6.3.5",
+		"vue-tsc": "^2.2.8"
+	}
+}
