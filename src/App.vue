@@ -1,235 +1,138 @@
 <template>
-	<div class="page">
-		<header class="page__header">
-			<h1 class="page__title">heMathEditor</h1>
-			<p class="page__sub">基于 MathLive（所见即所得输入）+ MathJax（公式渲染）的数学公式编辑器</p>
+	<div class="app">
+		<header class="app-header">
+			<div class="app-header__inner">
+				<a class="app-brand" href="#/">heMathEditor</a>
+				<nav class="app-nav" aria-label="展示页导航">
+					<a
+						v-for="item in navItems"
+						:key="item.key"
+						class="app-nav__link"
+						:class="{ 'is-active': current === item.key }"
+						:href="item.href"
+						:aria-current="current === item.key ? 'page' : undefined"
+					>
+						{{ item.label }}
+					</a>
+				</nav>
+			</div>
 		</header>
 
-		<!-- 1. 第一层：Markdown 编辑器（集成公式编辑弹窗） -->
-		<section class="card">
-			<h2 class="card__title">Markdown 编辑器 HeMdEditor（第一层）</h2>
-			<p class="card__desc">
-				工具栏覆盖常用 Markdown 语法；公式以整体标签嵌入正文，点击标签打开公式编辑器，正文中无法修改公式局部。
-			</p>
-			<HeMdEditor v-model="mdText" preview />
-		</section>
-
-		<!-- 2. 公式编辑弹窗 -->
-		<section class="card">
-			<h2 class="card__title">公式编辑弹窗 HeFormulaDialog（第二层）</h2>
-			<p class="card__desc">点击按钮打开弹窗，编辑完成后确认，结果 LaTeX 会回传到页面。</p>
-			<div class="card__row">
-				<button class="btn btn--primary" type="button" @click="openDialog">打开公式编辑器</button>
-				<span class="tag">当前 LaTeX：{{ resultLatex || '（未设置）' }}</span>
-			</div>
-			<div class="card__block">
-				<div class="card__label">MathJax 渲染结果</div>
-				<HeMathPreview :latex="resultLatex" :display="resultDisplay" />
-			</div>
-		</section>
-
-		<!-- 3. 内嵌输入 + 实时预览 -->
-		<section class="card">
-			<h2 class="card__title">内嵌输入 HeMathInput + 实时预览 HeMathPreview</h2>
-			<p class="card__desc">两个组件都支持直接复用：输入框通过 v-model 绑定 LaTeX，预览组件用 MathJax 排版。</p>
-			<div class="card__block">
-				<div class="card__label">公式编辑区</div>
-				<HeMathInput v-model="inlineLatex" />
-			</div>
-			<div class="card__block">
-				<div class="card__label">实时预览</div>
-				<HeMathPreview :latex="inlineLatex" display />
-			</div>
-			<div class="card__label card__label--gap">常用符号</div>
-			<div class="symbols">
-				<button v-for="s in symbols" :key="s.label" class="symbols__btn" type="button" @click="insertSymbol(s.value)">
-					{{ s.label }}
-				</button>
-			</div>
-		</section>
-
-		<HeFormulaDialog v-model="dialogVisible" :latex="resultLatex" :display="resultDisplay" @confirm="onConfirm" />
+		<KeepAlive>
+			<component :is="currentPage" />
+		</KeepAlive>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import HeMdEditor from '@/components/HeMdEditor.vue'
-import HeMathInput from '@/components/HeMathInput.vue'
-import HeMathPreview from '@/components/HeMathPreview.vue'
-import HeFormulaDialog from '@/components/HeFormulaDialog.vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import EditorPage from '@/pages/EditorPage.vue'
+import ViewerPage from '@/pages/ViewerPage.vue'
+import WysiwygPage from '@/pages/WysiwygPage.vue'
 
-const mdText = ref(
-	String.raw`# 示例文档
+const pages = {
+	editor: EditorPage,
+	viewer: ViewerPage,
+	wysiwyg: WysiwygPage
+} as const
 
-这是一段 **Markdown** 正文，行内公式 $E=mc^2$ 与行间公式：
+type PageKey = keyof typeof pages
 
-$$
-\int_a^b f(x)\,dx = F(b)-F(a)
-$$
-
-- 列表项一
-- 列表项二
-- [ ] 待办任务
-
-> 公式在正文中是整体标签，点击即可编辑。
-
-代码中的 \`$x^2$\` 不会被当作公式。`
-)
-
-const dialogVisible = ref(false)
-const resultLatex = ref('')
-const resultDisplay = ref(false)
-const inlineLatex = ref('\\frac{1}{x} + \\lim_{n \\to \\infty} a_n')
-
-const symbols = [
-	{ label: 'a/b', value: '\\frac{a}{b}' },
-	{ label: '√x', value: '\\sqrt{x}' },
-	{ label: 'x²', value: 'x^{2}' },
-	{ label: 'lim', value: '\\lim_{n \\to \\infty}' },
-	{ label: '∫', value: '\\int_{a}^{b}' },
-	{ label: 'Σ', value: '\\sum_{i=1}^{n}' },
-	{ label: 'α', value: '\\alpha' },
-	{ label: 'π', value: '\\pi' },
-	{ label: '∞', value: '\\infty' }
+const navItems: { key: PageKey; label: string; href: string }[] = [
+	{ key: 'editor', label: 'HeMdEditor', href: '#/' },
+	{ key: 'viewer', label: 'HeMdViewer', href: '#/viewer' },
+	{ key: 'wysiwyg', label: 'HeMdWysiwyg', href: '#/wysiwyg' }
 ]
 
-const openDialog = () => {
-	dialogVisible.value = true
+const pageTitles: Record<PageKey, string> = {
+	editor: 'HeMdEditor · 分栏编辑',
+	viewer: 'HeMdViewer · 只读展示',
+	wysiwyg: 'HeMdWysiwyg · 单栏所见即所得'
 }
 
-const onConfirm = (latex: string, display: boolean) => {
-	resultLatex.value = latex
-	resultDisplay.value = display
+/** 解析 hash 路由，未知路径回退到首页 */
+const parseRoute = (): PageKey => {
+	if (typeof window === 'undefined') return 'editor'
+	const key = window.location.hash.replace(/^#\/?/, '')
+	return key in pages ? (key as PageKey) : 'editor'
 }
 
-const insertSymbol = (sym: string) => {
-	inlineLatex.value = inlineLatex.value ? `${inlineLatex.value} ${sym}` : sym
+const current = ref<PageKey>(parseRoute())
+const currentPage = computed(() => pages[current.value])
+
+const applyRoute = () => {
+	current.value = parseRoute()
+	document.title = `${pageTitles[current.value]} · heMathEditor`
+	window.scrollTo({ top: 0 })
 }
+
+if (typeof document !== 'undefined') {
+	document.title = `${pageTitles[current.value]} · heMathEditor`
+}
+
+onMounted(() => {
+	window.addEventListener('hashchange', applyRoute)
+})
+
+onBeforeUnmount(() => {
+	window.removeEventListener('hashchange', applyRoute)
+})
 </script>
 
 <style scoped>
-.page {
+.app {
+	min-height: 100vh;
+}
+
+.app-header {
+	position: sticky;
+	top: 0;
+	z-index: 100;
+	background: rgba(255, 255, 255, 0.94);
+	backdrop-filter: blur(8px);
+	border-bottom: 1px solid #eef0f3;
+}
+
+.app-header__inner {
+	display: flex;
+	align-items: center;
+	gap: 24px;
 	max-width: 1080px;
 	margin: 0 auto;
-	padding: 32px 20px 60px;
+	padding: 0 20px;
+	height: 56px;
 }
 
-.page__header {
-	margin-bottom: 24px;
-}
-
-.page__title {
-	font-size: 26px;
+.app-brand {
+	font-size: 16px;
 	font-weight: 700;
+	color: #1f2329;
+	text-decoration: none;
+}
+
+.app-nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.app-nav__link {
+	padding: 6px 12px;
+	border-radius: 8px;
+	font-size: 13px;
+	color: #555;
+	text-decoration: none;
+	transition: background 0.15s, color 0.15s;
+}
+
+.app-nav__link:hover {
+	background: #f5f7fa;
 	color: #1f2329;
 }
 
-.page__sub {
-	margin-top: 6px;
-	font-size: 13px;
-	color: #888;
-}
-
-.card {
-	background: #fff;
-	border: 1px solid #eef0f3;
-	border-radius: 12px;
-	padding: 20px 24px;
-	margin-bottom: 20px;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-}
-
-.card__title {
-	font-size: 16px;
-	font-weight: 600;
-	margin-bottom: 6px;
-}
-
-.card__desc {
-	font-size: 13px;
-	color: #888;
-	margin-bottom: 16px;
-}
-
-.card__row {
-	display: flex;
-	align-items: center;
-	gap: 14px;
-	flex-wrap: wrap;
-}
-
-.card__block {
-	margin-top: 14px;
-}
-
-.card__label {
-	font-size: 12px;
-	font-weight: 600;
-	color: #555;
-	margin-bottom: 6px;
-}
-
-.card__label--gap {
-	margin-top: 14px;
-}
-
-.tag {
-	font-size: 12px;
-	color: #3b6ef5;
+.app-nav__link.is-active {
 	background: #eef3ff;
-	border: 1px solid #c9daff;
-	border-radius: 4px;
-	padding: 4px 10px;
-	font-family: Consolas, monospace;
-}
-
-.symbols {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-}
-
-.symbols__btn {
-	border: 1px solid #d9dde3;
-	background: #fff;
-	border-radius: 6px;
-	padding: 4px 10px;
-	font-size: 12px;
-	font-family: Consolas, monospace;
-	color: #333;
-	cursor: pointer;
-	transition: all 0.15s;
-}
-
-.symbols__btn:hover {
-	border-color: #3b6ef5;
 	color: #3b6ef5;
-	background: #eef3ff;
-}
-
-.btn {
-	padding: 8px 18px;
-	border: 1px solid #d9dde3;
-	border-radius: 8px;
-	background: #fff;
-	font-size: 13px;
-	color: #444;
-	cursor: pointer;
-	transition: all 0.15s;
-}
-
-.btn:hover {
-	background: #f5f7fa;
-}
-
-.btn--primary {
-	background: #3b6ef5;
-	border-color: #3b6ef5;
-	color: #fff;
-}
-
-.btn--primary:hover {
-	background: #2f5ee0;
+	font-weight: 600;
 }
 </style>

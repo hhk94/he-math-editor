@@ -28,7 +28,7 @@
 
 		<div class="he-md-editor__body" :class="{ 'he-md-editor__body--split': preview }">
 			<div ref="hostRef" class="he-md-editor__code"></div>
-			<div v-if="preview" ref="previewRef" class="he-md-editor__preview"></div>
+			<div v-if="preview" ref="previewRef" class="he-md-editor__preview he-markdown-body"></div>
 		</div>
 
 		<HeFormulaDialog
@@ -47,12 +47,10 @@ import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/vi
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
-import MarkdownIt from 'markdown-it'
-import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
-import mathJaxService from '@/utils/mathjax'
 import HeFormulaDialog from './HeFormulaDialog.vue'
 import { formulaAtom } from '@/editor/formulaAtom'
 import type { FormulaRef } from '@/editor/formulaAtom'
+import { renderMarkdownInto } from '@/core/renderer'
 import {
 	insertHr,
 	insertImage,
@@ -128,64 +126,6 @@ const hostRef = ref<HTMLElement>()
 const previewRef = ref<HTMLElement>()
 let view: EditorView | null = null
 
-/* ---------- markdown-it：注册数学规则，避免 LaTeX 被 Markdown 语法破坏 ---------- */
-
-const md = new MarkdownIt({ html: false, linkify: true, breaks: false })
-
-/** 行内数学规则：$...$ 与 $$...$$（$$ 可跨行），\$ 转义不参与配对 */
-const mathInlineRule = (state: StateInline, silent: boolean): boolean => {
-	const start = state.pos
-	const src = state.src
-	if (src.charCodeAt(start) !== 0x24) return false
-	const display = src[start + 1] === '$'
-	const openLen = display ? 2 : 1
-	const contentStart = start + openLen
-	if (contentStart >= state.posMax || /\s/.test(src[contentStart])) return false
-	let pos = contentStart
-	let closeStart = -1
-	while (pos < state.posMax) {
-		const ch = src[pos]
-		if (ch === '\\') {
-			pos += 2
-			continue
-		}
-		if (ch === '$') {
-			if (display) {
-				if (src[pos + 1] === '$') {
-					closeStart = pos
-					break
-				}
-				pos++
-				continue
-			}
-			if (src[pos + 1] === '$') {
-				pos += 2
-				continue
-			}
-			closeStart = pos
-			break
-		}
-		if (!display && ch === '\n') break
-		pos++
-	}
-	if (closeStart === -1) return false
-	const latex = src.slice(contentStart, closeStart)
-	if (!latex.trim() || /\s$/.test(latex)) return false
-	if (!silent) {
-		const token = state.push(display ? 'math_display' : 'math_inline', '', 0)
-		token.content = latex
-		token.markup = display ? '$$' : '$'
-	}
-	state.pos = closeStart + openLen
-	return true
-}
-
-md.inline.ruler.after('escape', 'math_inline', mathInlineRule)
-md.renderer.rules.math_inline = (tokens, idx) =>
-	`<span class="he-math">\\(${md.utils.escapeHtml(tokens[idx].content)}\\)</span>`
-md.renderer.rules.math_display = (tokens, idx) =>
-	`<div class="he-math he-math--display">\\[${md.utils.escapeHtml(tokens[idx].content)}\\]</div>`
-
 /* ---------- 预览渲染（输入防抖 250ms） ---------- */
 
 let previewTimer: ReturnType<typeof setTimeout> | undefined
@@ -196,8 +136,7 @@ const renderPreview = (immediate = false) => {
 	const doRender = async () => {
 		const el = previewRef.value
 		if (!el) return
-		el.innerHTML = md.render(view ? view.state.doc.toString() : props.modelValue)
-		await mathJaxService.renderElement(el)
+		await renderMarkdownInto(el, view ? view.state.doc.toString() : props.modelValue)
 	}
 	if (immediate) {
 		void doRender()
@@ -471,101 +410,5 @@ defineExpose({ focus, insertText, getValue })
 	margin: 6px 0;
 	padding: 8px 14px;
 	text-align: center;
-}
-
-/* 预览区 Markdown 排版 */
-.he-md-editor__preview :deep(h1) {
-	font-size: 24px;
-	margin: 16px 0 10px;
-	padding-bottom: 6px;
-	border-bottom: 1px solid #eef0f3;
-}
-
-.he-md-editor__preview :deep(h2) {
-	font-size: 20px;
-	margin: 14px 0 8px;
-}
-
-.he-md-editor__preview :deep(h3) {
-	font-size: 17px;
-	margin: 12px 0 8px;
-}
-
-.he-md-editor__preview :deep(p) {
-	margin: 8px 0;
-	line-height: 1.8;
-}
-
-.he-md-editor__preview :deep(ul),
-.he-md-editor__preview :deep(ol) {
-	margin: 8px 0;
-	padding-left: 24px;
-	line-height: 1.8;
-}
-
-.he-md-editor__preview :deep(blockquote) {
-	margin: 10px 0;
-	padding: 6px 14px;
-	border-left: 3px solid #3b6ef5;
-	background: #f5f7fa;
-	color: #555;
-}
-
-.he-md-editor__preview :deep(code) {
-	padding: 2px 6px;
-	border-radius: 4px;
-	background: #f0f2f5;
-	font-family: Consolas, monospace;
-	font-size: 12.5px;
-	color: #d63384;
-}
-
-.he-md-editor__preview :deep(pre) {
-	margin: 10px 0;
-	padding: 12px 14px;
-	border-radius: 8px;
-	background: #282c34;
-	overflow-x: auto;
-}
-
-.he-md-editor__preview :deep(pre code) {
-	padding: 0;
-	background: transparent;
-	color: #e8eaf0;
-}
-
-.he-md-editor__preview :deep(table) {
-	border-collapse: collapse;
-	margin: 10px 0;
-}
-
-.he-md-editor__preview :deep(th),
-.he-md-editor__preview :deep(td) {
-	border: 1px solid #dfe3ea;
-	padding: 6px 12px;
-}
-
-.he-md-editor__preview :deep(th) {
-	background: #f5f7fa;
-}
-
-.he-md-editor__preview :deep(hr) {
-	border: none;
-	border-top: 1px solid #e3e8ef;
-	margin: 16px 0;
-}
-
-.he-md-editor__preview :deep(a) {
-	color: #3b6ef5;
-}
-
-.he-md-editor__preview :deep(img) {
-	max-width: 100%;
-}
-
-.he-md-editor__preview :deep(.he-math--display) {
-	margin: 10px 0;
-	text-align: center;
-	overflow-x: auto;
 }
 </style>

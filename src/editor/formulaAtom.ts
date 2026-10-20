@@ -1,100 +1,18 @@
 import { syntaxTree } from '@codemirror/language'
-import { RangeSetBuilder } from '@codemirror/state'
+import { RangeSetBuilder, StateField } from '@codemirror/state'
 import type { EditorState, Extension } from '@codemirror/state'
-import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view'
-import type { DecorationSet, ViewUpdate } from '@codemirror/view'
+import { Decoration, EditorView, WidgetType } from '@codemirror/view'
+import type { DecorationSet } from '@codemirror/view'
 import mathJaxService from '@/utils/mathjax'
+import { scanFormulas } from '@/core/formula'
+import type { FormulaMatch } from '@/core/formula'
+
+export { scanFormulas }
 
 /** 公式在文档中的定位信息，点击公式标签时回传 */
-export interface FormulaRef {
-	from: number
-	to: number
-	latex: string
-	display: boolean
-}
+export type FormulaRef = FormulaMatch
 
 export type FormulaEditHandler = (formula: FormulaRef) => void
-
-interface FormulaMatch {
-	from: number
-	to: number
-	latex: string
-	display: boolean
-}
-
-/** 判断 pos 处的字符是否被反斜杠转义（前面有奇数个 \） */
-const isEscaped = (text: string, pos: number): boolean => {
-	let slashes = 0
-	for (let i = pos - 1; i >= 0 && text[i] === '\\'; i--) slashes++
-	return slashes % 2 === 1
-}
-
-/**
- * 扫描全文，找出 $...$ / $$...$$ 公式。
- * 规则与 MathJax 对齐：开 $ 后、闭 $ 前不能是空白；行内公式不跨行；\$ 不参与配对。
- */
-export const scanFormulas = (text: string): FormulaMatch[] => {
-	const matches: FormulaMatch[] = []
-	const len = text.length
-	let i = 0
-	while (i < len) {
-		if (text[i] === '\\') {
-			i += 2
-			continue
-		}
-		if (text[i] !== '$') {
-			i++
-			continue
-		}
-		const display = text[i + 1] === '$'
-		const openLen = display ? 2 : 1
-		const contentStart = i + openLen
-		if (contentStart >= len || /\s/.test(text[contentStart])) {
-			i = contentStart
-			continue
-		}
-		let j = contentStart
-		let closeStart = -1
-		while (j < len) {
-			const ch = text[j]
-			if (ch === '\\') {
-				j += 2
-				continue
-			}
-			if (ch === '$') {
-				if (display) {
-					if (text[j + 1] === '$') {
-						closeStart = j
-						break
-					}
-					j++
-					continue
-				}
-				if (text[j + 1] === '$') {
-					// $$ 不是行内公式的闭合符
-					j += 2
-					continue
-				}
-				closeStart = j
-				break
-			}
-			if (!display && ch === '\n') break
-			j++
-		}
-		if (closeStart === -1) {
-			i = contentStart
-			continue
-		}
-		const latex = text.slice(contentStart, closeStart)
-		if (!latex.trim() || /\s$/.test(latex)) {
-			i = contentStart
-			continue
-		}
-		matches.push({ from: i, to: closeStart + openLen, latex, display })
-		i = closeStart + openLen
-	}
-	return matches
-}
 
 /** 收集 Markdown 代码区（围栏/缩进代码块、行内代码）范围，公式扫描需跳过 */
 const collectCodeRanges = (state: EditorState): { from: number; to: number }[] => {
@@ -151,8 +69,7 @@ class FormulaWidget extends WidgetType {
  * 不可局部删除（退格按整体处理），点击标签通过 onEdit 回调打开公式编辑器。
  */
 export const formulaAtom = (onEdit: FormulaEditHandler): Extension => {
-	const buildDecorations = (view: EditorView): DecorationSet => {
-		const { state } = view
+	const buildDecorations = (state: EditorState): DecorationSet => {
 		const text = state.doc.toString()
 		const codeRanges = collectCodeRanges(state)
 		const builder = new RangeSetBuilder<Decoration>()
@@ -172,29 +89,15 @@ export const formulaAtom = (onEdit: FormulaEditHandler): Extension => {
 		return builder.finish()
 	}
 
-	const plugin = ViewPlugin.fromClass(
-		class {
-			decorations: DecorationSet
-
-			constructor(readonly view: EditorView) {
-				this.decorations = buildDecorations(view)
-			}
-
-			update(update: ViewUpdate) {
-				if (
-					update.docChanged ||
-					update.viewportChanged ||
-					syntaxTree(update.state) !== syntaxTree(update.startState)
-				) {
-					this.decorations = buildDecorations(this.view)
-				}
-			}
-		},
-		{ decorations: (value) => value.decorations }
-	)
+	// 块级装饰只能由 StateField 提供，不能通过 ViewPlugin
+	const decorations = StateField.define<DecorationSet>({
+		create: (state) => buildDecorations(state),
+		update: (value, tr) => (tr.docChanged ? buildDecorations(tr.state) : value),
+		provide: (field) => EditorView.decorations.from(field)
+	})
 
 	// 原子范围：光标跳过公式标签，删除操作把公式视为一个整体
-	const atomic = EditorView.atomicRanges.of((view) => view.plugin(plugin)?.decorations ?? Decoration.none)
+	const atomic = EditorView.atomicRanges.of((view) => view.state.field(decorations))
 
-	return [plugin, atomic]
+	return [decorations, atomic]
 }

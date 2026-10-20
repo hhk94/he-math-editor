@@ -1,5 +1,8 @@
 /* heMathEditor 全局样式 */
 
+@use './markdown-body';
+@use './demo';
+
 * {
 	margin: 0;
 	padding: 0;
