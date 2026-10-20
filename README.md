@@ -1,104 +1,106 @@
 # heMathEditor
 
-基于 **Vue 3 + Vite** 的数学公式编辑器，采用「两层编辑」架构：
+English | [简体中文](./README.zh-CN.md)
 
-- **第一层 `HeMdEditor`**：Markdown 编辑器（CodeMirror 6），公式以整体标签嵌入正文，正文中不能修改公式局部内容。
-- **第二层 `HeFormulaDialog`**：点击公式标签或工具栏「∑ 公式」打开，使用 MathLive 所见即所得输入 LaTeX，并用 MathJax 实时预览。
+A math formula editor built with **Vue 3 + Vite**, using a two-layer editing model:
 
-项目当前以组件库 + 演示页的形式组织，可直接运行查看效果，也可按需复用其中的组件与工具。
+- **Layer 1 `HeMdEditor`**: a Markdown editor (CodeMirror 6). Formulas are embedded as atomic labels; their internals cannot be edited directly in the document.
+- **Layer 2 `HeFormulaDialog`**: opened by clicking a formula label or the "∑ Formula" toolbar button. It provides MathLive WYSIWYG LaTeX input with a live MathJax preview.
 
-## 特性
+The project is organized as a component library plus a demo app. You can run it directly or reuse the components and utilities.
 
-- **所见即所得公式输入**：基于 MathLive 的 `<math-field>`，支持虚拟键盘与结构化输入。
-- **公式原子化**：正文中的 `$...$` / `$$...$$` 被替换为不可局部编辑、不可局部删除的整体标签。
-- **点击即编辑**：点击公式标签打开弹窗，确认后原位替换，保持 Markdown 源码整洁。
-- **分栏实时预览**：Markdown 预览与公式渲染同步更新，输入防抖 250ms。
-- **代码高亮**：围栏代码块按语言用 highlight.js 着色，未知语言回退为纯文本。
-- **Markdown 工具栏**：标题、加粗、斜体、删除线、行内代码、引用、列表、任务列表、代码块、链接、图片、表格、分割线。
-- **本地 MathJax**：使用 `public/mathjax/tex-svg.js`（MathJax 3.2.2），不依赖 CDN，离线可用。
-- **只读展示**：`HeMdViewer` 仅渲染后端返回的 Markdown，不加载 CodeMirror / MathLive。
-- **演示页导航**：顶部导航可切换 HeMdEditor、HeMdViewer、HeMdWysiwyg 三个展示页。
-- **组件化输出**：`src/index.ts` 统一导出组件与工具，`src/viewer` 提供只读子路径入口。
+## Features
 
-## 快速开始
+- **WYSIWYG formula input**: MathLive `<math-field>` with virtual keyboard and structured input.
+- **Atomic formulas**: `$...$` / `$$...$$` are replaced with a single label that cannot be partially edited or deleted.
+- **Click to edit**: click a formula label to open the dialog; confirming replaces it in place while keeping the Markdown source clean.
+- **Split live preview**: Markdown and formula rendering update together with a 250 ms debounce.
+- **Syntax highlighting**: fenced code blocks are highlighted by highlight.js based on their language; unknown languages fall back to plain text.
+- **Markdown toolbar**: headings, bold, italic, strikethrough, inline code, blockquote, lists, task lists, code blocks, links, images, tables, and horizontal rules.
+- **Local MathJax**: uses `public/mathjax/tex-svg.js` (MathJax 3.2.2), with no CDN dependency and offline support.
+- **Read-only viewer**: `HeMdViewer` renders Markdown returned by a backend without loading CodeMirror or MathLive.
+- **Demo navigation**: a top navigation bar switches between the HeMdEditor, HeMdViewer, and HeMdWysiwyg demo pages.
+- **Component exports**: `src/index.ts` exports components and utilities; `src/viewer` provides a lean viewer entry.
 
-环境要求：Node.js 18+（建议 20+）。
+## Quick Start
+
+Requirements: Node.js 18+ (20+ recommended).
 
 ```bash
 npm install
-npm run dev      # 开发服务器，默认 http://localhost:3100
-npm run build    # 类型检查 + 生产构建（vue-tsc --noEmit && vite build）
-npm run preview  # 预览构建产物
+npm run dev      # dev server at http://localhost:3100
+npm run build    # type check + production build (vue-tsc --noEmit && vite build)
+npm run preview  # preview the production build
 ```
 
-演示页使用轻量 hash 路由（未引入 vue-router）：
+The demo uses lightweight hash routing (no vue-router):
 
-- `/` 或 `#/`：HeMdEditor 分栏编辑（首页）
-- `#/viewer`：HeMdViewer 只读展示
-- `#/wysiwyg`：HeMdWysiwyg 占位展示（组件尚未实现）
+- `/` or `#/`: HeMdEditor split editor (home)
+- `#/viewer`: HeMdViewer read-only demo
+- `#/wysiwyg`: HeMdWysiwyg placeholder (component not implemented yet)
 
-> 开发服务器监听 `0.0.0.0:3100`，可通过局域网访问。
+> The dev server listens on `0.0.0.0:3100` and is accessible on your LAN.
 
-## 目录结构
+## Project Structure
 
-```
+```text
 heMathEditor/
 ├─ public/
-│  └─ mathjax/tex-svg.js        # 本地 MathJax 3.2.2 构建产物
+│  └─ mathjax/tex-svg.js        # Local MathJax 3.2.2 build
 ├─ src/
 │  ├─ core/
-│  │  ├─ formula/parser.ts      # 公式扫描规则（编辑器与渲染共用的唯一定义）
-│  │  └─ renderer/index.ts      # markdown-it + 数学规则 + 代码高亮
+│  │  ├─ formula/parser.ts      # Single source of truth for formula parsing
+│  │  └─ renderer/index.ts      # markdown-it + math rules + syntax highlighting
 │  ├─ components/
-│  │  ├─ HeMdEditor.vue         # 第一层：Markdown 编辑器（工具栏 + 分栏预览 + 公式弹窗）
-│  │  ├─ HeMdViewer.vue         # 展示模式：只读渲染 Markdown + 公式
-│  │  ├─ HeFormulaDialog.vue    # 第二层：公式编辑弹窗
-│  │  ├─ HeMathInput.vue        # MathLive 公式输入框
-│  │  └─ HeMathPreview.vue      # MathJax 公式预览
+│  │  ├─ HeMdEditor.vue         # Split Markdown editor (toolbar + preview + formula dialog)
+│  │  ├─ HeMdViewer.vue         # Read-only Markdown + formula renderer
+│  │  ├─ HeFormulaDialog.vue    # Formula edit dialog
+│  │  ├─ HeMathInput.vue        # MathLive input field
+│  │  └─ HeMathPreview.vue      # MathJax formula preview
 │  ├─ editor/
-│  │  ├─ formulaAtom.ts         # 公式扫描 + CodeMirror 原子化扩展
-│  │  └─ mdCommands.ts          # Markdown 工具栏命令实现
-│  ├─ viewer/index.ts           # 只读展示子路径入口
+│  │  ├─ formulaAtom.ts         # CodeMirror atomic formula extension
+│  │  └─ mdCommands.ts          # Markdown toolbar commands
+│  ├─ viewer/index.ts           # Viewer subpath entry
 │  ├─ utils/
-│  │  └─ mathjax.ts             # MathJax 单例服务（按需加载、排队渲染）
+│  │  └─ mathjax.ts             # MathJax singleton service (lazy load + queue)
 │  ├─ styles/
-│  │  ├─ index.scss             # 全局样式（含 MathLive 虚拟键盘层级）
-│  │  ├─ markdown-body.scss     # Markdown 排版共享样式（预览与只读展示共用）
-│  │  └─ demo.scss              # 演示页公共样式（卡片、按钮、标签）
+│  │  ├─ index.scss             # Global styles (including MathLive keyboard z-index)
+│  │  ├─ markdown-body.scss     # Shared Markdown typography and highlight theme
+│  │  └─ demo.scss              # Shared demo page styles (cards, buttons, tags)
 │  ├─ pages/
-│  │  ├─ EditorPage.vue         # 首页：HeMdEditor 分栏编辑展示
-│  │  ├─ ViewerPage.vue         # HeMdViewer 只读展示
-│  │  └─ WysiwygPage.vue        # HeMdWysiwyg 占位展示
-│  ├─ App.vue                   # 应用外壳：顶部导航 + hash 路由
-│  ├─ index.ts                  # 组件库入口（桶文件）
-│  └─ main.ts                   # 应用入口
+│  │  ├─ EditorPage.vue         # Home: HeMdEditor demo
+│  │  ├─ ViewerPage.vue         # HeMdViewer demo
+│  │  └─ WysiwygPage.vue        # HeMdWysiwyg placeholder
+│  ├─ App.vue                   # App shell: top navigation + hash routing
+│  ├─ index.ts                  # Component library entry
+│  └─ main.ts                   # App entry
 ├─ index.html
 ├─ vite.config.ts
 ├─ tsconfig.json
 └─ package.json
 ```
 
-## 组件说明
+## Components
 
 ### HeMdEditor
 
-Markdown 编辑器，内置工具栏、公式原子化与可选的右侧实时预览。
+Markdown editor with a built-in toolbar, atomic formulas, and an optional live preview pane.
 
-| Prop | 类型 | 默认值 | 说明 |
+| Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `modelValue` | `string` | `''` | Markdown 源码，支持 `v-model` |
-| `preview` | `boolean` | `true` | 是否显示右侧实时预览 |
-| `placeholder` | `string` | `''` | 编辑器占位提示 |
+| `modelValue` | `string` | `''` | Markdown source; supports `v-model` |
+| `preview` | `boolean` | `true` | Show the live preview pane |
+| `placeholder` | `string` | `''` | Editor placeholder |
 
-| 事件 | 参数 | 说明 |
+| Event | Payload | Description |
 | --- | --- | --- |
-| `update:modelValue` | `(value: string)` | 内容变化时触发 |
+| `update:modelValue` | `(value: string)` | Emitted when the content changes |
 
-| 暴露方法 | 说明 |
+| Exposed method | Description |
 | --- | --- |
-| `focus()` | 聚焦编辑器 |
-| `insertText(text: string)` | 在光标处插入文本 |
-| `getValue(): string` | 获取当前 Markdown 源码 |
+| `focus()` | Focus the editor |
+| `insertText(text: string)` | Insert text at the cursor |
+| `getValue(): string` | Get the current Markdown source |
 
 ```vue
 <template>
@@ -109,50 +111,50 @@ Markdown 编辑器，内置工具栏、公式原子化与可选的右侧实时�
 import { ref } from 'vue'
 import { HeMdEditor } from '@/index'
 
-const md = ref('行内公式 $E=mc^2$，行间公式：\n\n$$\n\\int_a^b f(x)\\,dx\n$$')
+const md = ref('Inline formula $E=mc^2$, display formula:\n\n$$\n\\int_a^b f(x)\\,dx\n$$')
 </script>
 ```
 
 ### HeMdViewer
 
-只读展示组件，接收后端返回的 Markdown 源码并渲染，不包含编辑器、工具栏与公式输入。
+Read-only renderer for Markdown returned by a backend. It contains no editor, toolbar, or formula input.
 
-| Prop | 类型 | 默认值 | 说明 |
+| Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `markdown` | `string` | `''` | 待渲染的 Markdown 源码，支持 `$...$` / `$$...$$` |
-| `emptyText` | `string` | `''` | 内容为空时的占位文本 |
+| `markdown` | `string` | `''` | Markdown source; supports `$...$` / `$$...$$` |
+| `emptyText` | `string` | `''` | Placeholder text when the content is empty |
 
 ```vue
 <script setup lang="ts">
 import { HeMdViewer } from '@/viewer'
 
-const markdown = '## 标题\n\n行内公式 $a^2+b^2=c^2$'
+const markdown = '## Title\n\nInline formula $a^2+b^2=c^2$'
 </script>
 
 <template>
-  <HeMdViewer :markdown="markdown" empty-text="暂无内容" />
+  <HeMdViewer :markdown="markdown" empty-text="No content" />
 </template>
 ```
 
-> 打包后对应子路径 `he-math-editor/viewer`，只读场景不会引入 CodeMirror 与 MathLive。
+> The intended packaged subpath is `he-math-editor/viewer`; it does not pull in CodeMirror or MathLive.
 
 ### HeFormulaDialog
 
-公式编辑弹窗，内部组合 `HeMathInput`（输入）、`HeMathPreview`（预览）和常用符号面板。
+Formula editing dialog combining `HeMathInput` (input), `HeMathPreview` (preview), and a common-symbol palette.
 
-| Prop | 类型 | 默认值 | 说明 |
+| Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `modelValue` | `boolean` | - | 是否显示弹窗，支持 `v-model` |
-| `latex` | `string` | `''` | 初始 LaTeX |
-| `display` | `boolean` | `false` | 初始是否为行间公式 |
-| `title` | `string` | `'公式编辑'` | 弹窗标题 |
-| `confirmText` | `string` | `'插入'` | 确认按钮文案 |
-| `cancelText` | `string` | `'取消'` | 取消按钮文案 |
+| `modelValue` | `boolean` | - | Whether the dialog is open; supports `v-model` |
+| `latex` | `string` | `''` | Initial LaTeX |
+| `display` | `boolean` | `false` | Whether the initial formula is display mode |
+| `title` | `string` | `'公式编辑'` (Edit formula) | Dialog title |
+| `confirmText` | `string` | `'插入'` (Insert) | Confirm button label |
+| `cancelText` | `string` | `'取消'` (Cancel) | Cancel button label |
 
-| 事件 | 参数 | 说明 |
+| Event | Payload | Description |
 | --- | --- | --- |
-| `update:modelValue` | `(visible: boolean)` | 弹窗开关状态变化 |
-| `confirm` | `(latex: string, display: boolean)` | 点击确认，回传 LaTeX 与是否行间 |
+| `update:modelValue` | `(visible: boolean)` | Dialog visibility changed |
+| `confirm` | `(latex: string, display: boolean)` | Emitted on confirm with LaTeX and the display flag |
 
 ```vue
 <HeFormulaDialog
@@ -165,135 +167,136 @@ const markdown = '## 标题\n\n行内公式 $a^2+b^2=c^2$'
 
 ### HeMathInput
 
-MathLive 公式输入框，`v-model` 绑定 LaTeX 源码。
+MathLive formula input bound to a LaTeX string via `v-model`.
 
-| Prop | 类型 | 默认值 | 说明 |
+| Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `modelValue` | `string` | `''` | LaTeX 源码 |
+| `modelValue` | `string` | `''` | LaTeX source |
 
-| 事件 | 参数 | 说明 |
+| Event | Payload | Description |
 | --- | --- | --- |
-| `update:modelValue` | `(value: string)` | 输入变化时触发 |
+| `update:modelValue` | `(value: string)` | Emitted when the input changes |
 
-暴露方法：`focus()`、`insert(latex: string)`、`getValue(): string`。
+Exposed methods: `focus()`, `insert(latex: string)`, `getValue(): string`.
 
 ### HeMathPreview
 
-MathJax 公式预览组件。
+MathJax formula preview component.
 
-| Prop | 类型 | 默认值 | 说明 |
+| Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `latex` | `string` | `''` | 待渲染的 LaTeX |
-| `display` | `boolean` | `false` | `true` 按行间公式渲染（`\[...\]`），否则按行内（`\(...\)`） |
+| `latex` | `string` | `''` | LaTeX to render |
+| `display` | `boolean` | `false` | Render as display math (`\[...\]`) when `true`, otherwise inline (`\(...\)`) |
 
-### 工具函数
+### Utilities
 
 ```ts
 import { mathJaxService, renderTex, formulaAtom, scanFormulas, renderMarkdownInto } from '@/index'
 import type { FormulaRef, FormulaEditHandler, FormulaMatch } from '@/index'
 
-// 对任意 DOM 元素内的 \(...\) / \[...\] 排版（MathJax 未就绪时自动排队）
+// Typeset \(...\) / \[...\] inside any DOM element (queued until MathJax is ready)
 await mathJaxService.renderElement(el)
 
-// 是否已加载完成
+// Whether MathJax has loaded
 mathJaxService.isMathJaxLoaded()
 
-// 将 <span class="latex">...</span> 转为 MathJax 行内分隔符
+// Convert <span class="latex">...</span> to MathJax inline delimiters
 const html = renderTex('<span class="latex">x^2</span>')
 
-// 为 CodeMirror 注入公式原子化扩展
+// Add the atomic formula extension to CodeMirror
 const extension = formulaAtom((formula: FormulaRef) => {
   // formula: { from, to, latex, display }
 })
 
-// 扫描 Markdown 中的公式（from/to 含分隔符）
+// Scan Markdown for formulas (from/to include delimiters)
 const formulas: FormulaMatch[] = scanFormulas(markdown)
 
-// 渲染 Markdown 到指定元素，并用 MathJax 排版其中的公式
+// Render Markdown into an element and typeset its formulas with MathJax
 await renderMarkdownInto(el, markdown)
 ```
 
-## 公式书写规则
+## Formula Syntax
 
-- 行内公式：`$...$`，不跨行。
-- 行间公式：`$$...$$`，允许跨行。
-- 行内公式开 `$` 后、闭 `$` 前不能是空白字符，否则不识别。
-- 行间公式 `$$` 后允许换行与首尾空白，LaTeX 会去除首尾空白。
-- `\$` 视为转义美元符号，不参与配对。
-- 围栏代码块、缩进代码块、行内代码中的 `$` 不会被识别为公式。
+- Inline: `$...$`, single line only.
+- Display: `$$...$$`, may span multiple lines.
+- For inline formulas, no whitespace is allowed immediately after the opening `$` or before the closing `$`.
+- For display formulas, newlines and surrounding whitespace are allowed; the LaTeX is trimmed.
+- `\$` is treated as an escaped dollar sign and does not participate in pairing.
+- Dollar signs inside fenced code blocks, indented code blocks, and inline code are not treated as formulas.
 
-示例：
+Example:
 
 ```markdown
-质能方程 $E=mc^2$。
+Mass-energy equivalence: $E=mc^2$.
 
 $$
 \int_a^b f(x)\,dx = F(b)-F(a)
 $$
 ```
 
-## 关键实现
+## Implementation Notes
 
-### 公式原子化
+### Atomic formulas
 
-[formulaAtom.ts](src/editor/formulaAtom.ts) 在 CodeMirror 中扫描全文公式，用 `Decoration.replace` + 自定义 `WidgetType` 将公式替换为整体标签：
+[formulaAtom.ts](src/editor/formulaAtom.ts) scans the document in CodeMirror and replaces formulas with a single label using `Decoration.replace` and a custom `WidgetType`:
 
-- 通过 `EditorView.atomicRanges` 让光标跳过公式、退格整体删除；
-- 装饰由 `StateField` 提供，跨行公式的块级装饰不能通过 `ViewPlugin` 注入；
-- 跨行公式使用块级替换装饰；
-- 标签内用 MathJax 渲染，点击 `mousedown` 回传 `FormulaRef` 打开弹窗；
-- 使用语法树排除代码区域，避免误识别。
+- `EditorView.atomicRanges` makes the cursor skip formulas and deletes them as a whole.
+- Decorations are provided by a `StateField`; block decorations for multi-line formulas cannot come from a `ViewPlugin`.
+- Multi-line formulas use block replacement decorations.
+- Labels are typeset with MathJax; clicking one triggers a `mousedown` handler that returns a `FormulaRef` and opens the dialog.
+- The syntax tree is used to skip code regions.
 
-公式扫描规则统一定义在 [parser.ts](src/core/formula/parser.ts)，编辑器原子化与 Markdown 渲染共用同一实现。
+The parsing rules live in [parser.ts](src/core/formula/parser.ts); both the editor and the Markdown renderer use the same implementation.
 
-### 预览渲染
+### Preview rendering
 
-[renderer/index.ts](src/core/renderer/index.ts) 提供统一的 `markdownRenderer` 与 `renderMarkdownInto`：用 markdown-it 渲染 Markdown，并注册数学规则，将公式输出为显式分隔符 `\(...\)` / `\[...\]`，再由 MathJax 排版。Markdown 原文中的 `$` 不直接交给 MathJax 解析，避免误配对。
+[renderer/index.ts](src/core/renderer/index.ts) provides a shared `markdownRenderer` and `renderMarkdownInto`. It renders Markdown with markdown-it, registers math rules that emit explicit `\(...\)` / `\[...\]` delimiters, and then typesets them with MathJax. Raw `$` characters are never passed directly to MathJax, avoiding accidental pairing.
 
-### 代码高亮
+### Syntax highlighting
 
-围栏代码块通过 markdown-it 的 `highlight` 选项交给 highlight.js 着色。使用 core 构建并按需注册语言，避免引入完整语言包：
+Fenced code blocks are highlighted by highlight.js through markdown-it's `highlight` option. The core build is used with only the required languages registered:
 
-- 已注册：`bash`、`css`、`java`、`javascript`、`json`、`markdown`、`python`、`sql`、`typescript`、`xml`（含常用别名，如 `ts`、`js`、`html`）。
-- 未标记语言或未知语言返回空字符串，由 markdown-it 转义后输出纯文本。
-- 主题色定义在 [markdown-body.scss](src/styles/markdown-body.scss) 的 `.hljs-*` 规则中，不依赖 highlight.js 自带 CSS。
+- Registered: `bash`, `css`, `java`, `javascript`, `json`, `markdown`, `python`, `sql`, `typescript`, `xml` (including common aliases such as `ts`, `js`, and `html`).
+- Unknown or missing languages return an empty string, so markdown-it escapes the code as plain text.
+- Theme colors are defined by the `.hljs-*` rules in [markdown-body.scss](src/styles/markdown-body.scss); no external highlight.js CSS is required.
 
-### 只读展示
+### Read-only viewer
 
-`HeMdViewer` 只调用 `renderMarkdownInto`，不引入 CodeMirror 与 MathLive。容器使用 `.he-markdown-body`，与编辑器预览共享 [markdown-body.scss](src/styles/markdown-body.scss) 排版样式，保证两种模式视觉一致。
+`HeMdViewer` only calls `renderMarkdownInto` and does not import CodeMirror or MathLive. Its container uses `.he-markdown-body` and shares [markdown-body.scss](src/styles/markdown-body.scss) with the editor preview, keeping both modes visually consistent.
 
-### MathJax 服务
+### MathJax service
 
-[mathjax.ts](src/utils/mathjax.ts) 维护单例：
+[mathjax.ts](src/utils/mathjax.ts) maintains a singleton:
 
-- 首次调用时动态注入 `public/mathjax/tex-svg.js`，配置必须在脚本加载前写入；
-- 关闭自动排版（`startup.typeset: false`），改为按元素 `typesetClear` + `typesetPromise`；
-- 加载完成前的渲染请求进入队列，加载后依次执行；
-- 注册 `\oiint` / `\oiiint` 宏，使用 `◯` 叠加 `∬` / `∭` 实现。
+- It injects `public/mathjax/tex-svg.js` on first use; configuration must be written before the script loads.
+- Auto-typesetting is disabled (`startup.typeset: false`); each element is processed with `typesetClear` + `typesetPromise`.
+- Render requests made before MathJax loads are queued and flushed on load.
+- `\oiint` / `\oiiint` macros are implemented by overlaying `◯` on `∬` / `∭`.
 
-## 技术栈
+## Tech Stack
 
-| 类别 | 选型 |
+| Category | Choice |
 | --- | --- |
-| 框架 | Vue 3.5（`<script setup>` + TypeScript） |
-| 构建 | Vite 6 |
-| 编辑器内核 | CodeMirror 6（`@codemirror/*`） |
-| Markdown 渲染 | markdown-it 14 + highlight.js 11 |
-| 公式输入 | MathLive 0.100 |
-| 公式渲染 | MathJax 3.2.2（本地 `tex-svg.js`） |
-| 样式 | SCSS（sass） |
+| Framework | Vue 3.5 (`<script setup>` + TypeScript) |
+| Build | Vite 6 |
+| Editor core | CodeMirror 6 (`@codemirror/*`) |
+| Markdown | markdown-it 14 + highlight.js 11 |
+| Formula input | MathLive 0.100 |
+| Formula rendering | MathJax 3.2.2 (local `tex-svg.js`) |
+| Styles | SCSS (sass) |
 
-## 开发约定
+## Development Conventions
 
-- 代码缩进使用 **Tab**，组件使用 `<script setup lang="ts">`，样式使用 `scoped`。
-- 路径别名 `@` 指向 `src`。
-- MathLive 的 `<math-field>` 需保留为原生自定义元素，已在 `vite.config.ts` 中通过 `isCustomElement` 放行。
-- 项目暂无自动化测试，提交前至少执行一次 `npm run build` 完成类型检查与构建验证。
-- Markdown 排版样式统一维护在 `src/styles/markdown-body.scss`，编辑器预览与 `HeMdViewer` 共用。
-- 演示页使用轻量 hash 路由（`src/App.vue`），页面放在 `src/pages`，公共样式放在 `src/styles/demo.scss`。
-- 面向 AI / 协作者的快速上下文见 [README.ai.md](README.ai.md)。
-- 版本变更记录见 [CHANGELOG.md](CHANGELOG.md)，**每次提交代码都必须同步更新版本说明**。
+- Use **tabs** for indentation, `<script setup lang="ts">` for components, and `scoped` styles.
+- The `@` path alias points to `src`.
+- MathLive's `<math-field>` must remain a native custom element; `vite.config.ts` allows it via `isCustomElement`.
+- There is no automated test suite; run `npm run build` before committing to verify types and the production build.
+- Markdown typography is maintained in `src/styles/markdown-body.scss` and shared by the editor preview and `HeMdViewer`.
+- The demo uses lightweight hash routing (`src/App.vue`); pages live in `src/pages`, and shared demo styles live in `src/styles/demo.scss`.
+- AI/collaborator context (Chinese): [README.ai.md](README.ai.md).
+- Version history: [CHANGELOG.md](CHANGELOG.md). **Every code commit must update the changelog.**
 
-## 仓库
+## Repositories
 
-- Gitee：<https://gitee.com/hkchina/he-math-editor.git>
+- GitHub: <https://github.com/hhk94/he-math-editor>
+- Gitee: <https://gitee.com/hkchina/he-math-editor>

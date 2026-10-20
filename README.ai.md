@@ -1,6 +1,6 @@
 # README.ai.md · 面向 AI 的项目速读
 
-> 目标：让 AI 在最少上下文中理解 heMathEditor 的架构、契约、不变量与改动路径。人类向说明见 [README.md](README.md)。
+> 目标：让 AI 在最少上下文中理解 heMathEditor 的架构、契约、不变量与改动路径。人类向说明见 [README.md](README.md)（英文）与 [README.zh-CN.md](README.zh-CN.md)（中文）。
 
 ## 1. 一句话定位
 
@@ -77,7 +77,7 @@ App.vue（应用外壳：hash 路由 + 顶部导航）
 - 通过 `syntaxTree` 排除 `FencedCode` / `IndentedCode` / `InlineCode`。
 - 跨行公式必须用 `Decoration.replace({ widget, block: true })` 覆盖整行。
 
-不变量：`matchFormulaAt` 是公式识别的**唯一实现**。`scanFormulas`（编辑器原子化）与 `core/renderer` 的 markdown-it 规则都复用它，不再维护两份规则。修改公式语法只需改 `core/formula/parser.ts`，并同步 README 的「公式书写规则」。
+不变量：`matchFormulaAt` 是公式识别的**唯一实现**。`scanFormulas`（编辑器原子化）与 `core/renderer` 的 markdown-it 规则都复用它，不再维护两份规则。修改公式语法只需改 `core/formula/parser.ts`，并同步 README.md / README.zh-CN.md 的公式规则。
 
 ### 5.2 原子化
 
@@ -130,7 +130,7 @@ App.vue（应用外壳：hash 路由 + 顶部导航）
 | --- | --- |
 | 新增 Markdown 工具栏按钮 | `src/editor/mdCommands.ts` 加命令；`HeMdEditor.vue` 的 `tools` 数组注册 |
 | 新增公式常用符号 | `HeFormulaDialog.vue` 的 `symbols`；演示页 `EditorPage.vue` 的 `symbols` 可选同步 |
-| 修改公式分隔符/识别规则 | `src/core/formula/parser.ts`（唯一定义）+ `src/core/renderer/index.ts`（token 输出）+ `mathjax.ts`（分隔符配置）+ README |
+| 修改公式分隔符/识别规则 | `src/core/formula/parser.ts`（唯一定义）+ `src/core/renderer/index.ts`（token 输出）+ `mathjax.ts`（分隔符配置）+ README.md / README.zh-CN.md |
 | 新增代码高亮语言 | `src/core/renderer/index.ts` 导入并 `registerLanguage`；必要时在 `markdown-body.scss` 补充 token 样式 |
 | 新增/导出组件 | 组件文件 + `src/index.ts`；需要独立入口时新增 `src/<name>/index.ts` |
 | 调整公式标签样式 | `HeMdEditor.vue` 中 `:deep(.he-formula-atom*)` |

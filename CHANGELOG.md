@@ -34,7 +34,8 @@
 
 ### 文档
 
-- 新增 [README.md](README.md)：项目介绍、快速开始、目录结构、组件 API、公式规则与实现说明。
+- README 支持中英文：`README.md` 为英文默认，`README.zh-CN.md` 为中文，两份顶部均提供语言切换；同步补充 GitHub 仓库地址。
+- 新增 [README.md](README.md) / [README.zh-CN.md](README.zh-CN.md)：项目介绍、快速开始、目录结构、组件 API、公式规则与实现说明。
 - 新增 [README.ai.md](README.ai.md)：面向 AI 的架构速读、数据契约、核心机制、改动路径与易错点。
 - 新增 CHANGELOG.md（本文件），确立「每次提交同步更新版本说明」的维护规则。
 
