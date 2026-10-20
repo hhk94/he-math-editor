@@ -36,14 +36,10 @@ class MathJaxService {
 		// 必须在脚本加载前写入配置
 		window.MathJax = {
 			tex: {
-				inlineMath: [
-					['$', '$'],
-					['\\(', '\\)']
-				],
-				displayMath: [
-					['$$', '$$'],
-					['\\[', '\\]']
-				],
+				// 仅识别 \(...\) / \[...\] 显式分隔符：
+				// 预览由 markdown-it 数学规则输出显式分隔符，关闭 $ 可避免正文中的美元符号被误配对
+				inlineMath: [['\\(', '\\)']],
+				displayMath: [['\\[', '\\]']],
 				processEscapes: true,
 				// 本地 MathJax 3.2.2 未内置 \oiint/\oiiint，用 ◯(U+25EF) 叠加 ∬/∭ 自定义，
 				// 字形由该构建自带；偏移量按实测字宽（◯ 1.221em、∬ 1.169em、∭ 1.593em）计算

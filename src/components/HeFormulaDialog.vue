@@ -11,8 +11,14 @@
 					<div class="he-field-label">公式编辑区（所见即所得）</div>
 					<HeMathInput ref="inputRef" v-model="latex" />
 
-					<div class="he-field-label he-field-label--gap">实时预览</div>
-					<HeMathPreview :latex="latex" />
+					<div class="he-field-label he-field-label--gap">
+						实时预览
+						<label class="he-display-toggle">
+							<input v-model="displayMode" type="checkbox" />
+							行间公式（独立成行）
+						</label>
+					</div>
+					<HeMathPreview :latex="latex" :display="displayMode" />
 
 					<div class="he-field-label he-field-label--gap">常用符号</div>
 					<div class="he-symbols">
@@ -42,18 +48,21 @@ import HeMathPreview from './HeMathPreview.vue'
 /**
  * HeFormulaDialog —— 公式编辑器弹窗
  * 组合 HeMathInput（MathLive 输入）+ HeMathPreview（MathJax 预览）+ 符号面板
- * 打开时通过 latex 传入初始公式，确认后通过 confirm 事件回传 LaTeX 源码
+ * 打开时通过 latex / display 传入初始公式，确认后通过 confirm 事件回传 LaTeX 源码与是否行间
  */
 const props = withDefaults(
 	defineProps<{
 		modelValue: boolean
 		latex?: string
+		/** 初始是否为行间公式（$$...$$） */
+		display?: boolean
 		title?: string
 		confirmText?: string
 		cancelText?: string
 	}>(),
 	{
 		latex: '',
+		display: false,
 		title: '公式编辑',
 		confirmText: '插入',
 		cancelText: '取消'
@@ -62,10 +71,11 @@ const props = withDefaults(
 
 const emit = defineEmits<{
 	(e: 'update:modelValue', value: boolean): void
-	(e: 'confirm', latex: string): void
+	(e: 'confirm', latex: string, display: boolean): void
 }>()
 
 const latex = ref('')
+const displayMode = ref(false)
 const error = ref('')
 const inputRef = ref<InstanceType<typeof HeMathInput>>()
 
@@ -86,6 +96,7 @@ watch(
 	(visible) => {
 		if (!visible) return
 		latex.value = props.latex ?? ''
+		displayMode.value = props.display
 		error.value = ''
 		nextTick(() => inputRef.value?.focus())
 	}
@@ -105,7 +116,7 @@ const confirm = () => {
 		error.value = '请先输入公式'
 		return
 	}
-	emit('confirm', text)
+	emit('confirm', text, displayMode.value)
 	emit('update:modelValue', false)
 }
 </script>
@@ -178,6 +189,19 @@ const confirm = () => {
 
 .he-field-label--gap {
 	margin-top: 14px;
+}
+
+.he-display-toggle {
+	margin-left: 12px;
+	font-size: 12px;
+	font-weight: 400;
+	color: #666;
+	cursor: pointer;
+}
+
+.he-display-toggle input {
+	margin-right: 4px;
+	vertical-align: -1px;
 }
 
 .he-symbols {

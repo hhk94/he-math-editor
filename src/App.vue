@@ -5,9 +5,18 @@
 			<p class="page__sub">基于 MathLive（所见即所得输入）+ MathJax（公式渲染）的数学公式编辑器</p>
 		</header>
 
-		<!-- 1. 公式编辑弹窗 -->
+		<!-- 1. 第一层：Markdown 编辑器（集成公式编辑弹窗） -->
 		<section class="card">
-			<h2 class="card__title">公式编辑弹窗 HeFormulaDialog</h2>
+			<h2 class="card__title">Markdown 编辑器 HeMdEditor（第一层）</h2>
+			<p class="card__desc">
+				工具栏覆盖常用 Markdown 语法；公式以整体标签嵌入正文，点击标签打开公式编辑器，正文中无法修改公式局部。
+			</p>
+			<HeMdEditor v-model="mdText" preview />
+		</section>
+
+		<!-- 2. 公式编辑弹窗 -->
+		<section class="card">
+			<h2 class="card__title">公式编辑弹窗 HeFormulaDialog（第二层）</h2>
 			<p class="card__desc">点击按钮打开弹窗，编辑完成后确认，结果 LaTeX 会回传到页面。</p>
 			<div class="card__row">
 				<button class="btn btn--primary" type="button" @click="openDialog">打开公式编辑器</button>
@@ -15,11 +24,11 @@
 			</div>
 			<div class="card__block">
 				<div class="card__label">MathJax 渲染结果</div>
-				<HeMathPreview :latex="resultLatex" display />
+				<HeMathPreview :latex="resultLatex" :display="resultDisplay" />
 			</div>
 		</section>
 
-		<!-- 2. 内嵌输入 + 实时预览 -->
+		<!-- 3. 内嵌输入 + 实时预览 -->
 		<section class="card">
 			<h2 class="card__title">内嵌输入 HeMathInput + 实时预览 HeMathPreview</h2>
 			<p class="card__desc">两个组件都支持直接复用：输入框通过 v-model 绑定 LaTeX，预览组件用 MathJax 排版。</p>
@@ -39,18 +48,38 @@
 			</div>
 		</section>
 
-		<HeFormulaDialog v-model="dialogVisible" :latex="resultLatex" @confirm="onConfirm" />
+		<HeFormulaDialog v-model="dialogVisible" :latex="resultLatex" :display="resultDisplay" @confirm="onConfirm" />
 	</div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import HeMdEditor from '@/components/HeMdEditor.vue'
 import HeMathInput from '@/components/HeMathInput.vue'
 import HeMathPreview from '@/components/HeMathPreview.vue'
 import HeFormulaDialog from '@/components/HeFormulaDialog.vue'
 
+const mdText = ref(
+	String.raw`# 示例文档
+
+这是一段 **Markdown** 正文，行内公式 $E=mc^2$ 与行间公式：
+
+$$
+\int_a^b f(x)\,dx = F(b)-F(a)
+$$
+
+- 列表项一
+- 列表项二
+- [ ] 待办任务
+
+> 公式在正文中是整体标签，点击即可编辑。
+
+代码中的 \`$x^2$\` 不会被当作公式。`
+)
+
 const dialogVisible = ref(false)
 const resultLatex = ref('')
+const resultDisplay = ref(false)
 const inlineLatex = ref('\\frac{1}{x} + \\lim_{n \\to \\infty} a_n')
 
 const symbols = [
@@ -69,8 +98,9 @@ const openDialog = () => {
 	dialogVisible.value = true
 }
 
-const onConfirm = (latex: string) => {
+const onConfirm = (latex: string, display: boolean) => {
 	resultLatex.value = latex
+	resultDisplay.value = display
 }
 
 const insertSymbol = (sym: string) => {
@@ -80,7 +110,7 @@ const insertSymbol = (sym: string) => {
 
 <style scoped>
 .page {
-	max-width: 900px;
+	max-width: 1080px;
 	margin: 0 auto;
 	padding: 32px 20px 60px;
 }
