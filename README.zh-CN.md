@@ -382,6 +382,46 @@ $$
 - 面向 AI / 协作者的快速上下文见 [README.ai.md](README.ai.md)。
 - 版本变更记录见 [CHANGELOG.md](CHANGELOG.md)，**每次提交代码都必须同步更新版本说明**。
 
+## 分支与提交流程
+
+按改动风险选择分支策略：
+
+| 场景 | 做法 |
+| --- | --- |
+| 文档、注释、小 bug（1–2 个文件，低风险） | 直接提交 `master` |
+| 新功能、重构、跨文件或交互变更 | 拉 `feat/*` 分支 |
+| 发版前整理版本号与 CHANGELOG | `release/x.y.z` 分支 + tag |
+| 发布后的紧急修复 | `hotfix/*` 分支 |
+
+标准流程：
+
+```bash
+git checkout master
+git pull --rebase
+git checkout -b feat/xxx
+
+# 修改代码；涉及工具栏时同步更新 CHANGELOG.md 与 TOOLBAR.md
+npx vue-tsc --noEmit
+
+git add <具体文件>
+git commit -m "feat: ..."
+git push -u origin feat/xxx
+```
+
+合并与清理：
+
+```bash
+git checkout master
+git merge --no-ff feat/xxx
+git push
+git branch -d feat/xxx
+```
+
+- 本仓库推荐本地合并：一次 `git push` 会同时更新 Gitee 和 GitHub。
+- 如使用 Gitee MR / GitHub PR，在网页合并后需要在本地 `git pull` 再 `git push`，让另一个远程保持同步。
+- 分支从最新 `master` 拉出，保持短生命周期，合并后删除。
+- 分支命名使用 `feat/`、`fix/`、`docs/`、`refactor/`。
+
 ## 仓库
 
 - GitHub：<https://github.com/hhk94/he-math-editor>

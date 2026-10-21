@@ -382,6 +382,46 @@ UI strings are managed by vue-i18n in Composition API mode.
 - AI/collaborator context (Chinese): [README.ai.md](README.ai.md).
 - Version history: [CHANGELOG.md](CHANGELOG.md). **Every code commit must update the changelog.**
 
+## Git Workflow
+
+Choose a branch strategy based on risk:
+
+| Scenario | Approach |
+| --- | --- |
+| Docs, comments, small bug fixes (1–2 files, low risk) | Commit directly to `master` |
+| New features, refactors, cross-file or interaction changes | Create a `feat/*` branch |
+| Preparing a release (version + changelog) | `release/x.y.z` branch + tag |
+| Urgent fix after a release | `hotfix/*` branch |
+
+Standard flow:
+
+```bash
+git checkout master
+git pull --rebase
+git checkout -b feat/xxx
+
+# make changes; update CHANGELOG.md and TOOLBAR.md when toolbar support changes
+npx vue-tsc --noEmit
+
+git add <files>
+git commit -m "feat: ..."
+git push -u origin feat/xxx
+```
+
+Merge and clean up:
+
+```bash
+git checkout master
+git merge --no-ff feat/xxx
+git push
+git branch -d feat/xxx
+```
+
+- Local merge is recommended for this repository: a single `git push` updates both Gitee and GitHub.
+- To use a Gitee MR / GitHub PR instead, merge in the web UI, then pull locally and push again so the other remote stays in sync.
+- Branch from the latest `master`, keep branches short-lived, and delete them after merging.
+- Use `feat/`, `fix/`, `docs/`, and `refactor/` prefixes.
+
 ## Repositories
 
 - GitHub: <https://github.com/hhk94/he-math-editor>

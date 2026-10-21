@@ -239,6 +239,7 @@ npm run dev     # http://localhost:3100 手工验证
 
 - **每次提交代码前，必须更新 [CHANGELOG.md](CHANGELOG.md) 的 `[未发布]` 区块**，写明新增 / 修复 / 变更 / 移除 / 文档 / 工程。
 - 工具栏按钮、分数格式、符号面板或可编辑区交互有变化时，必须同步更新 [TOOLBAR.md](TOOLBAR.md) 的支持矩阵和更新记录（新增一行「日期 + 支持项」）。
+- 分支策略：文档/小 bug 可直接提交 `master`；新功能、重构、跨文件或交互改动走 `feat/*`；发版走 `release/x.y.z`，紧急修复走 `hotfix/*`。合并前至少运行 `npx vue-tsc --noEmit`；本仓库推荐本地 `git merge --no-ff` 后一次 `git push` 同步 Gitee 与 GitHub。
 - 提交信息沿用现有风格：`feat: ...`、`fix: ...`、`docs: ...`、`init: ...`。
 - 发版时：把 `[未发布]` 归档为 `x.y.z - YYYY-MM-DD`，并同步 `package.json` 的 `version`。
 - 只改文档也必须写 CHANGELOG。

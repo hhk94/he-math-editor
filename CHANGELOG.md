@@ -66,6 +66,7 @@
 - README / README.ai.md 补充斜式结构化分式的渲染、解析、键盘导航与验证说明。
 - README / README.ai.md 补充分子/分母与整数等文本混排、嵌套分式边界文本槽的说明和验证项。
 - 新增 [TOOLBAR.md](TOOLBAR.md)：集中记录 Markdown / 公式工具栏按钮状态、分数格式、可编辑区能力与逐次更新记录；README / README.zh-CN / README.ai 增加入口，并约定工具栏变更必须同步更新该文件与版本说明。
+- README / README.zh-CN / README.ai 补充分支与提交流程：按风险选择直接提交 `master` 或 `feat/*`，包含标准命令、`--no-ff` 本地合并与双远程同步说明。
 - 新增 [README.md](README.md) / [README.zh-CN.md](README.zh-CN.md)：项目介绍、快速开始、目录结构、组件 API、公式规则与实现说明。
 - 新增 [README.ai.md](README.ai.md)：面向 AI 的架构速读、数据契约、核心机制、改动路径与易错点。
 - 新增 CHANGELOG.md（本文件），确立「每次提交同步更新版本说明」的维护规则。
