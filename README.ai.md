@@ -4,9 +4,9 @@
 
 ## 1. 一句话定位
 
-Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正文，公式以 `$...$` / `$$...$$` 源码存储在文档中，但在编辑器里渲染为不可分割的整体标签；点击标签弹出 MathLive 输入 + MathJax 预览的编辑弹窗，确认后原位回写源码。
+Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正文，公式以 `$...$` / `$$...$$` 源码存储在文档中，但在编辑器里渲染为不可分割的整体标签；点击标签弹出 `HeFormulaEditor`（自研 KaTeX 输入 + MathJax 预览），确认后原位回写源码。
 
-当前状态：组件库 + 演示应用。`App.vue` 使用 hash 路由与顶部导航，页面位于 `src/pages`；已实现分栏编辑（`HeMdEditor`）与只读展示（`HeMdViewer`），`WysiwygPage` 为占位页，单栏所见即所得组件尚未实现。
+当前状态：组件库 + 演示应用。`App.vue` 使用 hash 路由与顶部导航，页面位于 `src/pages`；已实现分栏编辑（`HeMdEditor`）、只读展示（`HeMdViewer`）与自研输入实验页（`InputPage`，`#/input`），`WysiwygPage` 为占位页。公式弹窗已拆为 `HeFormulaDialog`（容器）+ `HeFormulaEditor`（UI），弹窗与 `#/input` 共用同一个 UI；`HeMathInput`（MathLive）仅保留在内嵌示例中。
 
 ## 2. 架构分层
 
@@ -19,13 +19,16 @@ App.vue（应用外壳：hash 路由 + 顶部导航）
 │     │  └─ formulaAtom(onEdit)       公式 → 原子标签（Decoration.replace + Widget）
 │     ├─ core/renderer（markdown-it + 数学规则）→ 预览 HTML
 │     │  └─ renderMarkdownInto → mathJaxService.renderElement(el)   逐元素排版
-│     └─ HeFormulaDialog              第二层：公式编辑弹窗
-│        ├─ HeMathInput               MathLive <math-field>
-│        ├─ HeMathPreview             MathJax 预览
-│        └─ 常用符号面板
+│     └─ HeFormulaDialog              弹窗容器（遮罩 + 标题 + 按钮）
+│        └─ HeFormulaEditor           共用编辑 UI
+│           ├─ 单行 KaTeX 输入
+│           ├─ HeMathPreview          MathJax 预览
+│           └─ 常用符号面板
 ├─ pages/ViewerPage.vue（/viewer）
 │  └─ HeMdViewer                      模式 2：只读展示
 │     └─ core/renderer → MathJax（不引入 CodeMirror / MathLive）
+├─ pages/InputPage.vue（/input）
+│  └─ HeFormulaEditor（直接展示，不套弹窗）
 └─ pages/WysiwygPage.vue（/wysiwyg） 模式 3：占位页，组件待实现
 ```
 
@@ -35,32 +38,40 @@ App.vue（应用外壳：hash 路由 + 顶部导航）
 | --- | --- | --- |
 | `src/components/HeMdEditor.vue` | 第一层编辑器：工具栏、CodeMirror 挂载、250ms 防抖预览、弹窗联动 | 默认导出组件；暴露 `focus` / `insertText` / `getValue` |
 | `src/components/HeMdViewer.vue` | 只读展示：`markdown` 渲染、`emptyText` 空状态，仅依赖 core/renderer | 默认导出组件 |
-| `src/components/HeFormulaDialog.vue` | 第二层弹窗：初值同步、行间开关、符号插入、空值校验 | 默认导出组件；`confirm(latex, display)` |
-| `src/components/HeMathInput.vue` | MathLive 输入封装，`v-model` 同步 LaTeX | 默认导出；暴露 `focus` / `insert` / `getValue` |
+| `src/components/HeFormulaDialog.vue` | 弹窗容器：遮罩、标题、底部按钮、开关与打开时初始化 | 默认导出组件；`confirm(text, display)` |
+| `src/components/HeFormulaEditor.vue` | 共用编辑 UI：工具栏按钮、分数格式弹窗、KaTeX 输入、MathJax 预览、行间开关、符号面板、校验 | 默认导出组件；暴露 `focus` / `validate` / `clear` |
+| `src/components/HeMathInput.vue` | MathLive 输入封装，仅用于 EditorPage 内嵌示例 | 默认导出；暴露 `focus` / `insert` / `getValue` |
 | `src/components/HeMathPreview.vue` | MathJax 单公式预览，空值显示占位 | 默认导出 |
 | `src/core/formula/parser.ts` | **公式解析唯一实现**：`matchFormulaAt` / `scanFormulas` | `FormulaMatch`、`matchFormulaAt`、`scanFormulas` |
 | `src/core/renderer/index.ts` | 统一 Markdown 渲染：markdown-it 实例、数学规则、highlight.js 代码高亮、MathJax 排版入口 | `markdownRenderer`、`renderMarkdownHtml`、`renderMarkdownInto` |
 | `src/editor/formulaAtom.ts` | 代码区排除、原子化 `StateField`、点击回调；扫描复用 core | `formulaAtom`、`scanFormulas`、`FormulaRef` / `FormulaEditHandler` |
 | `src/editor/mdCommands.ts` | 工具栏命令：标题、行前缀、内联包裹、块插入 | `toggleHeading`、`toggleWrap`、`insertTable` 等 |
 | `src/viewer/index.ts` | 只读展示子路径入口 | `HeMdViewer` |
+| `src/i18n/index.ts` | vue-i18n 实例、语言检测（localStorage / `DEFAULT_LOCALE`）、`getLocale` / `setLocale` / `toggleLocale` | `i18n`、`AppLocale`、`SUPPORTED_LOCALES` |
+| `src/i18n/locales/zh-CN.ts` / `en-US.ts` | 中英文消息包，按 `nav` / `pageTitles` / `*Page` / `formula` / `markdown` 分组 | 默认导出消息对象 |
+| `TOOLBAR.md` | 工具栏支持清单：按钮状态、分数格式、可编辑区能力与逐次更新记录 | - |
 | `src/pages/EditorPage.vue` | 首页：HeMdEditor、公式弹窗、内嵌输入示例 | 默认导出页面组件 |
+| `src/pages/InputPage.vue` | 自研输入实验：直接渲染 `HeFormulaEditor` | 默认导出页面组件 |
 | `src/pages/ViewerPage.vue` | HeMdViewer 只读展示与空状态示例 | 默认导出页面组件 |
 | `src/pages/WysiwygPage.vue` | HeMdWysiwyg 占位页与计划说明 | 默认导出页面组件 |
+| `src/assets/fonts/katex/` | KaTeX_Main / KaTeX_Math 字体文件（复制自 mathlive@0.100.0） | - |
 | `src/styles/markdown-body.scss` | 编辑器预览与只读展示共享的 Markdown 排版 | - |
+| `src/styles/math-font.scss` | `HeMathFont`：通过 unicode-range 组合 KaTeX_Main 与 KaTeX_Math | `HeMathFont`、`.he-math-font` |
 | `src/styles/demo.scss` | 演示页公共样式：页面、卡片、按钮、标签、符号面板 | - |
 | `src/utils/mathjax.ts` | MathJax 单例：动态加载本地脚本、配置、渲染队列、`\oiint` 宏 | `mathJaxService`、`renderTex` |
 | `src/index.ts` | 桶文件 | 全部组件 + `formulaAtom` + core 解析/渲染 + 类型 + MathJax 服务 |
 | `src/App.vue` | 应用外壳：顶部导航、hash 路由、页面切换与标题同步 | - |
 | `public/mathjax/tex-svg.js` | 本地 MathJax 3.2.2 构建 | - |
 | `vite.config.ts` | `@` 别名；`isCustomElement: tag.startsWith('math-')`；端口 3100 | - |
-| `src/styles/index.scss` | 全局样式；引入 Markdown 与演示页共享样式；`.ML__keyboard { z-index: 3000 }` | - |
+| `src/styles/index.scss` | 全局样式；引入 Markdown、演示页与数学字体共享样式；`.ML__keyboard { z-index: 3000 }` | - |
 
 ## 4. 数据契约
 
 - 文档中的公式格式：行内 `$latex$`，行间 `$$latex$$`（可跨行）。
 - `FormulaRef = { from, to, latex, display }`：`from/to` 为含分隔符的文档偏移。
-- `HeFormulaDialog` 的 `confirm` 回传 **不含分隔符** 的 `latex` 与 `display`；由 `HeMdEditor` 负责重新拼成 `$...$` 或 `$$...$$`。
-- `HeMathPreview` 接收裸 LaTeX，内部自行包裹 `\(...\)` / `\[...\]`。
+- `HeFormulaDialog` 的 `confirm` 回传 **不含分隔符** 的编辑文本与 `display`；由 `HeMdEditor` 负责重新拼成 `$...$` 或 `$$...$$`。
+- `HeFormulaEditor` 用 `v-model` 绑定编辑文本、`v-model:display` 绑定行间模式，并暴露 `focus` / `validate` / `clear`。
+- `HeMathPreview` 接收裸文本（LaTeX 或 Unicode 数学文本），内部自行包裹 `\(...\)` / `\[...\]`；MathJax 已确认可直接排版 `×`、`−`、`÷`、`√`、`∑` 等 Unicode 字符。
 - `HeMdViewer` 接收 `markdown` 源码，不接收 HTML、`v-model` 或编辑事件；空内容时按 `emptyText` 渲染占位。
 - MathJax 只识别 `\(...\)` / `\[...\]`，**不要**在 MathJax 配置中启用 `$` 分隔符。
 
@@ -124,14 +135,50 @@ App.vue（应用外壳：hash 路由 + 顶部导航）
 - 代码缩进为 **Tab**；Vue 使用 `<script setup lang="ts">` + `scoped` 样式。
 - 路径别名 `@` → `src`。
 
+### 5.8 公式编辑容器 / UI 拆分
+
+- `HeFormulaDialog`：纯容器，只负责遮罩、标题、底部按钮、开关状态与打开时初始化；确认前调用 `HeFormulaEditor.validate()`。
+- `HeFormulaEditor`：三段展示（LaTeX 原文 / 自研可编辑渲染公式 / MathJax 实时预览），外加工具栏、分数弹窗、行间开关、符号面板与校验；`v-model` 绑定 LaTeX 文本。`display` prop 默认 `true`，即「行间公式（独立成行）」默认勾选；新建公式默认插入 `$$...$$`，点击已有公式时沿用其原 `display`。
+- 可编辑区实现：`parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}`，分子/分母里可继续嵌套分式；`renderEditor` 生成 `.me-frac > .me-frac__num/__den` 容器（斜式为 `.me-frac--skewed`，中间含 `.me-frac__slash`），容器内是 contenteditable `.me-text-slot`；`serializeEditor`/`serializeNodes` 递归还原 LaTeX（`\tfrac` 用 `.me-frac--small`，斜式输出 `{}^{...}\!/\!_{...}`）；`syncFromEditor` 同步 v-model、LaTeX 原文与预览。
+- `lastSerialized` 用于跳过内部输入触发的重渲染，避免光标丢失；`lastFocusedSlot` 用于符号按钮失焦后的插入回退。
+- 分子/分母支持普通文本与嵌套分式混排：`ensureDirectTextSlot` 用于在容器同级取/建文本槽，不进入嵌套分式；分子内在嵌套分式边界按 `←` / `→` 会创建同级文本槽（`2\frac{a}{b}` 这类混排可编辑）；点击分子/分母容器留白也走该函数。`getEdgeSlot` 只用于需要递归进入分式边缘的场景（点击公式本体、分子→分母等）。
+- 键盘导航：`getActiveSlot` 通过槽位父容器判断 `num` / `den` / `text`；`handleArrow` 调用 `moveSibling`。公式外部把每个分式视为整体，`←` / `→` 跨过整座公式并落到相邻文本槽，不会进入分子/分母；只有点击进入公式后，方向键才在内部元素间移动。进入后：分子末尾 `↓` / `→` 进入分母，分母开头 `↑` / `←` 回到分子；分式外侧边界跳出到紧邻的文本槽，因此 `\frac{a}{b}+c` 的 `+c` 位于分式外层。
+- `insertFraction` 在当前文本槽内按光标切分并插入新分式，所以在分子/分母中再次插入竖式就会形成嵌套连分式，层级不设限。插入前若选区非折叠，先 `range.deleteContents()`，避免残留空文本槽。
+- 空文本槽用零宽空格 `\u200b` 占位：`readSlotText` / `stripPlaceholder` 在序列化、首尾判断与空槽判定时过滤；槽位被删空后 `ensurePlaceholder` 自动补回并把光标放进文本节点；`onEditorFocusOut` 清理分子/分母中遗留的空槽，避免编辑区出现多余空白块。
+- 分数浮层第一排为 `分数（竖式）\frac`、`分数（横式）a/b`、`分数（斜式）{}^{a}\!/\!_{b}`、`分数（小型分数）\tfrac`，不再提供连分式卡片；下方保留常用分数。
+- `focusSlot` 必须把光标落到文本节点内部（`range.setStart(textNode, offset)`），落到 contenteditable 元素边界会导致方向键无法进入文字。
+- 分式不是 contenteditable，无法用默认退格删除：`handleDelete` 在 `Backspace`（分子开头）/ `Delete`（分母末尾）以及文本槽与分式相邻的边界删除整个 `.me-frac`；`removeFractionNode` 会先确保前后有文本槽可落光标，再移除分式并同步 LaTeX。
+- 点击编辑区空白时用 `focusByPoint` 按 `clientX` 与子节点 `getBoundingClientRect()` 判断落点：分式左侧创建/进入前置文本槽，右侧创建/进入后置文本槽；点击 `.me-frac` 本体时聚焦分子。
+- 顶部工具栏共 12 个按钮：`符号`（Ω）、`分数`、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵；除分数外暂未绑定行为。
+- 分数按钮打开浮层：第一排 4 个格式（分数（竖式）`\frac{a}{b}`、分数（横式）`a/b`、分数（斜式）`{}^{a}\!/\!_{b}`、分数（小型分数）`\tfrac{a}{b}`），下方「常用分数」（`dy/dx`、`Δy/Δx`、`∂y/∂x`、`δy/δx`、`π/2`）；竖式、斜式、小型和常用分数插入结构化分式并选中分子，横式以文本模板插入。
+- `#/input` 直接渲染 `HeFormulaEditor`；`HeMdEditor` 通过 `HeFormulaDialog` 使用同一个 UI。
+- 输入模型是 LaTeX 文本；`*` / `-` / `/` 映射为 `×` / `−` / `÷`；MathJax 已确认可直接排版这些 Unicode 字符。
+- `HeMathInput`（MathLive）仅保留在 EditorPage 的内嵌示例中，不再用于公式弹窗。
+- 当前限制：只有 `\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` 是结构化的；上下标（`^` / `_`）、`\cfrac` / `\dfrac` 和其他 LaTeX 命令在可编辑区仍显示为文本，实时预览会正确渲染。
+
+### 5.9 国际化
+
+- 使用 vue-i18n（Composition API 模式），在 `src/main.ts` 通过 `.use(i18n)` 安装。
+- `src/i18n/index.ts` 的 `DEFAULT_LOCALE` 为默认语言；用户切换结果写入 `localStorage` 的 `hemath-editor:locale`，并同步 `<html lang>`。
+- 顶部导航右侧的 `EN` / `中文` 按钮调用 `setLocale` 切换；`App.vue` 的导航、页面标题、浏览器标题全部来自 `t()`。
+- 组件内使用 `useI18n()`：模板用 `t('key')`；`HeMdEditor` 的 `tools` 是 computed，保证语言切换后按钮标题/占位文字同步更新。
+- `HeFormulaEditor` 的分式卡片只显示图形，名称放在 `title` 悬浮提示中；toolbar 的 key 使用 camelCase id（`largeOperator` / `limitLog`），与消息包一一对应。
+- 槽位在运行时命令式创建，`aria-label` 通过 `watch(locale)` 统一刷新，避免语言切换后残留旧文案。
+- 新增文案必须同时写入 `zh-CN.ts` 与 `en-US.ts`；新增语言需扩展 `SUPPORTED_LOCALES` / `isAppLocale` 并调整导航语言控件。
+
 ## 6. 常见改动路径
 
 | 需求 | 修改位置 |
 | --- | --- |
 | 新增 Markdown 工具栏按钮 | `src/editor/mdCommands.ts` 加命令；`HeMdEditor.vue` 的 `tools` 数组注册 |
-| 新增公式常用符号 | `HeFormulaDialog.vue` 的 `symbols`；演示页 `EditorPage.vue` 的 `symbols` 可选同步 |
+| 新增公式常用符号 | `HeFormulaEditor.vue` 的 `symbols`；演示页 `EditorPage.vue` 的 MathLive 符号可选同步 |
 | 修改公式分隔符/识别规则 | `src/core/formula/parser.ts`（唯一定义）+ `src/core/renderer/index.ts`（token 输出）+ `mathjax.ts`（分隔符配置）+ README.md / README.zh-CN.md |
 | 新增代码高亮语言 | `src/core/renderer/index.ts` 导入并 `registerLanguage`；必要时在 `markdown-body.scss` 补充 token 样式 |
+| 调整自研输入 / 键盘映射 | `src/components/HeFormulaEditor.vue` 的 `symbolMap` 与 `onKeydown` |
+| 调整弹窗容器 / 按钮 | `src/components/HeFormulaDialog.vue` |
+| 调整数学字体 / 字符回退 | `src/styles/math-font.scss` 的 `@font-face` 与 `unicode-range` |
+| 调整分数格式弹窗 | `src/components/HeFormulaEditor.vue` 的 `fractionFormats` / `commonFractions` |
+| 调整可编辑公式解析/序列化 | `src/components/HeFormulaEditor.vue` 的 `parseLatex` / `renderEditor` / `serializeEditor` |
 | 新增/导出组件 | 组件文件 + `src/index.ts`；需要独立入口时新增 `src/<name>/index.ts` |
 | 调整公式标签样式 | `HeMdEditor.vue` 中 `:deep(.he-formula-atom*)` |
 | 调整 Markdown 排版 | `src/styles/markdown-body.scss`（编辑器预览与只读展示共用） |
@@ -142,6 +189,8 @@ App.vue（应用外壳：hash 路由 + 顶部导航）
 | 新增演示页 | `src/pages/XxxPage.vue`，并在 `src/App.vue` 的 `pages`、`navItems`、`pageTitles` 注册 |
 | 修改演示页公共样式 | `src/styles/demo.scss` |
 | 修改 hash 路由 | `src/App.vue` 的 `parseRoute` / `applyRoute` |
+| 新增/修改界面文案 | 在 `src/i18n/locales/zh-CN.ts` 与 `en-US.ts` 同步加 key，组件内用 `t()`；不要在模板硬编码中文 |
+| 新增语言 | 新增消息包 + `src/i18n/index.ts` 的 `SUPPORTED_LOCALES` / `isAppLocale` + 导航语言控件 |
 | 改端口/别名 | `vite.config.ts` |
 
 ## 7. 验证方式
@@ -160,17 +209,36 @@ npm run dev     # http://localhost:3100 手工验证
 3. 点击标签能打开弹窗且初值正确；确认后原位替换。
 4. 代码块中的 `$x$` 不被识别为公式。
 5. 右侧预览中公式正常排版，MathJax 加载前不报错。
-6. 行间开关切换后插入的源码为 `$$...$$`。
+6. 行间开关默认勾选；勾选时插入的源码为 `$$...$$`，取消勾选后为 `$...$`；点击已有公式时开关状态与该公式一致。
 7. 空公式确认时出现「请先输入公式」。
 8. 只读展示区出现标题、列表、引用，行内与行间公式各生成 MathJax SVG，页面不出现原始 `$$`。
 9. 编辑器预览与只读展示的标题字号、行高、引用边框保持一致。
-10. 顶部导航可在 HeMdEditor / HeMdViewer / HeMdWysiwyg 间切换，URL hash 与当前导航高亮同步。
-11. 直接访问 `#/viewer`、`#/wysiwyg` 能打开对应页面，浏览器前进 / 后退正常，未知 hash 回退首页。
+10. 顶部导航可在 HeMdEditor / 公式输入 / HeMdViewer / HeMdWysiwyg 间切换，URL hash 与当前导航高亮同步。
+11. 直接访问 `#/input`、`#/viewer`、`#/wysiwyg` 能打开对应页面，浏览器前进 / 后退正常，未知 hash 回退首页。
 12. 围栏代码块按语言生成 `.hljs-*` span 并有对应颜色；未知语言回退为纯文本。
+13. `#/input` 与公式弹窗中都渲染 `.he-formula-editor`，确认两者使用同一个 UI 组件。
+14. 在 `#/input` 或弹窗输入框中按 `*`、`-`、`/`，内容分别变为 `×`、`−`、`÷`；点击符号面板可插入 Unicode 符号。
+15. 弹窗空内容点击“插入”时显示“请先输入公式”且不关闭；有内容时确认后回传文本并关闭。
+16. 点击 HeMdEditor 中已有公式标签，弹窗输入框能带入原文本并正常预览。
+17. 点击分数按钮打开浮层，第一排为分数（竖式）/（横式）/（斜式）/（小型分数）4 张卡片，下方 5 个常用分数，没有连分式；点击卡片插入对应 LaTeX 并关闭浮层，弹窗内不被裁切。
+18. 页面显示三段：LaTeX 原文、可编辑渲染公式、实时预览；编辑分子/分母或文本槽位后，LaTeX 原文与预览同步更新。
+19. 插入竖式后分子默认选中；点击分子/分母可继续输入，分式结构与 LaTeX 原文保持一致；插入小型分数后原文为 `\tfrac{a}{b}`，节点带 `me-frac--small`。
+20. 分子末尾按 `↓` / `→` 能进入分母；分母开头按 `↑` / `←` 能回到分子。
+21. 分母末尾按 `↓` / `→` 或分子开头按 `↑` / `←` 能跳到分式外层文本槽，输入 `+c` 后 LaTeX 原文为 `\frac{a}{b}+c`，`+c` 不在分子或分母内部。
+22. 分子开头按 `Backspace`、分母末尾按 `Delete` 能删除整个分式；删除后组件内仍有可聚焦文本槽，LaTeX 原文同步更新。
+23. 点击编辑区右侧空白处后可直接输入后缀（不会跳进分子），点击左侧空白处可直接输入前缀。
+24. 光标在分子/分母内时再次插入竖式，会生成嵌套分式（如 `\frac{1}{\frac{2}{3}}`）；嵌套分式的分子/分母同样可用方向键互跳，并在分母末尾按 `↓` 跳出到最外层。
+25. 选中分子内容后直接插入竖式，选中内容被新分式替换，编辑区不出现多余的空白块；空槽失焦后会被清理，空槽内的光标贴合文本基线。
+26. 点击导航右侧 `EN` / `中文` 按钮：导航、页面标题、工具栏、字段名、弹窗按钮、悬浮提示全部切换；刷新后保持所选语言，`<html lang>` 与浏览器标题同步更新。
+27. 分式卡片不再显示常驻名称，鼠标悬浮时 `title` 显示当前语言的分式名称（中文或英文）。
+28. 插入分数（斜式）后，可编辑区渲染为“上标分子 / 下标分母”的斜式结构；分子/分母可点击编辑，`↓` / `↑` 可在两者之间移动，分母末尾 `→` 可跳出到外层，分子开头 `Backspace` 可整块删除；LaTeX 原文保持 `{}^{...}\!/\!_{...}`。
+29. 在公式外部（根级文本槽）按 `→` / `←` 会跨过相邻的整座公式，光标落到公式另一侧的文本槽，不会进入分子/分母；点击公式后才能进入内部编辑。
+30. 分子/分母可与整数等文本混排：例如 `\frac{\frac{a}{b}}{b}` 中，在嵌套分式的分子开头按 `←` 会在外层分子创建一个文本槽，输入 `2` 后原文为 `\frac{2\frac{a}{b}}{b}`；点击分子/分母留白也能创建同级文本槽。
 
 ## 8. 提交与版本规则（强制）
 
 - **每次提交代码前，必须更新 [CHANGELOG.md](CHANGELOG.md) 的 `[未发布]` 区块**，写明新增 / 修复 / 变更 / 移除 / 文档 / 工程。
+- 工具栏按钮、分数格式、符号面板或可编辑区交互有变化时，必须同步更新 [TOOLBAR.md](TOOLBAR.md) 的支持矩阵和更新记录（新增一行「日期 + 支持项」）。
 - 提交信息沿用现有风格：`feat: ...`、`fix: ...`、`docs: ...`、`init: ...`。
 - 发版时：把 `[未发布]` 归档为 `x.y.z - YYYY-MM-DD`，并同步 `package.json` 的 `version`。
 - 只改文档也必须写 CHANGELOG。
@@ -187,6 +255,18 @@ npm run dev     # http://localhost:3100 手工验证
 - 删除 `isCustomElement` 配置：Vue 编译器把 `<math-field>` 当普通组件处理而报错。
 - 修改 `public/mathjax/tex-svg.js` 路径后未同步 `BASE_URL` 逻辑：部署到子路径时 404。
 - 新增页面只建了 SFC，未注册到 `src/App.vue` 的 `pages` / `navItems`：导航无法访问。
+- 在模板或 TS 中硬编码界面文案：切换语言后不会更新；必须使用 `t()` 并同时补中英文消息包。
+- 只在 `zh-CN.ts` 加 key 而漏掉 `en-US.ts`：英文界面会回退到中文或显示 key。
+- 命令式创建的 DOM（如 `HeFormulaEditor` 的槽位）不处理语言切换：`aria-label` 会残留旧语言，需要在 `watch(locale)` 中刷新。
+- KeepAlive 页面里的 Teleport 弹窗未在 `onDeactivated` 关闭：切换页面后弹窗会残留在其他页面。
+- 分数浮层过高：在 `HeFormulaDialog` 的 `overflow-y` body 中底部会被裁切；卡片保持 68px、间距紧凑。
+- 每次 input 后用 Vue 响应式重渲染可编辑区：光标会丢失；当前使用命令式 DOM + `lastSerialized` 跳过自身更新。
+- `parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式：分子、分母中的分式继续结构化；斜式通过 `{}^{...}\!/\!_{...}` 识别（忽略空白与 `\!`），`\cfrac`、`\dfrac` 等未支持的命令按文本保留，避免错误拆分。
+- 可编辑槽位缺少 `contenteditable`，或分式容器缺少 `me-frac__num` / `me-frac__den` 类名：分子/分母无法点击进入，键盘导航也无法判断槽位角色。
 - 演示页使用 hash 路由，不要改成 history 模式，否则静态部署刷新会 404。
 - 只注册了 highlight.js 语言但没补 `.hljs-*` 样式：代码块有 span 但没有任何颜色。
 - 直接引入完整 `highlight.js` 而不是 `highlight.js/lib/core` + 语言模块：包体积会明显增大。
+- 数学字体只写 `font-family` 而没有 `unicode-range`：数字与字母不会分别命中 `KaTeX_Main` / `KaTeX_Math`。
+- 把编辑逻辑写回 `HeFormulaDialog`：容器只负责弹窗，编辑逻辑必须在 `HeFormulaEditor`。
+- 把 `HeFormulaEditor` 再拆出一个独立键盘输入组件：当前要求编辑 UI 统一在一个组件内。
+- 在 `HeFormulaDialog` 中重新引入 MathLive：公式弹窗已改用自研 KaTeX 输入，`HeMathInput` 仅保留在内嵌示例。
