@@ -4,6 +4,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import mathJaxService from '@/utils/mathjax'
 
 /**
@@ -21,6 +22,8 @@ const props = withDefaults(
 	}
 )
 
+const { t, locale } = useI18n()
+
 const containerRef = ref<HTMLElement>()
 
 const render = async () => {
@@ -28,7 +31,7 @@ const render = async () => {
 	if (!el) return
 	const text = (props.latex ?? '').trim()
 	if (!text) {
-		el.innerHTML = '<span class="he-math-preview__empty">（暂无公式）</span>'
+		el.innerHTML = `<span class="he-math-preview__empty">${t('formula.previewEmpty')}</span>`
 		return
 	}
 	el.textContent = props.display ? `\\[${text}\\]` : `\\(${text}\\)`
@@ -37,6 +40,7 @@ const render = async () => {
 
 onMounted(render)
 watch(() => [props.latex, props.display], render)
+watch(locale, render)
 </script>
 
 <style scoped>

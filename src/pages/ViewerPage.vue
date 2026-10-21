@@ -1,26 +1,29 @@
 <template>
 	<div class="demo-page">
 		<header class="demo-page__header">
-			<h1 class="demo-page__title">HeMdViewer · 只读展示</h1>
-			<p class="demo-page__sub">渲染后端返回的 Markdown 源码，不包含编辑器、工具栏与公式输入。</p>
+			<h1 class="demo-page__title">{{ t('viewerPage.title') }}</h1>
+			<p class="demo-page__sub">{{ t('viewerPage.subtitle') }}</p>
 		</header>
 
 		<section class="card">
-			<h2 class="card__title">只读渲染</h2>
-			<p class="card__desc">仅依赖 markdown-it 与 MathJax，不会加载 CodeMirror 与 MathLive。</p>
+			<h2 class="card__title">{{ t('viewerPage.cardTitle') }}</h2>
+			<p class="card__desc">{{ t('viewerPage.cardDesc') }}</p>
 			<HeMdViewer :markdown="viewerMarkdown" />
 		</section>
 
 		<section class="card">
-			<h2 class="card__title">空状态</h2>
-			<p class="card__desc">内容为空时可通过 emptyText 提供占位文案。</p>
-			<HeMdViewer empty-text="暂无内容" />
+			<h2 class="card__title">{{ t('viewerPage.emptyTitle') }}</h2>
+			<p class="card__desc">{{ t('viewerPage.emptyDesc') }}</p>
+			<HeMdViewer :empty-text="t('viewerPage.emptyText')" />
 		</section>
 	</div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { HeMdViewer } from '@/viewer'
+
+const { t } = useI18n()
 
 const viewerMarkdown = [
 	'## 只读展示',

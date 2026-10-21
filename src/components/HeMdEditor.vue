@@ -19,10 +19,10 @@
 			<button
 				type="button"
 				class="he-md-editor__tool he-md-editor__tool--fx"
-				title="插入公式"
+				:title="t('markdown.insertFormula')"
 				@click="openFormulaEditor(null)"
 			>
-				∑ 公式
+				{{ t('markdown.formulaButton') }}
 			</button>
 		</div>
 
@@ -41,7 +41,8 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { EditorState } from '@codemirror/state'
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
@@ -88,6 +89,8 @@ const emit = defineEmits<{
 	(e: 'update:modelValue', value: string): void
 }>()
 
+const { t } = useI18n()
+
 interface Tool {
 	label: string
 	title: string
@@ -95,32 +98,52 @@ interface Tool {
 	run: (view: EditorView) => void
 }
 
-const tools: Tool[][] = [
+const tools = computed<Tool[][]>(() => [
 	[
-		{ label: 'H1', title: '一级标题', run: (v) => toggleHeading(v, 1) },
-		{ label: 'H2', title: '二级标题', run: (v) => toggleHeading(v, 2) },
-		{ label: 'H3', title: '三级标题', run: (v) => toggleHeading(v, 3) }
+		{ label: 'H1', title: t('markdown.tools.h1'), run: (v) => toggleHeading(v, 1) },
+		{ label: 'H2', title: t('markdown.tools.h2'), run: (v) => toggleHeading(v, 2) },
+		{ label: 'H3', title: t('markdown.tools.h3'), run: (v) => toggleHeading(v, 3) }
 	],
 	[
-		{ label: 'B', title: '加粗（Ctrl+B）', cls: 'is-bold', run: (v) => toggleWrap(v, '**', '加粗文字') },
-		{ label: 'I', title: '斜体（Ctrl+I）', cls: 'is-italic', run: (v) => toggleWrap(v, '*', '斜体文字') },
-		{ label: 'S', title: '删除线', cls: 'is-strike', run: (v) => toggleWrap(v, '~~', '删除线') },
-		{ label: '</>', title: '行内代码', cls: 'is-mono', run: (v) => toggleWrap(v, '`', '代码') }
+		{
+			label: 'B',
+			title: t('markdown.tools.bold'),
+			cls: 'is-bold',
+			run: (v) => toggleWrap(v, '**', t('markdown.placeholders.bold'))
+		},
+		{
+			label: 'I',
+			title: t('markdown.tools.italic'),
+			cls: 'is-italic',
+			run: (v) => toggleWrap(v, '*', t('markdown.placeholders.italic'))
+		},
+		{
+			label: 'S',
+			title: t('markdown.tools.strike'),
+			cls: 'is-strike',
+			run: (v) => toggleWrap(v, '~~', t('markdown.placeholders.strike'))
+		},
+		{
+			label: '</>',
+			title: t('markdown.tools.inlineCode'),
+			cls: 'is-mono',
+			run: (v) => toggleWrap(v, '`', t('markdown.placeholders.code'))
+		}
 	],
 	[
-		{ label: '❝', title: '引用', run: toggleQuote },
-		{ label: '•', title: '无序列表', run: toggleBulletList },
-		{ label: '1.', title: '有序列表', run: toggleOrderedList },
-		{ label: '☐', title: '任务列表', run: toggleTaskList }
+		{ label: '❝', title: t('markdown.tools.quote'), run: toggleQuote },
+		{ label: '•', title: t('markdown.tools.bulletList'), run: toggleBulletList },
+		{ label: '1.', title: t('markdown.tools.orderedList'), run: toggleOrderedList },
+		{ label: '☐', title: t('markdown.tools.taskList'), run: toggleTaskList }
 	],
 	[
-		{ label: '{ }', title: '代码块', cls: 'is-mono', run: toggleCodeBlock },
-		{ label: '链接', title: '插入链接', run: insertLink },
-		{ label: '图片', title: '插入图片', run: insertImage },
-		{ label: '表格', title: '插入表格', run: insertTable },
-		{ label: '―', title: '分割线', run: insertHr }
+		{ label: '{ }', title: t('markdown.tools.codeBlock'), cls: 'is-mono', run: toggleCodeBlock },
+		{ label: t('markdown.labels.link'), title: t('markdown.tools.link'), run: insertLink },
+		{ label: t('markdown.labels.image'), title: t('markdown.tools.image'), run: insertImage },
+		{ label: t('markdown.labels.table'), title: t('markdown.tools.table'), run: insertTable },
+		{ label: '―', title: t('markdown.tools.hr'), run: insertHr }
 	]
-]
+])
 
 const hostRef = ref<HTMLElement>()
 const previewRef = ref<HTMLElement>()
@@ -149,7 +172,7 @@ const renderPreview = (immediate = false) => {
 
 const dialogVisible = ref(false)
 const dialogLatex = ref('')
-const dialogDisplay = ref(false)
+const dialogDisplay = ref(true)
 let editRange: { from: number; to: number } | null = null
 
 const openFormulaEditor = (formula: FormulaRef | null) => {
@@ -160,7 +183,7 @@ const openFormulaEditor = (formula: FormulaRef | null) => {
 	} else {
 		editRange = null
 		dialogLatex.value = ''
-		dialogDisplay.value = false
+		dialogDisplay.value = true
 	}
 	dialogVisible.value = true
 }
@@ -196,14 +219,14 @@ const mdKeymap = keymap.of([
 	{
 		key: 'Mod-b',
 		run: (v) => {
-			toggleWrap(v, '**', '加粗文字')
+			toggleWrap(v, '**', t('markdown.placeholders.bold'))
 			return true
 		}
 	},
 	{
 		key: 'Mod-i',
 		run: (v) => {
-			toggleWrap(v, '*', '斜体文字')
+			toggleWrap(v, '*', t('markdown.placeholders.italic'))
 			return true
 		}
 	}

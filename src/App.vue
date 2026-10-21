@@ -3,7 +3,7 @@
 		<header class="app-header">
 			<div class="app-header__inner">
 				<a class="app-brand" href="#/">heMathEditor</a>
-				<nav class="app-nav" aria-label="展示页导航">
+				<nav class="app-nav" :aria-label="t('nav.ariaLabel')">
 					<a
 						v-for="item in navItems"
 						:key="item.key"
@@ -15,6 +15,15 @@
 						{{ item.label }}
 					</a>
 				</nav>
+				<button
+					class="app-lang"
+					type="button"
+					:title="locale === 'zh-CN' ? t('common.switchToEnglish') : t('common.switchToChinese')"
+					:aria-label="locale === 'zh-CN' ? t('common.switchToEnglish') : t('common.switchToChinese')"
+					@click="switchLanguage"
+				>
+					{{ locale === 'zh-CN' ? 'EN' : '中文' }}
+				</button>
 			</div>
 		</header>
 
@@ -25,30 +34,38 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EditorPage from '@/pages/EditorPage.vue'
+import InputPage from '@/pages/InputPage.vue'
 import ViewerPage from '@/pages/ViewerPage.vue'
 import WysiwygPage from '@/pages/WysiwygPage.vue'
+import { setLocale } from '@/i18n'
 
 const pages = {
 	editor: EditorPage,
+	input: InputPage,
 	viewer: ViewerPage,
 	wysiwyg: WysiwygPage
 } as const
 
 type PageKey = keyof typeof pages
 
-const navItems: { key: PageKey; label: string; href: string }[] = [
-	{ key: 'editor', label: 'HeMdEditor', href: '#/' },
-	{ key: 'viewer', label: 'HeMdViewer', href: '#/viewer' },
-	{ key: 'wysiwyg', label: 'HeMdWysiwyg', href: '#/wysiwyg' }
-]
+const { t, locale } = useI18n()
 
-const pageTitles: Record<PageKey, string> = {
-	editor: 'HeMdEditor · 分栏编辑',
-	viewer: 'HeMdViewer · 只读展示',
-	wysiwyg: 'HeMdWysiwyg · 单栏所见即所得'
-}
+const navItems = computed<{ key: PageKey; label: string; href: string }[]>(() => [
+	{ key: 'editor', label: t('nav.editor'), href: '#/' },
+	{ key: 'input', label: t('nav.input'), href: '#/input' },
+	{ key: 'viewer', label: t('nav.viewer'), href: '#/viewer' },
+	{ key: 'wysiwyg', label: t('nav.wysiwyg'), href: '#/wysiwyg' }
+])
+
+const pageTitles = computed<Record<PageKey, string>>(() => ({
+	editor: t('pageTitles.editor'),
+	input: t('pageTitles.input'),
+	viewer: t('pageTitles.viewer'),
+	wysiwyg: t('pageTitles.wysiwyg')
+}))
 
 /** 解析 hash 路由，未知路径回退到首页 */
 const parseRoute = (): PageKey => {
@@ -60,14 +77,22 @@ const parseRoute = (): PageKey => {
 const current = ref<PageKey>(parseRoute())
 const currentPage = computed(() => pages[current.value])
 
+const applyDocumentTitle = () => {
+	document.title = `${pageTitles.value[current.value]} · heMathEditor`
+}
+
 const applyRoute = () => {
 	current.value = parseRoute()
-	document.title = `${pageTitles[current.value]} · heMathEditor`
+	applyDocumentTitle()
 	window.scrollTo({ top: 0 })
 }
 
+const switchLanguage = () => {
+	setLocale(locale.value === 'zh-CN' ? 'en-US' : 'zh-CN')
+}
+
 if (typeof document !== 'undefined') {
-	document.title = `${pageTitles[current.value]} · heMathEditor`
+	applyDocumentTitle()
 }
 
 onMounted(() => {
@@ -77,6 +102,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
 	window.removeEventListener('hashchange', applyRoute)
 })
+
+watch(locale, applyDocumentTitle)
 </script>
 
 <style scoped>
@@ -134,5 +161,25 @@ onBeforeUnmount(() => {
 	background: #eef3ff;
 	color: #3b6ef5;
 	font-weight: 600;
+}
+
+.app-lang {
+	margin-left: auto;
+	min-width: 46px;
+	height: 30px;
+	padding: 0 10px;
+	border: 1px solid #d9dde3;
+	border-radius: 8px;
+	background: #fff;
+	font-size: 12px;
+	color: #444;
+	cursor: pointer;
+	transition: all 0.15s;
+}
+
+.app-lang:hover {
+	border-color: #3b6ef5;
+	background: #eef3ff;
+	color: #3b6ef5;
 }
 </style>
