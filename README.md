@@ -46,7 +46,7 @@ The demo uses lightweight hash routing (no vue-router):
 
 ## Toolbar Support
 
-Every toolbar button's support status, supported fraction formats, and the support update log are maintained in [TOOLBAR.md](TOOLBAR.md). Update that file whenever toolbar support changes.
+Every toolbar button's support status, supported fraction and script formats, and the support update log are maintained in [TOOLBAR.md](TOOLBAR.md). Update that file whenever toolbar support changes.
 
 ## Project Structure
 
@@ -319,18 +319,19 @@ Fenced code blocks are highlighted by highlight.js through markdown-it's `highli
 `HeFormulaDialog` is now only the modal container. The editing UI lives in [HeFormulaEditor.vue](src/components/HeFormulaEditor.vue), which is shared by the dialog and the `#/input` page:
 
 - `HeFormulaEditor` shows three sections: the raw LaTeX source, a custom editable rendered formula, and a read-only MathJax preview.
-- The editable area uses contenteditable text slots inside fraction containers. `\frac{...}{...}` and `\tfrac{...}{...}` are rendered as structural fractions with editable numerator and denominator; clicking a slot places the caret directly in the rendered part, so users do not need to edit the LaTeX source.
-- Fraction parsing is recursive: a numerator or denominator can contain further `\frac` / `\tfrac` / skewed nodes. Triggering the vertical fraction while the caret is inside a numerator or denominator nests a new fraction there, so continued fractions can be written by repeating the same insertion.
+- The editable area uses contenteditable text slots inside fraction / script containers. `\frac{...}{...}`, `\tfrac{...}{...}`, the skewed form, and `^{...}` / `_{...}` are rendered as structural nodes with editable numerator, denominator, superscript and subscript; clicking a slot places the caret directly in the rendered part, so users do not need to edit the LaTeX source.
+- Fraction and script parsing is recursive: numerators, denominators, superscripts and subscripts can contain further fractions or scripts. Inserting a vertical fraction or script while the caret is nested creates a new nested structure, so continued fractions can be written by repeating the same insertion.
 - A numerator or denominator can mix plain text (such as an integer) with nested fractions. In a numerator, pressing `←` / `→` at a nested fraction's boundary creates a text slot at that level, and clicking the blank area of a numerator/denominator focuses or creates a same-level text slot instead of entering the nested fraction.
-- Keyboard navigation: from outside, each formula is treated as one atomic object. `ArrowLeft` / `ArrowRight` across a formula skips the whole formula instead of entering it; click inside the formula to edit its parts. Once inside, `ArrowDown` / `ArrowRight` at the end of the numerator moves into the denominator, `ArrowUp` / `ArrowLeft` at the start of the denominator moves back into the numerator, and the outer boundaries leave the fraction and create or enter the text slot before/after it, so expressions such as `\frac{a}{b}+c` can be typed without nesting `+c` inside a slot.
-- A structural fraction is not directly editable as a node, so it is deleted with `Backspace` at the start of the numerator, `Delete` at the end of the denominator, or `Backspace` / `Delete` from the adjacent text slot; the caret stays in the neighbouring text slot.
-- Clicking the blank area of the editable box places the caret according to the click position: left of the fraction goes to a text slot before it, right of the fraction goes to a text slot after it, and clicking the fraction itself focuses the numerator.
+- Keyboard navigation: from outside, each formula is treated as one atomic object. `ArrowLeft` / `ArrowRight` across a formula skips the whole formula instead of entering it; click inside the formula to edit its parts. Once inside, `ArrowDown` / `ArrowRight` at the end of the numerator moves into the denominator, `ArrowUp` / `ArrowLeft` at the start of the denominator moves back into the numerator, `ArrowDown` in a superscript moves into the subscript and `ArrowUp` in a subscript returns to the superscript, and the outer boundaries leave the fraction/script and create or enter the text slot before/after it, so expressions such as `\frac{a}{b}+c` can be typed without nesting `+c` inside a slot.
+- A structural fraction or script is not directly editable as a node, so it is deleted with `Backspace` at the start of the numerator / superscript / subscript, `Delete` at the end of the denominator / superscript / subscript, or `Backspace` / `Delete` from the adjacent text slot; the caret stays in the neighbouring text slot.
+- Clicking the blank area of the editable box places the caret according to the click position: left of the fraction goes to a text slot before it, right of the fraction goes to a text slot after it, clicking the fraction itself focuses the numerator, and clicking a script focuses its superscript.
 - The fraction picker's first row is 分数（竖式）`\frac`, 分数（横式）`a/b`, 分数（斜式）`{}^{a}\!/\!_{b}`, and 分数（小型分数）`\tfrac`; the vertical, skewed, small and common fractions are inserted structurally and select the numerator. Continued fractions are no longer a separate card: nest vertical fractions to build them.
-- The top toolbar is UI-only except for the fraction picker: a "符号" (Ω) button, a "分数" button that opens fraction formats and common fractions, plus scripts, radical, integral, large operators, brackets, functions, derivative, limits/log, operators, and matrix buttons. Selecting a fraction card inserts its LaTeX template; the other buttons are not wired yet.
+- The script picker's first row is superscript `x^{}`, subscript `x_{}`, sub+superscript `x_{}^{}`, and prescript `{}_{}^{}x`, followed by common templates `x_{y^2}`, `e^{-iωt}`, `x^2`, and `{}_{1}^{n}Y`; inserting focuses the corresponding script slot.
+- The `分数` and `上下标` toolbar buttons are wired to their pickers; the remaining buttons (symbols Ω, radical, integral, large operators, brackets, functions, derivative, limits/log, operators, matrix) are still placeholders.
 - `HeFormulaDialog` only handles the overlay, title, footer buttons, and open state.
 - `#/input` renders `HeFormulaEditor` directly, without a dialog wrapper.
 - `*`, `-`, and `/` are mapped to `×`, `−`, and `÷`.
-- Current limitation: only `\frac`, `\tfrac` and the skewed form `{}^{a}\!/\!_{b}` are structural. Scripts (`^` / `_`), `\cfrac` / `\dfrac`, and other LaTeX commands remain text in the editable area, while the preview renders them correctly.
+- Current limitation: `\frac`, `\tfrac`, the skewed form `{}^{a}\!/\!_{b}`, and scripts `^` / `_` are structural. `\cfrac` / `\dfrac` and other unsupported LaTeX commands remain text in the editable area, while the preview renders them correctly.
 - `HeMathInput` (MathLive) remains available for the inline input demo but is no longer used by the formula dialog.
 
 ### Internationalization
