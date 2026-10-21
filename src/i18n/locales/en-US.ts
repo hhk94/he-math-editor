@@ -92,6 +92,14 @@ export default {
 			skewed: 'Fraction (skewed)',
 			small: 'Fraction (small)'
 		},
+		script: {
+			panelTitle: 'Scripts',
+			commonTitle: 'Common subscripts and superscripts',
+			sup: 'Superscript',
+			sub: 'Subscript',
+			both: 'Sub- and superscript',
+			pre: 'Prescript'
+		},
 		latexSource: 'LaTeX source',
 		editable: 'Editable formula',
 		preview: 'Live preview',
@@ -106,7 +114,9 @@ export default {
 			editable: 'Editable formula',
 			text: 'Formula text',
 			numerator: 'Numerator',
-			denominator: 'Denominator'
+			denominator: 'Denominator',
+			sup: 'Superscript',
+			sub: 'Subscript'
 		}
 	},
 	markdown: {

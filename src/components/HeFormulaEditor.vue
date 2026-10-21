@@ -21,37 +21,75 @@
 
 			<div
 				v-if="fractionOpen"
-				class="he-fraction-popover"
+				class="he-tool-popover"
 				role="dialog"
 				:aria-label="t('formula.fraction.panelTitle')"
 			>
-				<div class="he-fraction-popover__header">{{ t('formula.fraction.panelTitle') }}</div>
-				<div class="he-fraction-popover__body">
-					<div class="he-fraction-popover__grid">
+				<div class="he-tool-popover__header">{{ t('formula.fraction.panelTitle') }}</div>
+				<div class="he-tool-popover__body">
+					<div class="he-tool-popover__grid">
 						<button
 							v-for="item in fractionFormats"
 							:key="item.id"
-							class="he-fraction-card"
+							class="he-tool-card"
 							type="button"
 							:title="`${t('formula.fraction.' + item.id)} ${item.latex}`"
 							@mousedown.prevent
 							@click="pickFraction(item)"
 						>
-							<span class="he-fraction-card__preview he-math-font" v-html="item.preview"></span>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
 						</button>
 					</div>
-					<div class="he-fraction-popover__section">{{ t('formula.fraction.commonTitle') }}</div>
-					<div class="he-fraction-popover__grid">
+					<div class="he-tool-popover__section">{{ t('formula.fraction.commonTitle') }}</div>
+					<div class="he-tool-popover__grid">
 						<button
 							v-for="item in commonFractions"
 							:key="item.label"
-							class="he-fraction-card"
+							class="he-tool-card"
 							type="button"
 							:title="item.label"
 							@mousedown.prevent
 							@click="pickFraction(item)"
 						>
-							<span class="he-fraction-card__preview he-math-font" v-html="item.preview"></span>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div
+				v-if="scriptsOpen"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.script.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.script.panelTitle') }}</div>
+				<div class="he-tool-popover__body">
+					<div class="he-tool-popover__grid">
+						<button
+							v-for="item in scriptFormats"
+							:key="item.id"
+							class="he-tool-card"
+							type="button"
+							:title="t('formula.script.' + item.id)"
+							@mousedown.prevent
+							@click="pickScriptFormat(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.script.commonTitle') }}</div>
+					<div class="he-tool-popover__grid">
+						<button
+							v-for="item in commonScripts"
+							:key="item.label"
+							class="he-tool-card"
+							type="button"
+							:title="item.label"
+							@mousedown.prevent
+							@click="pickCommonScript(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
 						</button>
 					</div>
 				</div>
@@ -179,9 +217,13 @@ type FractionChoice = {
 type FractionFormatId = 'vertical' | 'horizontal' | 'skewed' | 'small'
 type FractionFormat = FractionChoice & { id: FractionFormatId }
 type CommonFraction = FractionChoice & { label: string }
+type ScriptFormatId = 'sup' | 'sub' | 'both' | 'pre'
+type ScriptFormat = { id: ScriptFormatId; preview: string }
+type CommonScript = { label: string; latex: string; preview: string }
 
 const toolbarRef = ref<HTMLElement>()
 const fractionOpen = ref(false)
+const scriptsOpen = ref(false)
 
 /** 生成 HTML 分式预览，仅用于工具栏弹窗 */
 const frac = (num: string, den: string, small = false) =>
@@ -232,6 +274,45 @@ const commonFractions: CommonFraction[] = [
 	{ label: 'π/2', latex: '\\frac{\\pi}{2}', preview: frac('π', '2'), fraction: { num: 'π', den: '2' } }
 ]
 
+/** 生成上下标格式预览，仅用于工具栏弹窗 */
+const scriptPreview = (sup: boolean, sub: boolean, pre = false) => {
+	const stack = [
+		sup ? '<span class="script-preview__slot"></span>' : '',
+		sub ? '<span class="script-preview__slot"></span>' : ''
+	].join('')
+	return `<span class="script-preview${pre ? ' script-preview--pre' : ''}"><span class="script-preview__base">x</span><span class="script-preview__stack">${stack}</span></span>`
+}
+
+const scriptFormats: ScriptFormat[] = [
+	{ id: 'sup', preview: scriptPreview(true, false) },
+	{ id: 'sub', preview: scriptPreview(false, true) },
+	{ id: 'both', preview: scriptPreview(true, true) },
+	{ id: 'pre', preview: scriptPreview(true, true, true) }
+]
+
+const commonScripts: CommonScript[] = [
+	{
+		label: 'x_{y^2}',
+		latex: 'x_{y^2}',
+		preview: '<span class="script-tpl">x<sub>y<sup>2</sup></sub></span>'
+	},
+	{
+		label: 'e^{-iωt}',
+		latex: 'e^{-iωt}',
+		preview: '<span class="script-tpl">e<sup>−iωt</sup></span>'
+	},
+	{
+		label: 'x^2',
+		latex: 'x^2',
+		preview: '<span class="script-tpl">x<sup>2</sup></span>'
+	},
+	{
+		label: '{}_{1}^{n}Y',
+		latex: '{}_{1}^{n}Y',
+		preview: '<span class="script-tpl"><span class="script-tpl__pre"><span>n</span><span>1</span></span>Y</span>'
+	}
+]
+
 const symbols = [
 	{ label: 'a/b', value: 'a/b' },
 	{ label: '√x', value: '√x' },
@@ -247,7 +328,7 @@ const symbols = [
 	{ label: '≠', value: '≠' }
 ]
 
-/** 工具栏按钮；分数按钮已接入弹窗，其余暂未绑定行为 */
+/** 工具栏按钮；分数与上下标已接入弹窗，其余暂未绑定行为 */
 const tools: Tool[] = [
 	{ id: 'symbols', icon: 'Ω' },
 	{ id: 'fraction', icon: '<span class="tb-frac"><span>X</span><span>Y</span></span>' },
@@ -281,6 +362,7 @@ const symbolMap: Record<string, string> = {
 type ParsedNode =
 	| { type: 'text'; value: string }
 	| { type: 'fraction'; style: FractionStyle; numerator: ParsedNode[]; denominator: ParsedNode[] }
+	| { type: 'script'; pre: boolean; sup: ParsedNode[] | null; sub: ParsedNode[] | null }
 
 const fractionCommands: { command: string; style: FractionStyle }[] = [
 	{ command: '\\tfrac', style: 'small' },
@@ -338,7 +420,52 @@ const readSkewedFraction = (
 	return { numerator: numerator.content, denominator: denominator.content, end: denominator.end }
 }
 
-/** 递归解析 \frac / \tfrac / 斜式：分子、分母里的分式会继续结构化，因此支持连分式嵌套 */
+/** 读取上下标参数：{...}、\command 或单个字符 */
+const readScriptArgument = (source: string, start: number): { content: string; end: number } | null => {
+	let cursor = start
+	while (/\s/.test(source[cursor] ?? '')) cursor++
+	if (source[cursor] === '{') return readGroup(source, cursor)
+	if (source[cursor] === '\\') {
+		const match = source.slice(cursor).match(/^\\[a-zA-Z]+/)
+		if (match) return { content: match[0], end: cursor + match[0].length }
+	}
+	if (cursor < source.length) return { content: source[cursor], end: cursor + 1 }
+	return null
+}
+
+/** 连续读取 ^{...} / _{...}，支持上下标同时存在 */
+const readScriptParts = (
+	source: string,
+	start: number
+): { sup: string | null; sub: string | null; end: number } | null => {
+	let cursor = start
+	let sup: string | null = null
+	let sub: string | null = null
+	let matched = false
+	while (cursor < source.length && (source[cursor] === '^' || source[cursor] === '_')) {
+		const marker = source[cursor]
+		const argument = readScriptArgument(source, cursor + 1)
+		if (!argument) break
+		if (marker === '^') sup = argument.content
+		else sub = argument.content
+		cursor = argument.end
+		matched = true
+	}
+	return matched ? { sup, sub, end: cursor } : null
+}
+
+/** 前置上下标：{}^{...} / {}_{...}，不消费后面的基底 */
+const readPrescript = (
+	source: string,
+	start: number
+): { sup: string | null; sub: string | null; end: number } | null => {
+	if (source[start] !== '{' || source[start + 1] !== '}') return null
+	const cursor = skipSpacing(source, start + 2)
+	if (source[cursor] !== '^' && source[cursor] !== '_') return null
+	return readScriptParts(source, cursor)
+}
+
+/** 递归解析 \frac / \tfrac / 斜式 / 上下标：分子、分母、上下标里的内容会继续结构化 */
 const parseLatex = (source: string): ParsedNode[] => {
 	const nodes: ParsedNode[] = []
 	let buffer = ''
@@ -361,6 +488,32 @@ const parseLatex = (source: string): ParsedNode[] => {
 			})
 			i = skewed.end
 			continue
+		}
+		const prescript = readPrescript(source, i)
+		if (prescript) {
+			flush()
+			nodes.push({
+				type: 'script',
+				pre: true,
+				sup: prescript.sup !== null ? parseLatex(prescript.sup) : null,
+				sub: prescript.sub !== null ? parseLatex(prescript.sub) : null
+			})
+			i = prescript.end
+			continue
+		}
+		if (source[i] === '^' || source[i] === '_') {
+			const postscript = readScriptParts(source, i)
+			if (postscript) {
+				flush()
+				nodes.push({
+					type: 'script',
+					pre: false,
+					sup: postscript.sup !== null ? parseLatex(postscript.sup) : null,
+					sub: postscript.sub !== null ? parseLatex(postscript.sub) : null
+				})
+				i = postscript.end
+				continue
+			}
 		}
 		const matched = fractionCommands.find(({ command }) => source.startsWith(command, i))
 		if (matched) {
@@ -431,6 +584,36 @@ const createFractionElement = (
 	return fraction
 }
 
+/** 创建上下标节点；pre 为前置上下标，sup / sub 为 null 表示该方向不存在 */
+const createScriptElement = (
+	pre: boolean,
+	sup: ParsedNode[] | null,
+	sub: ParsedNode[] | null
+): HTMLElement => {
+	const script = document.createElement('span')
+	const classes = ['me-script']
+	if (pre) classes.push('me-script--pre')
+	if (sup && sub) classes.push('me-script--both')
+	else if (sup) classes.push('me-script--sup')
+	else classes.push('me-script--sub')
+	script.className = classes.join(' ')
+	if (sup) {
+		const supEl = document.createElement('span')
+		supEl.className = 'me-script__sup'
+		supEl.setAttribute('aria-label', t('formula.aria.sup'))
+		appendNodes(supEl, sup)
+		script.append(supEl)
+	}
+	if (sub) {
+		const subEl = document.createElement('span')
+		subEl.className = 'me-script__sub'
+		subEl.setAttribute('aria-label', t('formula.aria.sub'))
+		appendNodes(subEl, sub)
+		script.append(subEl)
+	}
+	return script
+}
+
 /** 把解析结果挂到容器上；空内容补一个空文本槽，保证光标有落点 */
 const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 	if (!nodes.length) {
@@ -438,11 +621,13 @@ const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 		return
 	}
 	for (const node of nodes) {
-		container.append(
-			node.type === 'fraction'
-				? createFractionElement(node.numerator, node.denominator, node.style)
-				: createTextSlot(node.value)
-		)
+		if (node.type === 'fraction') {
+			container.append(createFractionElement(node.numerator, node.denominator, node.style))
+		} else if (node.type === 'script') {
+			container.append(createScriptElement(node.pre, node.sup, node.sub))
+		} else {
+			container.append(createTextSlot(node.value))
+		}
 	}
 }
 
@@ -462,8 +647,17 @@ const readSlotText = (slot: HTMLElement): string => stripPlaceholder(slot.textCo
 
 const serializeNodes = (container: HTMLElement): string => {
 	let result = ''
+	let hasContent = false
 	for (const child of Array.from(container.children) as HTMLElement[]) {
-		if (child.classList.contains('me-frac')) {
+		if (child.classList.contains('me-script')) {
+			const sup = child.querySelector(':scope > .me-script__sup') as HTMLElement | null
+			const sub = child.querySelector(':scope > .me-script__sub') as HTMLElement | null
+			const parts = `${sub ? `_{${serializeNodes(sub)}}` : ''}${sup ? `^{${serializeNodes(sup)}}` : ''}`
+			const isPre = child.classList.contains('me-script--pre')
+			// 后置上下标在容器开头时需要空基底，保证 LaTeX 合法
+			result += `${isPre || !hasContent ? '{}' : ''}${parts}`
+			hasContent = true
+		} else if (child.classList.contains('me-frac')) {
 			const num = child.querySelector(':scope > .me-frac__num') as HTMLElement | null
 			const den = child.querySelector(':scope > .me-frac__den') as HTMLElement | null
 			const numerator = num ? serializeNodes(num) : ''
@@ -474,8 +668,13 @@ const serializeNodes = (container: HTMLElement): string => {
 				const command = child.classList.contains('me-frac--small') ? '\\tfrac' : '\\frac'
 				result += `${command}{${numerator}}{${denominator}}`
 			}
+			hasContent = true
 		} else if (child.classList.contains('me-text-slot')) {
-			result += readSlotText(child)
+			const value = readSlotText(child)
+			if (value) {
+				result += value
+				hasContent = true
+			}
 		}
 	}
 	return result
@@ -550,17 +749,20 @@ const focusSlot = (slot: HTMLElement | null, selectAll = false, position: 'start
 type ActiveSlotInfo = {
 	slot: HTMLElement
 	fraction: HTMLElement | null
-	role: 'num' | 'den' | 'text'
+	script: HTMLElement | null
+	role: 'num' | 'den' | 'sup' | 'sub' | 'text'
 	atStart: boolean
 	atEnd: boolean
 	collapsed: boolean
 }
 
-/** 根据文本槽的父容器判断它属于分子、分母还是根级文本 */
-const getSlotRole = (slot: HTMLElement): 'num' | 'den' | 'text' => {
+/** 根据文本槽的父容器判断它属于分子、分母、上标、下标还是根级文本 */
+const getSlotRole = (slot: HTMLElement): 'num' | 'den' | 'sup' | 'sub' | 'text' => {
 	const parent = slot.parentElement
 	if (parent?.classList.contains('me-frac__num')) return 'num'
 	if (parent?.classList.contains('me-frac__den')) return 'den'
+	if (parent?.classList.contains('me-script__sup')) return 'sup'
+	if (parent?.classList.contains('me-script__sub')) return 'sub'
 	return 'text'
 }
 
@@ -591,6 +793,7 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 	return {
 		slot,
 		fraction: (slot.closest('.me-frac') as HTMLElement | null) ?? null,
+		script: (slot.closest('.me-script') as HTMLElement | null) ?? null,
 		role: getSlotRole(slot),
 		atStart: stripPlaceholder(before.toString()).length === 0,
 		atEnd: stripPlaceholder(after.toString()).length === 0,
@@ -598,7 +801,7 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 	}
 }
 
-/** 取容器内最左/最右的可编辑槽位，分式会递归进入分子或分母 */
+/** 取容器内最左/最右的可编辑槽位，分式/上下标会递归进入对应子容器 */
 const getEdgeSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement => {
 	const children = Array.from(container.children) as HTMLElement[]
 	const ordered = side === 'start' ? children : [...children].reverse()
@@ -610,11 +813,31 @@ const getEdgeSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement
 			) as HTMLElement | null
 			if (part) return getEdgeSlot(part, side)
 		}
+		if (child.classList.contains('me-script')) {
+			const part = child.querySelector(
+				side === 'start' ? ':scope > .me-script__sup' : ':scope > .me-script__sub'
+			) as HTMLElement | null
+			if (part) return getEdgeSlot(part, side)
+			const fallback = child.querySelector(
+				':scope > .me-script__sup, :scope > .me-script__sub'
+			) as HTMLElement | null
+			if (fallback) return getEdgeSlot(fallback, side)
+		}
 	}
 	const slot = createTextSlot('')
 	if (side === 'start') container.prepend(slot)
 	else container.append(slot)
 	return slot
+}
+
+/** 聚焦上下标节点内的槽位：优先上标，其次下标 */
+const focusScriptSlot = (script: HTMLElement, prefer: 'sup' | 'sub' = 'sup', select = false): boolean => {
+	const sup = script.querySelector(':scope > .me-script__sup') as HTMLElement | null
+	const sub = script.querySelector(':scope > .me-script__sub') as HTMLElement | null
+	const target = prefer === 'sub' ? (sub ?? sup) : (sup ?? sub)
+	if (!target) return false
+	focusSlot(getEdgeSlot(target, 'start'), select, 'start')
+	return true
 }
 
 /** 取容器内同级的文本槽（不进入嵌套分式），没有就在对应边缘创建一个 */
@@ -628,6 +851,9 @@ const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HT
 	return slot
 }
 
+const isAtomElement = (element: HTMLElement): boolean =>
+	element.classList.contains('me-frac') || element.classList.contains('me-script')
+
 /**
  * 在根级或分式的分子/分母容器内左右移动。
  * 公式在外部视为整体：从公式外按左右键会跨过整座公式，只有从公式内部向外移动时才落在它紧邻的位置。
@@ -637,7 +863,7 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 	if (!root || !node) return false
 	const parent = node.parentElement
 	if (!parent) return false
-	const isFraction = node.classList.contains('me-frac')
+	const isAtom = isAtomElement(node)
 
 	const focusNumeratorEnd = (fraction: HTMLElement): boolean => {
 		const numerator = fraction.querySelector(':scope > .me-frac__num') as HTMLElement | null
@@ -657,7 +883,7 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 		const previous = node.previousElementSibling as HTMLElement | null
 
 		// 从公式内部向左跳出：落在公式左侧紧邻的位置
-		if (isFraction) {
+		if (isAtom) {
 			if (previous?.classList.contains('me-text-slot')) {
 				focusSlot(previous, false, 'end')
 				return true
@@ -681,7 +907,7 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 		// 已在公式外部：跨过相邻的整座公式，落到更左侧的文本槽
 		let cursor = previous
 		if (cursor) {
-			while (cursor && cursor.classList.contains('me-frac')) {
+			while (cursor && isAtomElement(cursor)) {
 				cursor = cursor.previousElementSibling as HTMLElement | null
 			}
 			if (cursor) {
@@ -718,7 +944,7 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 	const next = node.nextElementSibling as HTMLElement | null
 
 	// 从公式内部向右跳出：落在公式右侧紧邻的位置
-	if (isFraction) {
+	if (isAtom) {
 		if (next?.classList.contains('me-text-slot')) {
 			focusSlot(next, false, 'start')
 			return true
@@ -739,7 +965,7 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 	// 已在公式外部：跨过相邻的整座公式，落到更右侧的文本槽
 	let cursor = next
 	if (cursor) {
-		while (cursor && cursor.classList.contains('me-frac')) {
+		while (cursor && isAtomElement(cursor)) {
 			cursor = cursor.nextElementSibling as HTMLElement | null
 		}
 		if (cursor) {
@@ -799,6 +1025,26 @@ const handleArrow = (key: string): boolean => {
 		return false
 	}
 
+	if ((role === 'sup' || role === 'sub') && info.script) {
+		if (role === 'sup' && key === 'ArrowDown') {
+			const sub = info.script.querySelector(':scope > .me-script__sub') as HTMLElement | null
+			if (sub) {
+				focusSlot(getEdgeSlot(sub, 'start'), false, 'start')
+				return true
+			}
+		}
+		if (role === 'sub' && key === 'ArrowUp') {
+			const sup = info.script.querySelector(':scope > .me-script__sup') as HTMLElement | null
+			if (sup) {
+				focusSlot(getEdgeSlot(sup, 'end'), false, 'end')
+				return true
+			}
+		}
+		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
+		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
+		return false
+	}
+
 	if (role === 'text') {
 		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
 		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
@@ -818,33 +1064,44 @@ const ensureAdjacentTextSlot = (reference: HTMLElement, side: 'before' | 'after'
 	return slot
 }
 
-/** 删除整个分式节点，并把光标放到它前面或后面的文本槽 */
-const removeFractionNode = (fraction: HTMLElement, side: 'before' | 'after') => {
-	const slot = ensureAdjacentTextSlot(fraction, side)
-	fraction.remove()
+/** 删除整个分式 / 上下标节点，并把光标放到它前面或后面的文本槽 */
+const removeAtomNode = (atom: HTMLElement, side: 'before' | 'after') => {
+	const slot = ensureAdjacentTextSlot(atom, side)
+	atom.remove()
 	focusSlot(slot, false, side === 'before' ? 'end' : 'start')
 	syncFromEditor()
 }
 
-/** 分式本身不是 contenteditable，需要在槽位边界用退格 / Delete 删除整个分式 */
+/** 分式 / 上下标本身不是 contenteditable，需要在槽位边界用退格 / Delete 整块删除 */
 const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	const info = getActiveSlot()
 	if (!info || !info.collapsed) return false
-	const { slot, fraction, role, atStart, atEnd } = info
+	const { slot, fraction, script, role, atStart, atEnd } = info
 
 	if (role === 'num' && fraction && key === 'Backspace' && atStart) {
-		removeFractionNode(fraction, 'before')
+		removeAtomNode(fraction, 'before')
 		return true
 	}
 	if (role === 'den' && fraction && key === 'Delete' && atEnd) {
-		removeFractionNode(fraction, 'after')
+		removeAtomNode(fraction, 'after')
 		return true
+	}
+	if ((role === 'sup' || role === 'sub') && script) {
+		if (key === 'Backspace' && atStart) {
+			removeAtomNode(script, 'before')
+			return true
+		}
+		if (key === 'Delete' && atEnd) {
+			removeAtomNode(script, 'after')
+			return true
+		}
+		return false
 	}
 
 	if (role === 'text') {
 		if (key === 'Backspace' && atStart) {
 			const previous = slot.previousElementSibling as HTMLElement | null
-			if (previous?.classList.contains('me-frac')) {
+			if (previous?.matches('.me-frac, .me-script')) {
 				previous.remove()
 				focusSlot(slot, false, 'start')
 				syncFromEditor()
@@ -853,7 +1110,7 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 		}
 		if (key === 'Delete' && atEnd) {
 			const next = slot.nextElementSibling as HTMLElement | null
-			if (next?.classList.contains('me-frac')) {
+			if (next?.matches('.me-frac, .me-script')) {
 				next.remove()
 				focusSlot(slot, false, 'end')
 				syncFromEditor()
@@ -883,6 +1140,11 @@ const focusByPoint = (x: number) => {
 		if (x <= rect.right) {
 			if (child.classList.contains('me-text-slot')) {
 				focusSlot(child, false, x < rect.left + rect.width / 2 ? 'start' : 'end')
+			} else if (child.classList.contains('me-script')) {
+				const part = child.querySelector(
+					':scope > .me-script__sup, :scope > .me-script__sub'
+				) as HTMLElement | null
+				if (part) focusSlot(getEdgeSlot(part, 'start'), false, 'start')
 			} else {
 				const numerator = child.querySelector(':scope > .me-frac__num') as HTMLElement | null
 				if (numerator) focusSlot(getEdgeSlot(numerator, 'end'), false, 'end')
@@ -944,18 +1206,10 @@ const insertTextAtCaret = (value: string) => {
 	syncFromEditor()
 }
 
-const insertFraction = (
-	numerator: string,
-	denominator: string,
-	style: FractionStyle = 'normal'
-) => {
+/** 把节点插入当前光标所在槽位：按光标切分文本槽，保留前后文本 */
+const insertNodesAtCaret = (nodes: Node[]) => {
 	const root = editorRef.value
-	if (!root) return
-	const fraction = createFractionElement(
-		numerator ? [{ type: 'text', value: numerator }] : [],
-		denominator ? [{ type: 'text', value: denominator }] : [],
-		style
-	)
+	if (!root || !nodes.length) return
 	const selection = window.getSelection()
 	let slot: HTMLElement | null = null
 	let range: Range | null = null
@@ -973,35 +1227,61 @@ const insertFraction = (
 	}
 	if (!slot && lastFocusedSlot && root.contains(lastFocusedSlot)) slot = lastFocusedSlot
 
-	if (slot) {
-		// 在当前槽位内部插入：分子/分母槽位会形成嵌套分式
-		const hasRange = Boolean(
-			range && slot.contains(range.startContainer) && slot.contains(range.endContainer)
-		)
-		// 选中内容时被新分式替换，避免留下空文本槽
-		if (hasRange && range && !range.collapsed) range.deleteContents()
-		const content = readSlotText(slot)
-		let offset = content.length
-		if (hasRange && range) {
-			const beforeRange = range.cloneRange()
-			beforeRange.selectNodeContents(slot)
-			beforeRange.setEnd(range.startContainer, range.startOffset)
-			offset = Math.min(stripPlaceholder(beforeRange.toString()).length, content.length)
-		}
-		const beforeValue = content.slice(0, offset)
-		const afterValue = content.slice(offset)
-		const nodes: Node[] = []
-		if (beforeValue) nodes.push(createTextSlot(beforeValue))
-		nodes.push(fraction)
-		if (afterValue) nodes.push(createTextSlot(afterValue))
-		slot.replaceWith(...nodes)
-	} else {
-		root.append(fraction)
+	if (!slot) {
+		root.append(...nodes)
+		return
 	}
 
+	// 在当前槽位内部插入：分子/分母/上下标槽位会形成嵌套结构
+	const hasRange = Boolean(
+		range && slot.contains(range.startContainer) && slot.contains(range.endContainer)
+	)
+	// 选中内容时被新节点替换，避免留下空文本槽
+	if (hasRange && range && !range.collapsed) range.deleteContents()
+	const content = readSlotText(slot)
+	let offset = content.length
+	if (hasRange && range) {
+		const beforeRange = range.cloneRange()
+		beforeRange.selectNodeContents(slot)
+		beforeRange.setEnd(range.startContainer, range.startOffset)
+		offset = Math.min(stripPlaceholder(beforeRange.toString()).length, content.length)
+	}
+	const beforeValue = content.slice(0, offset)
+	const afterValue = content.slice(offset)
+	const parts: Node[] = []
+	if (beforeValue) parts.push(createTextSlot(beforeValue))
+	parts.push(...nodes)
+	if (afterValue) parts.push(createTextSlot(afterValue))
+	slot.replaceWith(...parts)
+}
+
+const insertFraction = (
+	numerator: string,
+	denominator: string,
+	style: FractionStyle = 'normal'
+) => {
+	const fraction = createFractionElement(
+		numerator ? [{ type: 'text', value: numerator }] : [],
+		denominator ? [{ type: 'text', value: denominator }] : [],
+		style
+	)
+	insertNodesAtCaret([fraction])
 	syncFromEditor()
 	const num = fraction.querySelector(':scope > .me-frac__num') as HTMLElement | null
 	focusSlot(num ? getEdgeSlot(num, 'start') : null, true)
+}
+
+/** 插入上下标：以 x 为基底，按格式创建上标 / 下标 / 上下标 / 前置上下标 */
+const insertScript = (format: ScriptFormatId) => {
+	const script = createScriptElement(
+		format === 'pre',
+		format === 'sub' ? null : [],
+		format === 'sup' ? null : []
+	)
+	const base = createTextSlot('x')
+	insertNodesAtCaret(format === 'pre' ? [script, base] : [base, script])
+	syncFromEditor()
+	focusScriptSlot(script, format === 'sub' ? 'sub' : 'sup', true)
 }
 
 const insertText = (value: string) => {
@@ -1052,6 +1332,11 @@ const onEditorClick = (event: MouseEvent) => {
 		focusSlot(numerator ? getEdgeSlot(numerator, 'end') : null, false, 'end')
 		return
 	}
+	const script = target.closest('.me-script') as HTMLElement | null
+	if (script) {
+		focusScriptSlot(script)
+		return
+	}
 	if (target !== root) return
 	focusByPoint(event.clientX)
 }
@@ -1094,9 +1379,16 @@ const clear = () => {
 const onToolClick = (tool: Tool) => {
 	if (tool.id === 'fraction') {
 		fractionOpen.value = !fractionOpen.value
+		scriptsOpen.value = false
+		return
+	}
+	if (tool.id === 'scripts') {
+		scriptsOpen.value = !scriptsOpen.value
+		fractionOpen.value = false
 		return
 	}
 	fractionOpen.value = false
+	scriptsOpen.value = false
 }
 
 const pickFraction = (item: FractionChoice) => {
@@ -1108,10 +1400,29 @@ const pickFraction = (item: FractionChoice) => {
 	}
 }
 
+const pickScriptFormat = (item: ScriptFormat) => {
+	scriptsOpen.value = false
+	insertScript(item.id)
+}
+
+const pickCommonScript = (item: CommonScript) => {
+	scriptsOpen.value = false
+	const holder = document.createElement('span')
+	appendNodes(holder, parseLatex(item.latex))
+	const nodes = Array.from(holder.childNodes)
+	const script = (Array.from(holder.children) as HTMLElement[]).find((el) =>
+		el.classList.contains('me-script')
+	)
+	insertNodesAtCaret(nodes)
+	syncFromEditor()
+	if (script) focusScriptSlot(script)
+}
+
 const onDocumentClick = (event: MouseEvent) => {
-	if (!fractionOpen.value) return
+	if (!fractionOpen.value && !scriptsOpen.value) return
 	if (toolbarRef.value?.contains(event.target as Node)) return
 	fractionOpen.value = false
+	scriptsOpen.value = false
 }
 
 onMounted(() => {
@@ -1152,6 +1463,12 @@ watch(locale, () => {
 	})
 	root.querySelectorAll('.me-frac__den').forEach((el) => {
 		el.setAttribute('aria-label', t('formula.aria.denominator'))
+	})
+	root.querySelectorAll('.me-script__sup').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.sup'))
+	})
+	root.querySelectorAll('.me-script__sub').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.sub'))
 	})
 })
 
@@ -1297,7 +1614,7 @@ defineExpose({ focus, validate, clear })
 	font-style: normal;
 }
 
-.he-fraction-popover {
+.he-tool-popover {
 	position: absolute;
 	top: calc(100% + 4px);
 	left: 0;
@@ -1311,7 +1628,7 @@ defineExpose({ focus, validate, clear })
 	overflow: hidden;
 }
 
-.he-fraction-popover__header {
+.he-tool-popover__header {
 	padding: 8px 14px;
 	border-bottom: 1px solid #eef0f3;
 	font-size: 13px;
@@ -1319,23 +1636,23 @@ defineExpose({ focus, validate, clear })
 	color: #1f2329;
 }
 
-.he-fraction-popover__body {
+.he-tool-popover__body {
 	padding: 10px 14px 12px;
 }
 
-.he-fraction-popover__grid {
+.he-tool-popover__grid {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
 	gap: 8px;
 }
 
-.he-fraction-popover__section {
+.he-tool-popover__section {
 	margin: 8px 0 6px;
 	font-size: 12px;
 	color: #666;
 }
 
-.he-fraction-card {
+.he-tool-card {
 	height: 68px;
 	display: flex;
 	flex-direction: column;
@@ -1350,34 +1667,83 @@ defineExpose({ focus, validate, clear })
 	transition: border-color 0.15s, background 0.15s;
 }
 
-.he-fraction-card:hover {
+.he-tool-card:hover {
 	border-color: #3b6ef5;
 	background: #f7f9ff;
 }
 
-.he-fraction-card__preview {
+.he-tool-card__preview {
 	font-size: 17px;
 	line-height: 1.1;
 }
 
-.he-fraction-card__preview :deep(.math-frac) {
+.he-tool-card__preview :deep(.math-frac) {
 	display: inline-flex;
 	flex-direction: column;
 	align-items: center;
 	line-height: 1.1;
 }
 
-.he-fraction-card__preview :deep(.math-frac__num) {
+.he-tool-card__preview :deep(.math-frac__num) {
 	padding: 0 4px 2px;
 	border-bottom: 1px solid currentColor;
 }
 
-.he-fraction-card__preview :deep(.math-frac__den) {
+.he-tool-card__preview :deep(.math-frac__den) {
 	padding-top: 2px;
 }
 
-.he-fraction-card__preview :deep(.math-frac--small) {
+.he-tool-card__preview :deep(.math-frac--small) {
 	font-size: 0.7em;
+}
+
+/* 上下标格式卡片：空白框表示待输入的上标 / 下标 */
+.he-tool-card__preview :deep(.script-preview) {
+	display: inline-flex;
+	align-items: center;
+	line-height: 1;
+}
+
+.he-tool-card__preview :deep(.script-preview--pre) {
+	flex-direction: row-reverse;
+}
+
+.he-tool-card__preview :deep(.script-preview__stack) {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 3px;
+	margin-left: 3px;
+	font-size: 0.62em;
+}
+
+.he-tool-card__preview :deep(.script-preview--pre .script-preview__stack) {
+	margin-left: 0;
+	margin-right: 3px;
+}
+
+.he-tool-card__preview :deep(.script-preview__slot) {
+	width: 13px;
+	height: 10px;
+	border: 1px dashed #b9c0cc;
+	border-radius: 2px;
+}
+
+/* 常用上下标模板预览 */
+.he-tool-card__preview :deep(.script-tpl sup),
+.he-tool-card__preview :deep(.script-tpl sub) {
+	font-size: 0.62em;
+	line-height: 0;
+}
+
+.he-tool-card__preview :deep(.script-tpl__pre) {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: flex-start;
+	margin-right: 1px;
+	font-size: 0.62em;
+	line-height: 1.1;
+	vertical-align: middle;
 }
 
 .he-field-label {
@@ -1527,6 +1893,43 @@ defineExpose({ focus, validate, clear })
 .he-formula-editable :deep(.me-frac__num:focus-within),
 .he-formula-editable :deep(.me-frac__den:focus-within) {
 	background: #eef3ff;
+}
+
+.he-formula-editable :deep(.me-script) {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: flex-start;
+	margin: 0 1px;
+	font-size: 0.62em;
+	line-height: 1.05;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-script--sup) {
+	transform: translateY(-0.45em);
+}
+
+.he-formula-editable :deep(.me-script--sub) {
+	transform: translateY(0.45em);
+}
+
+.he-formula-editable :deep(.me-script__sup),
+.he-formula-editable :deep(.me-script__sub) {
+	display: flex;
+	align-items: center;
+	min-width: 10px;
+	padding: 0 1px;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-script__sup:focus-within),
+.he-formula-editable :deep(.me-script__sub:focus-within) {
+	background: #eef3ff;
+}
+
+/* 上下标里的嵌套上下标逐层缩小 */
+.he-formula-editable :deep(.me-script .me-script) {
+	font-size: 0.82em;
 }
 
 .he-formula-editor__clear {
