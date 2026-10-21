@@ -3,37 +3,17 @@
 		<div v-if="modelValue" class="he-modal" @click.self="close">
 			<div class="he-modal__panel">
 				<div class="he-modal__header">
-					<h3 class="he-modal__title">{{ title }}</h3>
-					<button class="he-modal__close" type="button" @click="close">×</button>
+					<h3 class="he-modal__title">{{ dialogTitle }}</h3>
+					<button class="he-modal__close" type="button" :aria-label="t('common.close')" @click="close">×</button>
 				</div>
 
 				<div class="he-modal__body">
-					<div class="he-field-label">公式编辑区（所见即所得）</div>
-					<HeMathInput ref="inputRef" v-model="latex" />
-
-					<div class="he-field-label he-field-label--gap">
-						实时预览
-						<label class="he-display-toggle">
-							<input v-model="displayMode" type="checkbox" />
-							行间公式（独立成行）
-						</label>
-					</div>
-					<HeMathPreview :latex="latex" :display="displayMode" />
-
-					<div class="he-field-label he-field-label--gap">常用符号</div>
-					<div class="he-symbols">
-						<button v-for="s in symbols" :key="s.label" class="he-sym" type="button" @click="insertSym(s.value)">
-							{{ s.label }}
-						</button>
-					</div>
-
-					<div class="he-latex">LaTeX：{{ latex || '（空）' }}</div>
-					<div v-if="error" class="he-error">{{ error }}</div>
+					<HeFormulaEditor ref="editorRef" v-model="latex" v-model:display="displayMode" />
 				</div>
 
 				<div class="he-modal__footer">
-					<button class="he-btn" type="button" @click="close">{{ cancelText }}</button>
-					<button class="he-btn he-btn--primary" type="button" @click="confirm">{{ confirmText }}</button>
+					<button class="he-btn" type="button" @click="close">{{ cancelLabel }}</button>
+					<button class="he-btn he-btn--primary" type="button" @click="confirm">{{ confirmLabel }}</button>
 				</div>
 			</div>
 		</div>
@@ -41,14 +21,14 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
-import HeMathInput from './HeMathInput.vue'
-import HeMathPreview from './HeMathPreview.vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import HeFormulaEditor from './HeFormulaEditor.vue'
 
 /**
- * HeFormulaDialog —— 公式编辑器弹窗
- * 组合 HeMathInput（MathLive 输入）+ HeMathPreview（MathJax 预览）+ 符号面板
- * 打开时通过 latex / display 传入初始公式，确认后通过 confirm 事件回传 LaTeX 源码与是否行间
+ * HeFormulaDialog —— 公式编辑弹窗容器
+ * 只负责遮罩、标题、底部按钮与开关状态；实际编辑内容由 HeFormulaEditor 提供。
+ * 打开时通过 latex / display 传入初始值，确认后回传文本与是否行间。
  */
 const props = withDefaults(
 	defineProps<{
@@ -62,10 +42,10 @@ const props = withDefaults(
 	}>(),
 	{
 		latex: '',
-		display: false,
-		title: '公式编辑',
-		confirmText: '插入',
-		cancelText: '取消'
+		display: true,
+		title: '',
+		confirmText: '',
+		cancelText: ''
 	}
 )
 
@@ -74,22 +54,15 @@ const emit = defineEmits<{
 	(e: 'confirm', latex: string, display: boolean): void
 }>()
 
+const { t } = useI18n()
+
+const dialogTitle = computed(() => props.title || t('formula.dialogTitle'))
+const confirmLabel = computed(() => props.confirmText || t('common.confirm'))
+const cancelLabel = computed(() => props.cancelText || t('common.cancel'))
+
 const latex = ref('')
 const displayMode = ref(false)
-const error = ref('')
-const inputRef = ref<InstanceType<typeof HeMathInput>>()
-
-const symbols = [
-	{ label: 'a/b', value: '\\frac{a}{b}' },
-	{ label: '√x', value: '\\sqrt{x}' },
-	{ label: 'x²', value: 'x^{2}' },
-	{ label: 'lim', value: '\\lim_{n \\to \\infty}' },
-	{ label: '∫', value: '\\int_{a}^{b}' },
-	{ label: 'Σ', value: '\\sum_{i=1}^{n}' },
-	{ label: 'α', value: '\\alpha' },
-	{ label: 'π', value: '\\pi' },
-	{ label: '∞', value: '\\infty' }
-]
+const editorRef = ref<InstanceType<typeof HeFormulaEditor>>()
 
 watch(
 	() => props.modelValue,
@@ -97,26 +70,17 @@ watch(
 		if (!visible) return
 		latex.value = props.latex ?? ''
 		displayMode.value = props.display
-		error.value = ''
-		nextTick(() => inputRef.value?.focus())
+		nextTick(() => editorRef.value?.focus())
 	}
 )
-
-const insertSym = (sym: string) => {
-	inputRef.value?.insert(sym)
-}
 
 const close = () => {
 	emit('update:modelValue', false)
 }
 
 const confirm = () => {
-	const text = latex.value.trim()
-	if (!text) {
-		error.value = '请先输入公式'
-		return
-	}
-	emit('confirm', text, displayMode.value)
+	if (!editorRef.value?.validate()) return
+	emit('confirm', latex.value.trim(), displayMode.value)
 	emit('update:modelValue', false)
 }
 </script>
@@ -178,71 +142,6 @@ const confirm = () => {
 .he-modal__body {
 	padding: 18px 20px;
 	overflow-y: auto;
-}
-
-.he-field-label {
-	font-size: 12px;
-	font-weight: 600;
-	color: #555;
-	margin-bottom: 6px;
-}
-
-.he-field-label--gap {
-	margin-top: 14px;
-}
-
-.he-display-toggle {
-	margin-left: 12px;
-	font-size: 12px;
-	font-weight: 400;
-	color: #666;
-	cursor: pointer;
-}
-
-.he-display-toggle input {
-	margin-right: 4px;
-	vertical-align: -1px;
-}
-
-.he-symbols {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-}
-
-.he-sym {
-	border: 1px solid #d9dde3;
-	background: #fff;
-	border-radius: 6px;
-	padding: 4px 10px;
-	font-size: 12px;
-	font-family: Consolas, monospace;
-	color: #333;
-	cursor: pointer;
-	transition: all 0.15s;
-}
-
-.he-sym:hover {
-	border-color: #3b6ef5;
-	color: #3b6ef5;
-	background: #eef3ff;
-}
-
-.he-latex {
-	margin-top: 14px;
-	padding: 8px 10px;
-	border-radius: 6px;
-	background: #f5f7fa;
-	font-family: Consolas, monospace;
-	font-size: 12px;
-	color: #666;
-	word-break: break-all;
-}
-
-.he-error {
-	margin-top: 8px;
-	font-size: 12px;
-	color: #f56c6c;
 }
 
 .he-modal__footer {
