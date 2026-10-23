@@ -63,7 +63,7 @@ Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正�
 | `packages/editor/src/styles/math-font.scss` | `HeMathFont`：通过 unicode-range 组合 KaTeX_Main 与 KaTeX_Math | `HeMathFont`、`.he-math-font` |
 | `packages/editor/vite.lib.config.ts` | 库模式构建：双入口（index/full）、vite-plugin-dts、external 策略、tex-svg 外置资产插件 | - |
 | `packages/editor/vitest.config.ts` | 单元测试配置：jsdom 环境 + @vitejs/plugin-vue，匹配 `src/**/*.{test,spec}.ts` | - |
-| `packages/editor/src/components/__tests__/` | 组件单元测试（当前为 `HeFormulaEditor.integral.test.ts`，覆盖积分 / 围道积分弹层 / 插入 / 解析 / 序列化 / 导航 / 删除） | `pnpm test` |
+| `packages/editor/src/components/__tests__/` | 组件单元测试（当前为 `HeFormulaEditor.integral.test.ts`，覆盖积分 / 围道积分 / 微分弹层 / 插入 / 解析 / 序列化 / 导航 / 删除） | `pnpm test` |
 | `packages/editor/LICENSE` | AGPL-3.0 全文 + 商业双许可声明 + 第三方依赖清单 | - |
 | `apps/demo/src/App.vue` | 应用外壳：顶部导航、hash 路由、页面切换与标题同步 | - |
 | `apps/demo/src/main.ts` | `installDemoMessages()` 后 `app.use(HeMathEditor)` 整体安装 | - |
@@ -170,7 +170,7 @@ Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正�
 - 分数按钮打开浮层：第一排 4 个格式（分数（竖式）`\frac{a}{b}`、分数（横式）`a/b`、分数（斜式）`{}^{a}\!/\!_{b}`、分数（小型分数）`\tfrac{a}{b}`），下方「常用分数」（`dy/dx`、`Δy/Δx`、`∂y/∂x`、`δy/δx`、`π/2`）；竖式、斜式、小型和常用分数插入结构化分式并选中分子，横式以文本模板插入。
 - 上下标按钮打开浮层：第一排 4 个格式（上标 `x^{}`、下标 `x_{}`、上下标 `x_{}^{}`、前置上下标 `{}_{}^{}x`），下方「常用的下标和上标」（`x_{y^2}`、`e^{-iωt}`、`x^2`、`{}_{1}^{n}Y`）；格式卡片以 `x` 为基底插入结构化上下标并聚焦对应槽位，常用模板按解析结果插入并聚焦第一个上下标槽。
 - 根式按钮打开浮层：第一排 4 个格式（平方根 `\sqrt{}`、n 次根 `\sqrt[n]{}`、二次根 `\sqrt[2]{}`、立方根 `\sqrt[3]{}`），下方「常用根式」（求根公式 `\frac{-b±\sqrt{b^{2}-4ac}}{2a}`、`\sqrt{a^{2}+b^{2}}`）；格式卡片插入结构化根式并聚焦根指数或被开方数，常用模板按解析结果插入并聚焦第一个可编辑槽。
-- 积分按钮打开浮层：左右双栏共 18 种格式（左栏「积分」∫ / ∬ / ∭，右栏「围道积分」∮ / ∯ / ∰，每行 × 无限界 / 仅上限 / 上下限），弹层加宽（`he-tool-popover--wide` 560px）；格式卡片插入结构化积分并聚焦下限（上下限）/ 上限（仅上限）/ 被积函数（无限界）。围道积分复用普通积分的 `me-int` 结构，仅积分号不同。积分号存 `dataset.sign`，序列化时按 `integralSignToCommand` 反查命令（`∭` → `\iiint`、`∯` → `\oiint`、其余 `\int` 等，与 `integralCommands` 同源）；输出 `\int_{下}^{上}{被积函数}`，被积函数花括号始终保留。
+- 积分按钮打开浮层：左右双栏共 18 种格式（左栏「积分」∫ / ∬ / ∭，右栏「围道积分」∮ / ∯ / ∰，每行 × 无限界 / 仅上限 / 上下限）+ 底部「微分」通栏 3 张纯文本卡（dx / dy / dθ），弹层加宽（`he-tool-popover--wide` 560px），外层 `__body` 统一包裹双栏与微分通栏；格式卡片插入结构化积分并聚焦下限（上下限）/ 上限（仅上限）/ 被积函数（无限界）。围道积分复用普通积分的 `me-int` 结构，仅积分号不同。积分号存 `dataset.sign`，序列化时按 `integralSignToCommand` 反查命令（`∭` → `\iiint`、`∯` → `\oiint`、其余 `\int` 等，与 `integralCommands` 同源）；输出 `\int_{下}^{上}{被积函数}`，被积函数花括号始终保留。微分卡片走 `pickDifferentialFormat` → `insertTextAtCaret` 按普通文本插入当前光标槽位（θ 用 Unicode，可编辑区不解析 `\theta`）。
 - `#/input` 直接渲染 `HeFormulaEditor`；`HeMdEditor` 通过 `HeFormulaDialog` 使用同一个 UI。
 - 输入模型是 LaTeX 文本；`*` / `-` / `/` 映射为 `×` / `−` / `÷`；MathJax 已确认可直接排版这些 Unicode 字符。
 - `HeMathInput`（MathLive）仅保留在 EditorPage 的内嵌示例中，不再用于公式弹窗。
@@ -275,10 +275,11 @@ pnpm dev          # http://localhost:3100 手工验证
 38. 在 LaTeX 源码框输入 `\sqrt{\sqrt{x}}+\frac{\sqrt{2}}{2}`，可编辑区正确渲染嵌套根式与根式分式；在根式外部按 `←` / `→` 会跨过整座根式，`↓` / `↑` 从被开方数跳出后不会误入根式内部。
 39. LaTeX 原文是可编辑 textarea：在源码框直接输入/修改 `\frac{a}{b}+c`，下方编辑区实时重建为对应结构；反向在编辑区修改后源码框内容同步更新，两个方向都不会出现光标跳动或死循环。
 40. `pnpm build:lib` 产出 `packages/editor/dist-lib`：`index.js`、`full.js`、`full.d.ts`、`style.css`、`mathjax/tex-svg.js` 齐全；宿主通过 `he-math-editor` / `he-math-editor/full` / `he-math-editor/style.css` 三个入口可正常引入。
-41. 点击积分按钮打开浮层：左右双栏共 18 张格式卡（左栏 ∫ / ∬ / ∭，右栏围道 ∮ / ∯ / ∰，每行 × 无限界 / 仅上限 / 上下限）；插入定积分后原文为 `\int_{}^{ }{}` 且聚焦下限，输入下限后 `↑` 到上限、`↓` 回下限、再 `↓` 进被积函数；输入后被积函数带花括号序列化（如 `\int_{0}^{1}{f(x)}`）。
+41. 点击积分按钮打开浮层：左右双栏共 18 张格式卡（左栏 ∫ / ∬ / ∭，右栏围道 ∮ / ∯ / ∰，每行 × 无限界 / 仅上限 / 上下限）+ 底部「微分」通栏 3 张卡（dx / dy / dθ）；插入定积分后原文为 `\int_{}^{ }{}` 且聚焦下限，输入下限后 `↑` 到上限、`↓` 回下限、再 `↓` 进被积函数；输入后被积函数带花括号序列化（如 `\int_{0}^{1}{f(x)}`）。
 42. 在 LaTeX 源码框输入 `\int\limits_{a}^{b}{x^{2}}dx` 与 `\iiint_{0}^{1}{x}+\iint^{2}{y}`，可编辑区正确渲染（`\limits` 被跳过、∭ 有下限、∬ 仅上限、尾部 `dx` 独立文本槽）；限界 / 被积函数内可嵌套分式与上下标（如 `\int_{0}^{1}{\frac{x}{2}}dx`）。
 43. 积分整块删除：被积函数末尾 `Delete`、限界开头 `Backspace` 或相邻文本槽边界 `Backspace` / `Delete` 能删除整座积分；被积函数开头 `Backspace` 仅在积分无限界时整块删除。
 44. 点击右栏「围道积分」卡片：`\oint` / `\oiint` / `\oiiint` 分别插入 `∮{}` / `∯_{}^{ }{}` / `∰{}` 并聚焦对应槽位；源码框输入 `\oint_{C}{f(z)dz}` 正确解析与往返，`\oiint` 不会被 `\oint` 前缀误匹配（最长优先）；围道积分的限界互跳、整块删除与普通积分一致。
+45. 点击底部「微分」栏的 dx / dy / dθ 卡片：浮层关闭，光标所在槽位按普通文本插入对应内容；插入不定积分聚焦被积函数后再打开浮层点 dx，原文为 `\int{dx}`。
 
 ## 8. 提交与版本规则（强制）
 

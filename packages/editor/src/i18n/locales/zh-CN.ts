@@ -64,7 +64,11 @@ export default {
 			oiintSubSup: '二重围道定积分',
 			oiiint: '三重围道积分',
 			oiiintSup: '三重围道积分（上限）',
-			oiiintSubSup: '三重围道定积分'
+			oiiintSubSup: '三重围道定积分',
+			differentialPanelTitle: '微分',
+			dx: '微分 dx',
+			dy: '微分 dy',
+			dtheta: '微分 dθ'
 		},
 		latexSource: 'LaTeX 原文',
 		editable: '可编辑公式',

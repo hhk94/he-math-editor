@@ -64,7 +64,11 @@ export default {
 			oiintSubSup: 'Double contour definite integral',
 			oiiint: 'Triple contour integral',
 			oiiintSup: 'Triple contour integral (upper limit)',
-			oiiintSubSup: 'Triple contour definite integral'
+			oiiintSubSup: 'Triple contour definite integral',
+			differentialPanelTitle: 'Differential',
+			dx: 'Differential dx',
+			dy: 'Differential dy',
+			dtheta: 'Differential dθ'
 		},
 		latexSource: 'LaTeX source',
 		editable: 'Editable formula',

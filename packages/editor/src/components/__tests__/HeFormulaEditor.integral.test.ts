@@ -6,7 +6,7 @@ import { i18n } from '../../i18n'
 
 /**
  * 积分弹层与结构化积分的单元测试
- * 覆盖：弹层双栏 18 卡（积分 + 围道积分）/ 插入槽位与序列化 / LaTeX 解析 / 往返契约 / 键盘导航 / 整块删除
+ * 覆盖：弹层双栏 18 卡（积分 + 围道积分）+ 底部微分栏 3 卡 / 插入槽位与序列化 / LaTeX 解析 / 往返契约 / 键盘导航 / 整块删除
  */
 
 // ============ 挂载与操作辅助 ============
@@ -41,6 +41,12 @@ const pickCard = async (wrapper: VueWrapper<any>, index: number) => {
 /** 点击围道积分栏里的第 n 张格式卡（顺序同 contourFormats：∮/∯/∰ × 无限界/仅上限/上下限） */
 const pickContourCard = async (wrapper: VueWrapper<any>, index: number) => {
 	const cards = wrapper.findAll('.he-tool-popover__col')[1]!.findAll('.he-tool-card')
+	await cards[index]!.trigger('click')
+}
+
+/** 点击底部微分栏里的第 n 张卡（顺序同 differentialFormats：dx / dy / dθ） */
+const pickDifferentialCard = async (wrapper: VueWrapper<any>, index: number) => {
+	const cards = wrapper.findAll('.he-tool-popover__grid')[2]!.findAll('.he-tool-card')
 	await cards[index]!.trigger('click')
 }
 
@@ -117,7 +123,7 @@ describe('积分弹层', () => {
 		expect(cols[1]!.find('.he-tool-popover__section').text()).toBe('围道积分')
 
 		const cards = popover.findAll('.he-tool-card')
-		expect(cards).toHaveLength(18)
+		expect(cards).toHaveLength(21)
 		expect(cards[0]!.attributes('title')).toBe('不定积分')
 		expect(cards[1]!.attributes('title')).toBe('积分（上限）')
 		expect(cards[2]!.attributes('title')).toBe('定积分')
@@ -133,6 +139,10 @@ describe('积分弹层', () => {
 		expect(cards[14]!.attributes('title')).toBe('二重围道定积分')
 		expect(cards[15]!.attributes('title')).toBe('三重围道积分')
 		expect(cards[17]!.attributes('title')).toBe('三重围道定积分')
+		// 底部微分栏：dx / dy / dθ
+		expect(cards[18]!.attributes('title')).toBe('微分 dx')
+		expect(cards[19]!.attributes('title')).toBe('微分 dy')
+		expect(cards[20]!.attributes('title')).toBe('微分 dθ')
 	})
 
 	it('格式卡预览按限界类型区分：无限界无限界槽、仅上限只有上限槽、上下限两者都有', async () => {
@@ -340,6 +350,50 @@ describe('围道积分', () => {
 		pressKey('Backspace')
 		expect(wrapper.findAll('.me-int')).toHaveLength(0)
 		expect(lastEmitted(wrapper)).toBe('')
+	})
+})
+
+// ============ 微分 ============
+
+describe('微分', () => {
+	it('底部微分栏 3 张卡：dx / dy / dθ，纯文本预览', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+
+		const cards = wrapper.findAll('.he-tool-popover__grid')[2]!.findAll('.he-tool-card')
+		expect(cards).toHaveLength(3)
+		expect(cards[0]!.attributes('title')).toBe('微分 dx')
+		expect(cards[1]!.attributes('title')).toBe('微分 dy')
+		expect(cards[2]!.attributes('title')).toBe('微分 dθ')
+		expect(cards[0]!.find('.he-tool-card__preview').text()).toBe('dx')
+		expect(cards[2]!.find('.he-tool-card__preview').text()).toBe('dθ')
+	})
+
+	it('点击 dx 卡：插入文本 dx 并关闭弹层', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickDifferentialCard(wrapper, 0)
+
+		expect(wrapper.find('.he-tool-popover').exists()).toBe(false)
+		expect(lastEmitted(wrapper)).toBe('dx')
+	})
+
+	it('点击 dθ 卡：插入 Unicode 文本 dθ', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickDifferentialCard(wrapper, 2)
+		expect(lastEmitted(wrapper)).toBe('dθ')
+	})
+
+	it('光标在被积函数槽内点 dx：插入 \\int{dx}', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickCard(wrapper, 0)
+		expect(selectionIn('.me-int__integrand')).toBe(true)
+
+		await openIntegral(wrapper)
+		await pickDifferentialCard(wrapper, 0)
+		expect(lastEmitted(wrapper)).toBe('\\int{dx}')
 	})
 })
 

@@ -140,7 +140,8 @@
 				:aria-label="t('formula.integral.panelTitle')"
 			>
 				<div class="he-tool-popover__header">{{ t('formula.integral.panelTitle') }}</div>
-				<div class="he-tool-popover__body he-tool-popover__body--columns">
+				<div class="he-tool-popover__body">
+					<div class="he-tool-popover__body--columns">
 					<div class="he-tool-popover__col">
 						<div class="he-tool-popover__section">{{ t('formula.integral.panelTitle') }}</div>
 						<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
@@ -174,6 +175,21 @@
 						</div>
 					</div>
 				</div>
+				<div class="he-tool-popover__section">{{ t('formula.integral.differentialPanelTitle') }}</div>
+				<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+					<button
+						v-for="item in differentialFormats"
+						:key="item.id"
+						class="he-tool-card he-tool-card--tall"
+						type="button"
+						:title="t('formula.integral.' + item.id)"
+						@mousedown.prevent
+						@click="pickDifferentialFormat(item)"
+					>
+						<span class="he-tool-card__preview he-math-font">{{ item.latex }}</span>
+					</button>
+				</div>
+			</div>
 			</div>
 		</div>
 
@@ -331,6 +347,8 @@ type IntegralFormatId =
 	| 'oiiintSup'
 	| 'oiiintSubSup'
 type IntegralFormat = { id: IntegralFormatId; preview: string; sign: string; limits: 'none' | 'sup' | 'both' }
+/** 微分卡片：纯文本模板（dx / dy / dθ），无结构化槽位 */
+type DifferentialFormat = { id: 'dx' | 'dy' | 'dtheta'; latex: string }
 
 const toolbarRef = ref<HTMLElement>()
 const fractionOpen = ref(false)
@@ -477,6 +495,16 @@ const contourFormats: IntegralFormat[] = [
 	{ id: 'oiiint', sign: '∰', limits: 'none', preview: integralPreview('∰', 'none') },
 	{ id: 'oiiintSup', sign: '∰', limits: 'sup', preview: integralPreview('∰', 'sup') },
 	{ id: 'oiiintSubSup', sign: '∰', limits: 'both', preview: integralPreview('∰', 'both') }
+]
+
+/**
+ * 微分：dx / dy / dθ 三个纯文本模板，插入当前光标所在槽位。
+ * 用 Unicode θ 而不是 \theta：可编辑区不解析未知命令（与常用分数的 ± 同理）。
+ */
+const differentialFormats: DifferentialFormat[] = [
+	{ id: 'dx', latex: 'dx' },
+	{ id: 'dy', latex: 'dy' },
+	{ id: 'dtheta', latex: 'dθ' }
 ]
 
 const commonRoots: CommonRoot[] = [
@@ -2107,6 +2135,11 @@ const pickRootFormat = (item: RootFormat) => {
 const pickIntegralFormat = (item: IntegralFormat) => {
 	integralOpen.value = false
 	insertIntegral(item)
+}
+
+const pickDifferentialFormat = (item: DifferentialFormat) => {
+	integralOpen.value = false
+	insertTextAtCaret(item.latex)
 }
 
 const pickCommonRoot = (item: CommonRoot) => {
