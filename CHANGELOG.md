@@ -16,6 +16,16 @@
 
 ### 变更
 
+- ⚠️ **迁移为 pnpm monorepo（Breaking）**：
+  - 新增 `packages/editor`（npm 包 `he-math-editor`，version 0.1.0）：独立库包，含 `vite.lib.config.ts` 库构建（双入口 `index` / `full`，`vite-plugin-dts` 生成类型声明，单一 `style.css` 样式产物，`vue` / `vue-i18n` 为 peerDependencies，codemirror / markdown-it / mathlive / highlight.js 保持外部引用）；`package.json` 注册 `exports`：`.` / `./full` / `./style.css`。
+  - 新增 `he-math-editor/full` 离线入口：构建期通过虚拟模块把包内 `tex-svg.js`（MathJax 3.2.2）emit 为独立资产并自动 `configure`，宿主构建随包部署，不依赖任何 CDN。
+  - 新增 `apps/demo`（`@hemath/demo`）：演示站通过 `workspace:*` 依赖库，vite alias 直连 `packages/editor/src/index.ts` 实现跨包热更新，`publicDir` 复用库的 `public/mathjax`。
+  - 文案按归属拆分：库内 `packages/editor/src/i18n` 只保留组件文案（common / formula / markdown）；demo 文案（导航、页面说明）移至 `apps/demo/src/i18n`，启动时 `mergeLocaleMessage` 合并进库实例。
+  - 样式按归属拆分：库全局样式入口 `packages/editor/src/styles/global.scss`（数学字体 + Markdown 排版 + MathLive 键盘层级，打进 `dist-lib/style.css`）；demo 自有 `index.scss` / `demo.scss`。
+  - 库内部 `@` 别名全部改为相对导入；根 `package.json` 改为 monorepo 脚本（`pnpm dev` / `build` / `build:lib` / `preview`，`packageManager` 固定 pnpm@12.15.0），删除 `package-lock.json`，新增 `pnpm-workspace.yaml` 与 `pnpm-lock.yaml`。原根目录 `src/` / `index.html` / `vite.config.ts` 均移入对应包，仓库结构变化需同步 IDE 打开路径与脚本调用方式。
+- 公式弹窗 LaTeX 原文区从只读展示改为可编辑 textarea：源码框输入实时重建下方结构化编辑区（`watch(modelValue)` + `renderEditor`），编辑区修改实时回写源码框（`syncFromEditor` 更新 `lastSerialized` 防止循环），双向同步。
+- MathJax 加载策略调整：脚本改为懒加载（首次渲染才注入）；来源三级优先 `mathJaxService.configure({ source })` > `full` 入口内置 > 默认（开发环境本地 `public/mathjax`，生产环境 npmmirror CDN）；宿主已自行加载完整 MathJax 时直接复用。
+
 - 抽取共享内核 `src/core`，统一公式解析与 Markdown 渲染：
   - 新增 `src/core/formula`：`matchFormulaAt` / `scanFormulas`，作为公式识别的唯一实现。
   - 新增 `src/core/renderer`：统一 `markdownRenderer`、`renderMarkdownHtml`、`renderMarkdownInto`。
@@ -43,6 +53,8 @@
 
 ### 修复
 
+- 修复 monorepo 迁移后 `pnpm build`（demo 侧 `vue-tsc --noEmit`）报 `Property 'env' does not exist on type 'ImportMeta'` 的问题：demo 通过 `paths` 直连库源码检查时缺少 Vite 类型声明，新增 `apps/demo/src/vite-env.d.ts`（`/// <reference types="vite/client" />`）。
+
 - 修复行间公式 `$$\n...\n$$` 无法识别的问题：`$$` 后允许换行与首尾空白，LaTeX 首尾空白会被裁剪；行内公式规则保持不变。
 - 公式原子化装饰改由 `StateField` 提供，修复跨行公式块级装饰无法通过 `ViewPlugin` 注入、导致编辑器挂载失败的问题。
 - 修复演示页 `String.raw` 保留反斜杠导致行内代码示例失效的问题，改为普通模板字符串并转义 LaTeX 反斜杠。
@@ -56,6 +68,8 @@
 
 ### 文档
 
+- README.md / README.zh-CN.md 同步 monorepo 现状：快速开始改为 pnpm 命令（`pnpm dev` / `build` / `build:lib` / `preview`）、目录结构改为 `packages/editor` + `apps/demo`、组件示例导入路径从 `@/index` 改为 `he-math-editor`、新增「作为 npm 包使用」与「许可证」章节、MathJax 服务说明更新为三级来源策略、国际化说明按库 / demo 文案拆分更新、开发约定与分支流程命令同步。
+- README.ai.md 同步 monorepo 现状：架构分层图、文件地图（全部路径改为 `packages/editor/src/*` / `apps/demo/src/*`）、常见改动路径、验证命令改为 pnpm、易错点补充 pnpm 安装 / 库内禁用 `@` 别名 / 库依赖归属 / full 入口资产重建等条目；手工回归清单新增 LaTeX 源码双向同步与 `pnpm build:lib` 产物完整性两项。
 - README 支持中英文：`README.md` 为英文默认，`README.zh-CN.md` 为中文，两份顶部均提供语言切换；同步补充 GitHub 仓库地址。
 - README / README.ai.md 补充自研输入实验页、`#/input` 路由、KaTeX 字体与键盘符号映射说明。
 - README / README.ai.md 补充 `HeFormulaDialog` 容器与 `HeFormulaEditor` UI 的拆分、API 与共用方式说明。
@@ -106,6 +120,8 @@
 
 ### 工程
 
+- 采用 **AGPL-3.0 / 商业双许可**：`packages/editor/LICENSE` 含 AGPL-3.0 全文与双许可声明（开源使用遵循 AGPL-3.0-or-later，闭源商用需购买商业授权）及第三方依赖许可清单；`packages/editor/package.json` 增加 `license` 字段。
+- 迁移包管理器为 pnpm：`packageManager` 固定 pnpm@12.15.0，删除 `package-lock.json`，新增 `pnpm-lock.yaml` 与 `pnpm-workspace.yaml`（`packages/*` + `apps/*`，`onlyBuiltDependencies` 仅放行 esbuild 与 @parcel/watcher）。
 - 新增依赖 `highlight.js@^11.12.0`（core 构建 + 按需语言模块）。
 - KaTeX 字体文件复制自 `mathlive@0.100.0`，未新增 npm 依赖。
 
@@ -133,3 +149,6 @@
 | --- | --- | --- | --- |
 | `ffb02ce` | 2026-10-19 | init: heMathEditor 初始版本（MathLive 输入 + MathJax 渲染） | 0.1.0 |
 | `0a9052c` | 2026-10-20 | feat: 新增第一层 Markdown 编辑器 HeMdEditor（公式原子化 + 分栏预览） | 未发布（0.2.0） |
+| `f4ecb8f` | 2026-10-23 | feat: 公式弹窗 LaTeX 原文改为可编辑输入框 | 未发布（0.2.0） |
+| `418326f` | 2026-10-23 | chore: 采用 AGPL-3.0 / 商业双许可（dual licensing） | 未发布（0.2.0） |
+| `ffea919` | 2026-10-23 | refactor!: 迁移为 pnpm monorepo（packages/editor 库 + apps/demo 演示站） | 未发布（0.2.0） |

@@ -5,9 +5,9 @@
 基于 **Vue 3 + Vite** 的数学公式编辑器，采用「两层编辑」架构：
 
 - **第一层 `HeMdEditor`**：Markdown 编辑器（CodeMirror 6），公式以整体标签嵌入正文，正文中不能修改公式局部内容。
-- **第二层 `HeFormulaDialog`**：点击公式标签或工具栏「∑ 公式」打开，使用 MathLive 所见即所得输入 LaTeX，并用 MathJax 实时预览。
+- **第二层 `HeFormulaDialog`**：点击公式标签或工具栏「∑ 公式」打开，内置 `HeFormulaEditor` 自研公式编辑（结构化可编辑公式区 + MathJax 实时预览）。
 
-项目当前以组件库 + 演示页的形式组织，可直接运行查看效果，也可按需复用其中的组件与工具。
+项目是 **pnpm monorepo**：`packages/editor` 是发布到 npm 的核心库（包名 `he-math-editor`），`apps/demo` 是演示站，demo 通过 workspace 直连库源码开发。
 
 ## 特性
 
@@ -22,17 +22,19 @@
 - **自研输入实验**：独立页面 `#/input` 使用 KaTeX 数学字体直接渲染键盘输入，不依赖 MathLive。
 - **演示页导航**：顶部导航可切换 HeMdEditor、公式输入、HeMdViewer、HeMdWysiwyg 四个展示页。
 - **中英文界面**：基于 vue-i18n，导航栏提供语言切换按钮，选择会持久化到 `localStorage`。
-- **组件化输出**：`src/index.ts` 统一导出组件与工具，`src/viewer` 提供只读子路径入口。
+- **库与演示站解耦**：pnpm monorepo，`he-math-editor` 库独立构建（`dist-lib` + d.ts + style.css），提供 `he-math-editor` / `he-math-editor/full`（内置 MathJax，离线可用）/ `he-math-editor/style.css` 三个入口。
+- **LaTeX 源码双向编辑**：公式弹窗的 LaTeX 原文区是可编辑输入框，与结构化编辑区实时互相同步。
 
 ## 快速开始
 
-环境要求：Node.js 18+（建议 20+）。
+环境要求：Node.js 18+（建议 20+）、pnpm 10+（仓库固定 `packageManager: pnpm@12.15.0`）。
 
 ```bash
-npm install
-npm run dev      # 开发服务器，默认 http://localhost:3100
-npm run build    # 类型检查 + 生产构建（vue-tsc --noEmit && vite build）
-npm run preview  # 预览构建产物
+pnpm install
+pnpm dev          # 启动演示站，默认 http://localhost:3100
+pnpm build:lib    # 仅构建库 → packages/editor/dist-lib
+pnpm build        # 构建库 + 演示站（demo 构建含类型检查）
+pnpm preview      # 预览演示站构建产物
 ```
 
 演示页使用轻量 hash 路由（未引入 vue-router）：
@@ -51,49 +53,73 @@ npm run preview  # 预览构建产物
 ## 目录结构
 
 ```
-heMathEditor/
-├─ public/
-│  └─ mathjax/tex-svg.js        # 本地 MathJax 3.2.2 构建产物
-├─ src/
-│  ├─ assets/
-│  │  └─ fonts/katex/           # KaTeX_Main / KaTeX_Math 字体文件
-│  ├─ core/
-│  │  ├─ formula/parser.ts      # 公式扫描规则（编辑器与渲染共用的唯一定义）
-│  │  └─ renderer/index.ts      # markdown-it + 数学规则 + 代码高亮
-│  ├─ components/
-│  │  ├─ HeMdEditor.vue         # 第一层：Markdown 编辑器（工具栏 + 分栏预览 + 公式弹窗）
-│  │  ├─ HeMdViewer.vue         # 展示模式：只读渲染 Markdown + 公式
-│  │  ├─ HeFormulaDialog.vue    # 公式弹窗容器（遮罩 + 标题 + 底部按钮）
-│  │  ├─ HeFormulaEditor.vue    # 公式编辑 UI（KaTeX 输入 + 预览 + 符号面板）
-│  │  ├─ HeMathInput.vue        # MathLive 公式输入框
-│  │  └─ HeMathPreview.vue      # MathJax 公式预览
-│  ├─ editor/
-│  │  ├─ formulaAtom.ts         # 公式扫描 + CodeMirror 原子化扩展
-│  │  └─ mdCommands.ts          # Markdown 工具栏命令实现
-│  ├─ i18n/
-│  │  ├─ index.ts               # vue-i18n 实例、语言检测与切换
-│  │  └─ locales/               # zh-CN.ts / en-US.ts 消息包
-│  ├─ viewer/index.ts           # 只读展示子路径入口
-│  ├─ utils/
-│  │  └─ mathjax.ts             # MathJax 单例服务（按需加载、排队渲染）
-│  ├─ styles/
-│  │  ├─ index.scss             # 全局样式（含 MathLive 虚拟键盘层级）
-│  │  ├─ markdown-body.scss     # Markdown 排版共享样式（预览与只读展示共用）
-│  │  ├─ math-font.scss         # HeMathFont：KaTeX_Main + KaTeX_Math（unicode-range）
-│  │  └─ demo.scss              # 演示页公共样式（卡片、按钮、标签）
-│  ├─ pages/
-│  │  ├─ EditorPage.vue         # 首页：HeMdEditor 分栏编辑展示
-│  │  ├─ InputPage.vue          # 自研输入实验：键盘数字与符号
-│  │  ├─ ViewerPage.vue         # HeMdViewer 只读展示
-│  │  └─ WysiwygPage.vue        # HeMdWysiwyg 占位展示
-│  ├─ App.vue                   # 应用外壳：顶部导航 + hash 路由
-│  ├─ index.ts                  # 组件库入口（桶文件）
-│  └─ main.ts                   # 应用入口
-├─ index.html
-├─ vite.config.ts
-├─ tsconfig.json
-└─ package.json
+heMathEditor/                       # pnpm monorepo
+├─ packages/
+│  └─ editor/                       # 核心库 he-math-editor（发布到 npm）
+│     ├─ public/mathjax/tex-svg.js  # 本地 MathJax 3.2.2（full 入口与 demo 复用）
+│     ├─ src/
+│     │  ├─ assets/fonts/katex/     # KaTeX_Main / KaTeX_Math 字体文件
+│     │  ├─ core/
+│     │  │  ├─ formula/parser.ts    # 公式扫描规则（编辑器与渲染共用的唯一定义）
+│     │  │  └─ renderer/index.ts    # markdown-it + 数学规则 + 代码高亮
+│     │  ├─ components/
+│     │  │  ├─ HeMdEditor.vue       # 第一层：Markdown 编辑器（工具栏 + 分栏预览 + 公式弹窗）
+│     │  │  ├─ HeMdViewer.vue       # 展示模式：只读渲染 Markdown + 公式
+│     │  │  ├─ HeFormulaDialog.vue  # 公式弹窗容器（遮罩 + 标题 + 底部按钮）
+│     │  │  ├─ HeFormulaEditor.vue  # 公式编辑 UI（工具栏 + 可编辑公式 + 预览）
+│     │  │  ├─ HeMathInput.vue      # MathLive 公式输入框
+│     │  │  └─ HeMathPreview.vue    # MathJax 公式预览
+│     │  ├─ editor/
+│     │  │  ├─ formulaAtom.ts       # 公式扫描 + CodeMirror 原子化扩展
+│     │  │  └─ mdCommands.ts        # Markdown 工具栏命令实现
+│     │  ├─ i18n/                   # 库内组件文案（vue-i18n 实例 + zh-CN / en-US）
+│     │  ├─ styles/
+│     │  │  ├─ global.scss          # 库全局样式（打进 dist-lib/style.css）
+│     │  │  ├─ markdown-body.scss   # Markdown 排版共享样式
+│     │  │  └─ math-font.scss       # HeMathFont：KaTeX_Main + KaTeX_Math
+│     │  ├─ utils/mathjax.ts        # MathJax 单例服务（按需加载、排队渲染、来源可配置）
+│     │  ├─ viewer/index.ts         # 只读展示子路径入口
+│     │  ├─ full.ts                 # he-math-editor/full 入口：内置 MathJax，离线可用
+│     │  └─ index.ts                # 库主入口（组件 + 命令 + core + 服务 + i18n + 插件安装）
+│     ├─ vite.lib.config.ts         # 库模式构建（dist-lib + d.ts + style.css）
+│     └─ LICENSE                    # AGPL-3.0 / 商业双许可
+├─ apps/
+│  └─ demo/                         # 演示站 @hemath/demo
+│     ├─ src/
+│     │  ├─ pages/                  # EditorPage / InputPage / ViewerPage / WysiwygPage
+│     │  ├─ i18n/                   # demo 专属文案（导航、页面说明），合并进库 i18n
+│     │  ├─ styles/                 # demo.scss / index.scss
+│     │  ├─ App.vue                 # 应用外壳：顶部导航 + hash 路由
+│     │  └─ main.ts                 # app.use(HeMathEditor) 整体安装
+│     └─ vite.config.ts             # alias 直连库源码（跨包热更新）；复用库的 public
+├─ pnpm-workspace.yaml
+├─ TOOLBAR.md / CHANGELOG.md / README*.md
+└─ package.json                     # monorepo 根脚本（dev / build / build:lib / preview）
 ```
+
+## 作为 npm 包使用
+
+```bash
+pnpm add he-math-editor
+# 或离线场景：无需额外配置，直接从 full 入口引入
+```
+
+```ts
+// 整体接入（推荐）：自动安装内置 i18n 并注册全部组件
+import HeMathEditor from 'he-math-editor'
+import 'he-math-editor/style.css'
+app.use(HeMathEditor)
+
+// 按需引入（支持 tree-shaking）
+import { HeMdEditor, HeFormulaDialog } from 'he-math-editor'
+
+// 离线环境（内置 MathJax，不依赖任何 CDN）
+import HeMathEditor from 'he-math-editor/full'
+```
+
+- 入口：`he-math-editor`（默认，MathJax 生产环境走 npmmirror CDN）、`he-math-editor/full`（内置 MathJax 3.2.2，离线可用）、`he-math-editor/style.css`（全局样式：数学字体 + Markdown 排版 + MathLive 键盘层级）。
+- `vue` / `vue-i18n` 是 peerDependencies，由宿主项目提供；其余依赖（CodeMirror、markdown-it、mathlive、highlight.js）安装时自动解析。
+- MathJax 脚本来源三级优先：`mathJaxService.configure({ source })` 自定义地址 > `full` 入口内置资源 > 默认策略（开发环境本地 `public/mathjax`，生产环境 npmmirror CDN）。
 
 ## 组件说明
 
@@ -124,7 +150,7 @@ Markdown 编辑器，内置工具栏、公式原子化与可选的右侧实时�
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { HeMdEditor } from '@/index'
+import { HeMdEditor } from 'he-math-editor'
 
 const md = ref('行内公式 $E=mc^2$，行间公式：\n\n$$\n\\int_a^b f(x)\\,dx\n$$')
 </script>
@@ -141,7 +167,7 @@ const md = ref('行内公式 $E=mc^2$，行间公式：\n\n$$\n\\int_a^b f(x)\\,
 
 ```vue
 <script setup lang="ts">
-import { HeMdViewer } from '@/viewer'
+import { HeMdViewer } from 'he-math-editor'
 
 const markdown = '## 标题\n\n行内公式 $a^2+b^2=c^2$'
 </script>
@@ -151,7 +177,7 @@ const markdown = '## 标题\n\n行内公式 $a^2+b^2=c^2$'
 </template>
 ```
 
-> 打包后对应子路径 `he-math-editor/viewer`，只读场景不会引入 CodeMirror 与 MathLive。
+> `HeMdViewer` 从主入口导出即可使用；`packages/editor/src/viewer` 是为未来独立子路径预留的轻量入口（当前未在 `exports` 中注册）。
 
 ### HeFormulaDialog
 
@@ -204,7 +230,7 @@ const markdown = '## 标题\n\n行内公式 $a^2+b^2=c^2$'
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { HeFormulaEditor } from '@/index'
+import { HeFormulaEditor } from 'he-math-editor'
 
 const formula = ref('a+b=12×3')
 const display = ref(false)
@@ -241,8 +267,8 @@ MathJax 公式预览组件。
 ### 工具函数
 
 ```ts
-import { mathJaxService, renderTex, formulaAtom, scanFormulas, renderMarkdownInto } from '@/index'
-import type { FormulaRef, FormulaEditHandler, FormulaMatch } from '@/index'
+import { mathJaxService, renderTex, formulaAtom, scanFormulas, renderMarkdownInto } from 'he-math-editor'
+import type { FormulaRef, FormulaEditHandler, FormulaMatch } from 'he-math-editor'
 
 // 对任意 DOM 元素内的 \(...\) / \[...\] 排版（MathJax 未就绪时自动排队）
 await mathJaxService.renderElement(el)
@@ -288,7 +314,7 @@ $$
 
 ### 公式原子化
 
-[formulaAtom.ts](src/editor/formulaAtom.ts) 在 CodeMirror 中扫描全文公式，用 `Decoration.replace` + 自定义 `WidgetType` 将公式替换为整体标签：
+[formulaAtom.ts](packages/editor/src/editor/formulaAtom.ts) 在 CodeMirror 中扫描全文公式，用 `Decoration.replace` + 自定义 `WidgetType` 将公式替换为整体标签：
 
 - 通过 `EditorView.atomicRanges` 让光标跳过公式、退格整体删除；
 - 装饰由 `StateField` 提供，跨行公式的块级装饰不能通过 `ViewPlugin` 注入；
@@ -296,11 +322,11 @@ $$
 - 标签内用 MathJax 渲染，点击 `mousedown` 回传 `FormulaRef` 打开弹窗；
 - 使用语法树排除代码区域，避免误识别。
 
-公式扫描规则统一定义在 [parser.ts](src/core/formula/parser.ts)，编辑器原子化与 Markdown 渲染共用同一实现。
+公式扫描规则统一定义在 [parser.ts](packages/editor/src/core/formula/parser.ts)，编辑器原子化与 Markdown 渲染共用同一实现。
 
 ### 预览渲染
 
-[renderer/index.ts](src/core/renderer/index.ts) 提供统一的 `markdownRenderer` 与 `renderMarkdownInto`：用 markdown-it 渲染 Markdown，并注册数学规则，将公式输出为显式分隔符 `\(...\)` / `\[...\]`，再由 MathJax 排版。Markdown 原文中的 `$` 不直接交给 MathJax 解析，避免误配对。
+[renderer/index.ts](packages/editor/src/core/renderer/index.ts) 提供统一的 `markdownRenderer` 与 `renderMarkdownInto`：用 markdown-it 渲染 Markdown，并注册数学规则，将公式输出为显式分隔符 `\(...\)` / `\[...\]`，再由 MathJax 排版。Markdown 原文中的 `$` 不直接交给 MathJax 解析，避免误配对。
 
 ### 代码高亮
 
@@ -308,17 +334,18 @@ $$
 
 - 已注册：`bash`、`css`、`java`、`javascript`、`json`、`markdown`、`python`、`sql`、`typescript`、`xml`（含常用别名，如 `ts`、`js`、`html`）。
 - 未标记语言或未知语言返回空字符串，由 markdown-it 转义后输出纯文本。
-- 主题色定义在 [markdown-body.scss](src/styles/markdown-body.scss) 的 `.hljs-*` 规则中，不依赖 highlight.js 自带 CSS。
+- 主题色定义在 [markdown-body.scss](packages/editor/src/styles/markdown-body.scss) 的 `.hljs-*` 规则中，不依赖 highlight.js 自带 CSS。
 
 ### 只读展示
 
-`HeMdViewer` 只调用 `renderMarkdownInto`，不引入 CodeMirror 与 MathLive。容器使用 `.he-markdown-body`，与编辑器预览共享 [markdown-body.scss](src/styles/markdown-body.scss) 排版样式，保证两种模式视觉一致。
+`HeMdViewer` 只调用 `renderMarkdownInto`，不引入 CodeMirror 与 MathLive。容器使用 `.he-markdown-body`，与编辑器预览共享 [markdown-body.scss](packages/editor/src/styles/markdown-body.scss) 排版样式，保证两种模式视觉一致。
 
 ### 公式编辑容器 / UI 拆分
 
-`HeFormulaDialog` 现在只负责弹窗容器，实际编辑内容抽到 [HeFormulaEditor.vue](src/components/HeFormulaEditor.vue)，由弹窗和 `#/input` 页面共用：
+`HeFormulaDialog` 现在只负责弹窗容器，实际编辑内容抽到 [HeFormulaEditor.vue](packages/editor/src/components/HeFormulaEditor.vue)，由弹窗和 `#/input` 页面共用：
 
-- `HeFormulaEditor` 现在分三段展示：LaTeX 原文、自研可编辑渲染公式、只读 MathJax 实时预览。
+- `HeFormulaEditor` 分三段展示：LaTeX 原文、自研可编辑渲染公式、只读 MathJax 实时预览。
+- **LaTeX 原文是可编辑输入框**：在源码框中输入会实时重建下方结构化编辑区；在编辑区中的修改也会实时回写源码框，两边双向同步（内部用 `lastSerialized` 防止循环重渲染）。
 - 可编辑区使用分式 / 上下标容器 + contenteditable 文本槽：`\frac{...}{...}`、`\tfrac{...}{...}`、斜式与 `^{...}` / `_{...}` 渲染为结构化节点，分子/分母、上标/下标可直接落光标修改；点击槽位即可编辑渲染后的部分，而不是修改 LaTeX 原文。
 - 分式与上下标解析是递归的：分子、分母或上下标中还可以继续包含分式、上下标。光标在内层时再次插入「分数（竖式）」或上下标，会在该子项内嵌套新结构，因此重复插入竖式即可写任意层级的连分式。
 - 分子/分母可以混排普通文本（如整数）与嵌套分式。分子内，在嵌套分式边界按 `←` / `→` 会在该层级创建文本槽；点击分子/分母容器的留白处也会聚焦或创建同级文本槽，而不是进入嵌套分式。
@@ -336,49 +363,61 @@ $$
 
 ### 国际化
 
-界面文案由 vue-i18n 的 Composition API 管理。
+界面文案由 vue-i18n 的 Composition API 管理，库与演示站各管各的文案：
 
-- [i18n/index.ts](src/i18n/index.ts) 创建 i18n 实例，初始语言从 `localStorage` 的 `hemath-editor:locale` 读取，否则使用 `DEFAULT_LOCALE`（`zh-CN`）；导出 `getLocale` / `setLocale` / `toggleLocale`。
-- 文案位于 [locales/zh-CN.ts](src/i18n/locales/zh-CN.ts) 与 [locales/en-US.ts](src/i18n/locales/en-US.ts)，新增 key 时必须两边同步。
+- 库内 [i18n/index.ts](packages/editor/src/i18n/index.ts) 创建 i18n 实例，初始语言从 `localStorage` 的 `hemath-editor:locale` 读取，否则使用 `DEFAULT_LOCALE`（`zh-CN`）；导出 `getLocale` / `setLocale` / `toggleLocale`，随包发布。
+- 库文案（common / formula / markdown）位于 [packages/editor/src/i18n/locales](packages/editor/src/i18n/locales/zh-CN.ts)；demo 文案（导航、页面说明）位于 `apps/demo/src/i18n/locales`，启动时通过 `mergeLocaleMessage` 合并进同一个实例。两侧新增 key 都必须中英同步。
 - 顶部导航提供语言按钮（`EN` / `中文`）；切换后会同步 `document.documentElement.lang`、页面标题以及所有使用 `useI18n()` 的组件。
-- 新增语言：添加消息包，扩展 `src/i18n/index.ts` 的 `SUPPORTED_LOCALES` 与 `isAppLocale`，并调整导航栏的语言控件（当前按钮只在中英之间切换）。
+- 新增语言：添加消息包，扩展库内 `SUPPORTED_LOCALES` 与 `isAppLocale`，并调整导航栏的语言控件（当前按钮只在中英之间切换）。
 - 组件中不得硬编码界面文案；模板、computed 与命令式 DOM 创建都要用 `t('...')`（槽位的 `aria-label` 会在切换语言时同步刷新）。
 
 ### MathJax 服务
 
-[mathjax.ts](src/utils/mathjax.ts) 维护单例：
+[mathjax.ts](packages/editor/src/utils/mathjax.ts) 维护单例：
 
-- 首次调用时动态注入 `public/mathjax/tex-svg.js`，配置必须在脚本加载前写入；
+- 脚本懒加载，首次渲染时才注入；配置必须在脚本加载前写入；
+- 脚本来源三级优先：`mathJaxService.configure({ source })`（自托管 / 私有 CDN）> `he-math-editor/full` 入口（包内置 tex-svg.js，离线可用）> 默认策略（开发环境本地 `public/mathjax`，生产环境 npmmirror CDN）；
 - 关闭自动排版（`startup.typeset: false`），改为按元素 `typesetClear` + `typesetPromise`；
-- 加载完成前的渲染请求进入队列，加载后依次执行；
+- 加载完成前的渲染请求进入队列，加载后依次执行；宿主项目已自行加载完整 MathJax 时直接复用；
 - 注册 `\oiint` / `\oiiint` 宏，使用 `◯` 叠加 `∬` / `∭` 实现。
+
+## 许可证
+
+本项目采用 **AGPL-3.0 / 商业双许可**（见 [packages/editor/LICENSE](packages/editor/LICENSE)）：
+
+- 开源使用：遵循 `AGPL-3.0-or-later`，需以兼容的开源许可证发布你的项目源码；
+- 闭源商用：需购买商业授权（联系 <350839123@qq.com>），以解除 AGPL 的传染性义务；
+- 第三方依赖（Vue、CodeMirror、MathJax、MathLive、markdown-it）遵循各自的开源许可证。
 
 ## 技术栈
 
 | 类别 | 选型 |
 | --- | --- |
 | 框架 | Vue 3.5（`<script setup>` + TypeScript） |
-| 构建 | Vite 6 |
+| 构建 | Vite 6 + pnpm workspace（monorepo） |
+| 包管理 | pnpm 12（`packageManager` 固定版本） |
 | 编辑器内核 | CodeMirror 6（`@codemirror/*`） |
 | Markdown 渲染 | markdown-it 14 + highlight.js 11 |
-| 公式输入 | MathLive 0.100（`HeMathInput`）+ 自研 KaTeX 输入（`HeFormulaEditor`） |
-| 公式渲染 | MathJax 3.2.2（本地 `tex-svg.js`） |
+| 公式输入 | 自研 KaTeX 输入（`HeFormulaEditor`）+ MathLive 0.100（`HeMathInput`，仅内嵌示例） |
+| 公式渲染 | MathJax 3.2.2（`tex-svg.js`，来源可配置 / 内置离线） |
 | 国际化 | vue-i18n 11（Composition API，zh-CN / en-US） |
 | 数学字体 | KaTeX_Main / KaTeX_Math（复制自 MathLive 0.100.0） |
 | 样式 | SCSS（sass） |
+| 许可证 | AGPL-3.0 / 商业双许可 |
 
 ## 开发约定
 
 - 代码缩进使用 **Tab**，组件使用 `<script setup lang="ts">`，样式使用 `scoped`。
-- 路径别名 `@` 指向 `src`。
-- MathLive 的 `<math-field>` 需保留为原生自定义元素，已在 `vite.config.ts` 中通过 `isCustomElement` 放行。
-- 项目暂无自动化测试，提交前至少执行一次 `npm run build` 完成类型检查与构建验证。
-- Markdown 排版样式统一维护在 `src/styles/markdown-body.scss`，编辑器预览与 `HeMdViewer` 共用。
-- KaTeX 字体文件位于 `src/assets/fonts/katex/`，复制自 `mathlive@0.100.0`，再分发时保留字体授权说明。
-- 编辑 UI 统一放在 `src/components/HeFormulaEditor.vue`；`InputPage.vue` 只是直接展示它的薄页面，不要再单独抽键盘输入组件。
+- monorepo 使用 **pnpm workspace**：根脚本 `pnpm dev` / `pnpm build` / `pnpm build:lib` / `pnpm preview`；不再使用 npm，`package-lock.json` 已移除。
+- 路径别名：demo 内 `@` 指向 `apps/demo/src`，并通过 vite alias 把 `he-math-editor` 直连 `packages/editor/src/index.ts`（跨包热更新）；库内部一律使用相对导入，不使用 `@`。
+- MathLive 的 `<math-field>` 需保留为原生自定义元素，demo 与库构建配置中均通过 `isCustomElement` 放行。
+- 项目暂无自动化测试，提交前至少执行一次 `pnpm build` 完成类型检查与构建验证。
+- Markdown 排版样式统一维护在 `packages/editor/src/styles/markdown-body.scss`，编辑器预览与 `HeMdViewer` 共用。
+- KaTeX 字体文件位于 `packages/editor/src/assets/fonts/katex/`，复制自 `mathlive@0.100.0`，再分发时保留字体授权说明。
+- 编辑 UI 统一放在 `packages/editor/src/components/HeFormulaEditor.vue`；`InputPage.vue` 只是直接展示它的薄页面，不要再单独抽键盘输入组件。
 - `HeFormulaDialog` 必须保持纯容器职责，编辑逻辑放在 `HeFormulaEditor`。
-- 演示页使用轻量 hash 路由（`src/App.vue`），页面放在 `src/pages`，公共样式放在 `src/styles/demo.scss`。
-- 所有界面文案必须走 `t()`，同一个改动里同步补充 `src/i18n/locales/zh-CN.ts` 与 `en-US.ts`。
+- 演示页使用轻量 hash 路由（`apps/demo/src/App.vue`），页面放在 `apps/demo/src/pages`，公共样式放在 `apps/demo/src/styles/demo.scss`；demo 不维护自己的 MathJax 副本，复用 `packages/editor/public`。
+- 所有界面文案必须走 `t()`：库组件文案补 `packages/editor/src/i18n/locales`，demo 文案补 `apps/demo/src/i18n/locales`，同一改动里中英同步。
 - 工具栏能力有变化时，必须同步更新 [TOOLBAR.md](TOOLBAR.md) 的支持矩阵与更新记录，并同步版本说明。
 - 面向 AI / 协作者的快速上下文见 [README.ai.md](README.ai.md)。
 - 版本变更记录见 [CHANGELOG.md](CHANGELOG.md)，**每次提交代码都必须同步更新版本说明**。
@@ -402,7 +441,7 @@ git pull --rebase
 git checkout -b feat/xxx
 
 # 修改代码；涉及工具栏时同步更新 CHANGELOG.md 与 TOOLBAR.md
-npx vue-tsc --noEmit
+pnpm build        # demo 构建含 vue-tsc 类型检查
 
 git add <具体文件>
 git commit -m "feat: ..."

@@ -5,9 +5,9 @@ English | [简体中文](./README.zh-CN.md)
 A math formula editor built with **Vue 3 + Vite**, using a two-layer editing model:
 
 - **Layer 1 `HeMdEditor`**: a Markdown editor (CodeMirror 6). Formulas are embedded as atomic labels; their internals cannot be edited directly in the document.
-- **Layer 2 `HeFormulaDialog`**: opened by clicking a formula label or the "∑ Formula" toolbar button. It provides MathLive WYSIWYG LaTeX input with a live MathJax preview.
+- **Layer 2 `HeFormulaDialog`**: opened by clicking a formula label or the "∑ Formula" toolbar button. It embeds the custom `HeFormulaEditor` (structured editable formula area + live MathJax preview).
 
-The project is organized as a component library plus a demo app. You can run it directly or reuse the components and utilities.
+The project is a **pnpm monorepo**: `packages/editor` is the core library published to npm as `he-math-editor`, and `apps/demo` is the demo site, developed against the library source through a workspace alias.
 
 ## Features
 
@@ -22,17 +22,19 @@ The project is organized as a component library plus a demo app. You can run it 
 - **Custom input prototype**: a standalone `#/input` page renders keyboard digits, letters, and symbols with KaTeX math fonts, without MathLive.
 - **Demo navigation**: a top navigation bar switches between the HeMdEditor, custom input, HeMdViewer, and HeMdWysiwyg demo pages.
 - **Chinese / English UI**: built on vue-i18n; a nav button toggles the language, and the choice is persisted in `localStorage`.
-- **Component exports**: `src/index.ts` exports components and utilities; `src/viewer` provides a lean viewer entry.
+- **Decoupled library and demo**: pnpm monorepo. The `he-math-editor` library builds independently (`dist-lib` + d.ts + style.css) and exposes three entries: `he-math-editor`, `he-math-editor/full` (bundled MathJax, offline-ready), and `he-math-editor/style.css`.
+- **Two-way LaTeX editing**: the LaTeX source area in the formula dialog is an editable textarea that stays in sync with the structured editing area.
 
 ## Quick Start
 
-Requirements: Node.js 18+ (20+ recommended).
+Requirements: Node.js 18+ (20+ recommended) and pnpm 10+ (the repo pins `packageManager: pnpm@12.15.0`).
 
 ```bash
-npm install
-npm run dev      # dev server at http://localhost:3100
-npm run build    # type check + production build (vue-tsc --noEmit && vite build)
-npm run preview  # preview the production build
+pnpm install
+pnpm dev          # demo site at http://localhost:3100
+pnpm build:lib    # build the library only → packages/editor/dist-lib
+pnpm build        # build library + demo (demo build includes type checking)
+pnpm preview      # preview the demo production build
 ```
 
 The demo uses lightweight hash routing (no vue-router):
@@ -51,49 +53,73 @@ Every toolbar button's support status, supported fraction and script formats, an
 ## Project Structure
 
 ```text
-heMathEditor/
-├─ public/
-│  └─ mathjax/tex-svg.js        # Local MathJax 3.2.2 build
-├─ src/
-│  ├─ assets/
-│  │  └─ fonts/katex/           # KaTeX_Main / KaTeX_Math font files
-│  ├─ core/
-│  │  ├─ formula/parser.ts      # Single source of truth for formula parsing
-│  │  └─ renderer/index.ts      # markdown-it + math rules + syntax highlighting
-│  ├─ components/
-│  │  ├─ HeMdEditor.vue         # Split Markdown editor (toolbar + preview + formula dialog)
-│  │  ├─ HeMdViewer.vue         # Read-only Markdown + formula renderer
-│  │  ├─ HeFormulaDialog.vue    # Formula dialog container (overlay + header/footer)
-│  │  ├─ HeFormulaEditor.vue    # Formula editor UI (KaTeX input + preview + symbols)
-│  │  ├─ HeMathInput.vue        # MathLive input field
-│  │  └─ HeMathPreview.vue      # MathJax formula preview
-│  ├─ editor/
-│  │  ├─ formulaAtom.ts         # CodeMirror atomic formula extension
-│  │  └─ mdCommands.ts          # Markdown toolbar commands
-│  ├─ i18n/
-│  │  ├─ index.ts               # vue-i18n instance, locale detection and switching
-│  │  └─ locales/               # zh-CN.ts / en-US.ts message bundles
-│  ├─ viewer/index.ts           # Viewer subpath entry
-│  ├─ utils/
-│  │  └─ mathjax.ts             # MathJax singleton service (lazy load + queue)
-│  ├─ styles/
-│  │  ├─ index.scss             # Global styles (including MathLive keyboard z-index)
-│  │  ├─ markdown-body.scss     # Shared Markdown typography and highlight theme
-│  │  ├─ math-font.scss         # HeMathFont: KaTeX_Main + KaTeX_Math via unicode-range
-│  │  └─ demo.scss              # Shared demo page styles (cards, buttons, tags)
-│  ├─ pages/
-│  │  ├─ EditorPage.vue         # Home: HeMdEditor demo
-│  │  ├─ InputPage.vue          # Custom input prototype (keyboard digits and symbols)
-│  │  ├─ ViewerPage.vue         # HeMdViewer demo
-│  │  └─ WysiwygPage.vue        # HeMdWysiwyg placeholder
-│  ├─ App.vue                   # App shell: top navigation + hash routing
-│  ├─ index.ts                  # Component library entry
-│  └─ main.ts                   # App entry
-├─ index.html
-├─ vite.config.ts
-├─ tsconfig.json
-└─ package.json
+heMathEditor/                       # pnpm monorepo
+├─ packages/
+│  └─ editor/                       # core library he-math-editor (published to npm)
+│     ├─ public/mathjax/tex-svg.js  # local MathJax 3.2.2 (shared by the full entry and demo)
+│     ├─ src/
+│     │  ├─ assets/fonts/katex/     # KaTeX_Main / KaTeX_Math font files
+│     │  ├─ core/
+│     │  │  ├─ formula/parser.ts    # Single source of truth for formula parsing
+│     │  │  └─ renderer/index.ts    # markdown-it + math rules + syntax highlighting
+│     │  ├─ components/
+│     │  │  ├─ HeMdEditor.vue       # Split Markdown editor (toolbar + preview + formula dialog)
+│     │  │  ├─ HeMdViewer.vue       # Read-only Markdown + formula renderer
+│     │  │  ├─ HeFormulaDialog.vue  # Formula dialog container (overlay + header/footer)
+│     │  │  ├─ HeFormulaEditor.vue  # Formula editor UI (toolbar + editable formula + preview)
+│     │  │  ├─ HeMathInput.vue      # MathLive input field
+│     │  │  └─ HeMathPreview.vue    # MathJax formula preview
+│     │  ├─ editor/
+│     │  │  ├─ formulaAtom.ts       # CodeMirror atomic formula extension
+│     │  │  └─ mdCommands.ts        # Markdown toolbar commands
+│     │  ├─ i18n/                   # Library-side component messages (vue-i18n + zh-CN / en-US)
+│     │  ├─ styles/
+│     │  │  ├─ global.scss          # Library global styles (bundled into dist-lib/style.css)
+│     │  │  ├─ markdown-body.scss   # Shared Markdown typography and highlight theme
+│     │  │  └─ math-font.scss       # HeMathFont: KaTeX_Main + KaTeX_Math
+│     │  ├─ utils/mathjax.ts        # MathJax singleton service (lazy load + queue + configurable source)
+│     │  ├─ viewer/index.ts         # Reserved lean viewer entry
+│     │  ├─ full.ts                 # he-math-editor/full entry: bundled MathJax, offline-ready
+│     │  └─ index.ts                # Library main entry (components + commands + core + services + i18n + plugin install)
+│     ├─ vite.lib.config.ts         # Library-mode build (dist-lib + d.ts + style.css)
+│     └─ LICENSE                    # AGPL-3.0 / commercial dual licensing
+├─ apps/
+│  └─ demo/                         # Demo site @hemath/demo
+│     ├─ src/
+│     │  ├─ pages/                  # EditorPage / InputPage / ViewerPage / WysiwygPage
+│     │  ├─ i18n/                   # Demo-only messages (nav, page copy) merged into the library i18n
+│     │  ├─ styles/                 # demo.scss / index.scss
+│     │  ├─ App.vue                 # App shell: top navigation + hash routing
+│     │  └─ main.ts                 # app.use(HeMathEditor) full install
+│     └─ vite.config.ts             # alias straight to the library source (cross-package HMR); reuses the library public dir
+├─ pnpm-workspace.yaml
+├─ TOOLBAR.md / CHANGELOG.md / README*.md
+└─ package.json                     # Monorepo root scripts (dev / build / build:lib / preview)
 ```
+
+## Using the npm Package
+
+```bash
+pnpm add he-math-editor
+# Offline scenario: just import from the full entry, no extra setup
+```
+
+```ts
+// Full install (recommended): installs the bundled i18n and registers all components
+import HeMathEditor from 'he-math-editor'
+import 'he-math-editor/style.css'
+app.use(HeMathEditor)
+
+// On-demand imports (tree-shakeable)
+import { HeMdEditor, HeFormulaDialog } from 'he-math-editor'
+
+// Offline environments (bundled MathJax, no CDN dependency)
+import HeMathEditor from 'he-math-editor/full'
+```
+
+- Entries: `he-math-editor` (default; MathJax loads from the npmmirror CDN in production), `he-math-editor/full` (bundled MathJax 3.2.2, offline-ready), and `he-math-editor/style.css` (global styles: math fonts + Markdown typography + MathLive keyboard layering).
+- `vue` and `vue-i18n` are peerDependencies provided by the host app; other dependencies (CodeMirror, markdown-it, mathlive, highlight.js) resolve automatically on install.
+- MathJax script source priority: `mathJaxService.configure({ source })` (self-hosted / private CDN) > the bundled resource of the `full` entry > the default strategy (local `public/mathjax` in dev, npmmirror CDN in production).
 
 ## Components
 
@@ -124,7 +150,7 @@ Markdown editor with a built-in toolbar, atomic formulas, and an optional live p
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { HeMdEditor } from '@/index'
+import { HeMdEditor } from 'he-math-editor'
 
 const md = ref('Inline formula $E=mc^2$, display formula:\n\n$$\n\\int_a^b f(x)\\,dx\n$$')
 </script>
@@ -141,7 +167,7 @@ Read-only renderer for Markdown returned by a backend. It contains no editor, to
 
 ```vue
 <script setup lang="ts">
-import { HeMdViewer } from '@/viewer'
+import { HeMdViewer } from 'he-math-editor'
 
 const markdown = '## Title\n\nInline formula $a^2+b^2=c^2$'
 </script>
@@ -151,7 +177,7 @@ const markdown = '## Title\n\nInline formula $a^2+b^2=c^2$'
 </template>
 ```
 
-> The intended packaged subpath is `he-math-editor/viewer`; it does not pull in CodeMirror or MathLive.
+> `HeMdViewer` is exported from the main entry; `packages/editor/src/viewer` is a reserved lean subpath entry (not yet registered in `exports`).
 
 ### HeFormulaDialog
 
@@ -204,7 +230,7 @@ The formula editing UI. It is used inside `HeFormulaDialog` and is also rendered
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { HeFormulaEditor } from '@/index'
+import { HeFormulaEditor } from 'he-math-editor'
 
 const formula = ref('a+b=12×3')
 const display = ref(false)
@@ -241,8 +267,8 @@ MathJax formula preview component.
 ### Utilities
 
 ```ts
-import { mathJaxService, renderTex, formulaAtom, scanFormulas, renderMarkdownInto } from '@/index'
-import type { FormulaRef, FormulaEditHandler, FormulaMatch } from '@/index'
+import { mathJaxService, renderTex, formulaAtom, scanFormulas, renderMarkdownInto } from 'he-math-editor'
+import type { FormulaRef, FormulaEditHandler, FormulaMatch } from 'he-math-editor'
 
 // Typeset \(...\) / \[...\] inside any DOM element (queued until MathJax is ready)
 await mathJaxService.renderElement(el)
@@ -288,7 +314,7 @@ $$
 
 ### Atomic formulas
 
-[formulaAtom.ts](src/editor/formulaAtom.ts) scans the document in CodeMirror and replaces formulas with a single label using `Decoration.replace` and a custom `WidgetType`:
+[formulaAtom.ts](packages/editor/src/editor/formulaAtom.ts) scans the document in CodeMirror and replaces formulas with a single label using `Decoration.replace` and a custom `WidgetType`:
 
 - `EditorView.atomicRanges` makes the cursor skip formulas and deletes them as a whole.
 - Decorations are provided by a `StateField`; block decorations for multi-line formulas cannot come from a `ViewPlugin`.
@@ -296,11 +322,11 @@ $$
 - Labels are typeset with MathJax; clicking one triggers a `mousedown` handler that returns a `FormulaRef` and opens the dialog.
 - The syntax tree is used to skip code regions.
 
-The parsing rules live in [parser.ts](src/core/formula/parser.ts); both the editor and the Markdown renderer use the same implementation.
+The parsing rules live in [parser.ts](packages/editor/src/core/formula/parser.ts); both the editor and the Markdown renderer use the same implementation.
 
 ### Preview rendering
 
-[renderer/index.ts](src/core/renderer/index.ts) provides a shared `markdownRenderer` and `renderMarkdownInto`. It renders Markdown with markdown-it, registers math rules that emit explicit `\(...\)` / `\[...\]` delimiters, and then typesets them with MathJax. Raw `$` characters are never passed directly to MathJax, avoiding accidental pairing.
+[renderer/index.ts](packages/editor/src/core/renderer/index.ts) provides a shared `markdownRenderer` and `renderMarkdownInto`. It renders Markdown with markdown-it, registers math rules that emit explicit `\(...\)` / `\[...\]` delimiters, and then typesets them with MathJax. Raw `$` characters are never passed directly to MathJax, avoiding accidental pairing.
 
 ### Syntax highlighting
 
@@ -308,17 +334,18 @@ Fenced code blocks are highlighted by highlight.js through markdown-it's `highli
 
 - Registered: `bash`, `css`, `java`, `javascript`, `json`, `markdown`, `python`, `sql`, `typescript`, `xml` (including common aliases such as `ts`, `js`, and `html`).
 - Unknown or missing languages return an empty string, so markdown-it escapes the code as plain text.
-- Theme colors are defined by the `.hljs-*` rules in [markdown-body.scss](src/styles/markdown-body.scss); no external highlight.js CSS is required.
+- Theme colors are defined by the `.hljs-*` rules in [markdown-body.scss](packages/editor/src/styles/markdown-body.scss); no external highlight.js CSS is required.
 
 ### Read-only viewer
 
-`HeMdViewer` only calls `renderMarkdownInto` and does not import CodeMirror or MathLive. Its container uses `.he-markdown-body` and shares [markdown-body.scss](src/styles/markdown-body.scss) with the editor preview, keeping both modes visually consistent.
+`HeMdViewer` only calls `renderMarkdownInto` and does not import CodeMirror or MathLive. Its container uses `.he-markdown-body` and shares [markdown-body.scss](packages/editor/src/styles/markdown-body.scss) with the editor preview, keeping both modes visually consistent.
 
 ### Formula editor UI split
 
-`HeFormulaDialog` is now only the modal container. The editing UI lives in [HeFormulaEditor.vue](src/components/HeFormulaEditor.vue), which is shared by the dialog and the `#/input` page:
+`HeFormulaDialog` is now only the modal container. The editing UI lives in [HeFormulaEditor.vue](packages/editor/src/components/HeFormulaEditor.vue), which is shared by the dialog and the `#/input` page:
 
 - `HeFormulaEditor` shows three sections: the raw LaTeX source, a custom editable rendered formula, and a read-only MathJax preview.
+- **The LaTeX source area is an editable textarea**: typing in it rebuilds the structured editing area below in real time, and edits in the structured area are written back to the source box — the two stay in sync (an internal `lastSerialized` guard prevents re-render loops).
 - The editable area uses contenteditable text slots inside fraction / script containers. `\frac{...}{...}`, `\tfrac{...}{...}`, the skewed form, and `^{...}` / `_{...}` are rendered as structural nodes with editable numerator, denominator, superscript and subscript; clicking a slot places the caret directly in the rendered part, so users do not need to edit the LaTeX source.
 - Fraction and script parsing is recursive: numerators, denominators, superscripts and subscripts can contain further fractions or scripts. Inserting a vertical fraction or script while the caret is nested creates a new nested structure, so continued fractions can be written by repeating the same insertion.
 - A numerator or denominator can mix plain text (such as an integer) with nested fractions. In a numerator, pressing `←` / `→` at a nested fraction's boundary creates a text slot at that level, and clicking the blank area of a numerator/denominator focuses or creates a same-level text slot instead of entering the nested fraction.
@@ -336,49 +363,61 @@ Fenced code blocks are highlighted by highlight.js through markdown-it's `highli
 
 ### Internationalization
 
-UI strings are managed by vue-i18n in Composition API mode.
+UI strings are managed by vue-i18n in Composition API mode; the library and the demo each own their messages:
 
-- [i18n/index.ts](src/i18n/index.ts) creates the i18n instance, resolves the initial locale from `localStorage` (`hemath-editor:locale`) or `DEFAULT_LOCALE` (`zh-CN`), and exposes `getLocale`, `setLocale`, and `toggleLocale`.
-- Messages live in [locales/zh-CN.ts](src/i18n/locales/zh-CN.ts) and [locales/en-US.ts](src/i18n/locales/en-US.ts). Keep both bundles in sync when adding keys.
+- [i18n/index.ts](packages/editor/src/i18n/index.ts) creates the i18n instance, resolves the initial locale from `localStorage` (`hemath-editor:locale`) or `DEFAULT_LOCALE` (`zh-CN`), and exposes `getLocale`, `setLocale`, and `toggleLocale`. It ships with the package.
+- Library messages (common / formula / markdown) live in [packages/editor/src/i18n/locales](packages/editor/src/i18n/locales/zh-CN.ts); demo messages (navigation, page copy) live in `apps/demo/src/i18n/locales` and are merged into the same instance at startup via `mergeLocaleMessage`. Keep both locales in sync on either side.
 - The top navigation renders a language button (`EN` / `中文`); switching updates `document.documentElement.lang`, the page title, and every component using `useI18n()`.
-- To add a language: add a message bundle, extend `SUPPORTED_LOCALES` and `isAppLocale` in `src/i18n/index.ts`, and adapt the nav language control (the current button toggles between the two built-in locales).
+- To add a language: add a message bundle, extend `SUPPORTED_LOCALES` and `isAppLocale` in the library i18n, and adapt the nav language control (the current button toggles between the two built-in locales).
 - Components must not hard-code user-facing text; use `t('...')` in templates, computed values, and imperative DOM creation (`aria-label`s are refreshed on locale change).
 
 ### MathJax service
 
-[mathjax.ts](src/utils/mathjax.ts) maintains a singleton:
+[mathjax.ts](packages/editor/src/utils/mathjax.ts) maintains a singleton:
 
-- It injects `public/mathjax/tex-svg.js` on first use; configuration must be written before the script loads.
+- The script is lazy-loaded and injected on first render; configuration must be written before the script loads.
+- Script source priority: `mathJaxService.configure({ source })` (self-hosted / private CDN) > the `he-math-editor/full` entry (bundled tex-svg.js, offline-ready) > the default strategy (local `public/mathjax` in dev, npmmirror CDN in production).
 - Auto-typesetting is disabled (`startup.typeset: false`); each element is processed with `typesetClear` + `typesetPromise`.
-- Render requests made before MathJax loads are queued and flushed on load.
+- Render requests made before MathJax loads are queued and flushed on load; if the host app already loaded a full MathJax, it is reused directly.
 - `\oiint` / `\oiiint` macros are implemented by overlaying `◯` on `∬` / `∭`.
+
+## License
+
+This project is dual-licensed under **AGPL-3.0 / Commercial** (see [packages/editor/LICENSE](packages/editor/LICENSE)):
+
+- Open source use: follow `AGPL-3.0-or-later` and release your project source under a compatible license.
+- Closed-source commercial use: purchase a commercial license (contact <350839123@qq.com>) to remove the AGPL copyleft obligations.
+- Third-party dependencies (Vue, CodeMirror, MathJax, MathLive, markdown-it) remain under their own licenses.
 
 ## Tech Stack
 
 | Category | Choice |
 | --- | --- |
 | Framework | Vue 3.5 (`<script setup>` + TypeScript) |
-| Build | Vite 6 |
+| Build | Vite 6 + pnpm workspace (monorepo) |
+| Package manager | pnpm 12 (version pinned via `packageManager`) |
 | Editor core | CodeMirror 6 (`@codemirror/*`) |
 | Markdown | markdown-it 14 + highlight.js 11 |
-| Formula input | MathLive 0.100 (`HeMathInput`) + custom KaTeX input (`HeFormulaEditor`) |
-| Formula rendering | MathJax 3.2.2 (local `tex-svg.js`) |
+| Formula input | Custom KaTeX input (`HeFormulaEditor`) + MathLive 0.100 (`HeMathInput`, inline demo only) |
+| Formula rendering | MathJax 3.2.2 (`tex-svg.js`, configurable source / bundled offline) |
 | i18n | vue-i18n 11 (`Composition API`, zh-CN / en-US) |
 | Math fonts | KaTeX_Main / KaTeX_Math (copied from MathLive 0.100.0) |
 | Styles | SCSS (sass) |
+| License | AGPL-3.0 / commercial dual licensing |
 
 ## Development Conventions
 
 - Use **tabs** for indentation, `<script setup lang="ts">` for components, and `scoped` styles.
-- The `@` path alias points to `src`.
-- MathLive's `<math-field>` must remain a native custom element; `vite.config.ts` allows it via `isCustomElement`.
-- There is no automated test suite; run `npm run build` before committing to verify types and the production build.
-- Markdown typography is maintained in `src/styles/markdown-body.scss` and shared by the editor preview and `HeMdViewer`.
-- KaTeX font files live in `src/assets/fonts/katex/` and are copied from `mathlive@0.100.0`; keep the font license notice when redistributing.
-- The editing UI lives in `src/components/HeFormulaEditor.vue`; `InputPage.vue` is only a thin page that renders it. Do not extract a separate keyboard-input component.
+- The monorepo uses **pnpm workspace**: root scripts are `pnpm dev` / `pnpm build` / `pnpm build:lib` / `pnpm preview`; npm is no longer used and `package-lock.json` has been removed.
+- Path aliases: inside the demo `@` points to `apps/demo/src`, and a vite alias maps `he-math-editor` straight to `packages/editor/src/index.ts` (cross-package HMR); inside the library use relative imports only, never `@`.
+- MathLive's `<math-field>` must remain a native custom element; both the demo and library build configs allow it via `isCustomElement`.
+- There is no automated test suite; run `pnpm build` before committing to verify types and the production build.
+- Markdown typography is maintained in `packages/editor/src/styles/markdown-body.scss` and shared by the editor preview and `HeMdViewer`.
+- KaTeX font files live in `packages/editor/src/assets/fonts/katex/` and are copied from `mathlive@0.100.0`; keep the font license notice when redistributing.
+- The editing UI lives in `packages/editor/src/components/HeFormulaEditor.vue`; `InputPage.vue` is only a thin page that renders it. Do not extract a separate keyboard-input component.
 - `HeFormulaDialog` must stay a pure container; keep editing logic in `HeFormulaEditor`.
-- The demo uses lightweight hash routing (`src/App.vue`); pages live in `src/pages`, and shared demo styles live in `src/styles/demo.scss`.
-- All user-facing text must go through `t()`; add the key to both `src/i18n/locales/zh-CN.ts` and `en-US.ts` in the same change.
+- The demo uses lightweight hash routing (`apps/demo/src/App.vue`); pages live in `apps/demo/src/pages`, shared demo styles in `apps/demo/src/styles/demo.scss`; the demo does not keep its own MathJax copy — it reuses `packages/editor/public`.
+- All user-facing text must go through `t()`: library component messages go to `packages/editor/src/i18n/locales`, demo messages to `apps/demo/src/i18n/locales`, keeping zh-CN / en-US in sync in the same change.
 - Toolbar changes must update [TOOLBAR.md](TOOLBAR.md) (support matrix + update log) together with the changelog.
 - AI/collaborator context (Chinese): [README.ai.md](README.ai.md).
 - Version history: [CHANGELOG.md](CHANGELOG.md). **Every code commit must update the changelog.**
@@ -402,7 +441,7 @@ git pull --rebase
 git checkout -b feat/xxx
 
 # make changes; update CHANGELOG.md and TOOLBAR.md when toolbar support changes
-npx vue-tsc --noEmit
+pnpm build        # demo build includes vue-tsc type checking
 
 git add <files>
 git commit -m "feat: ..."
