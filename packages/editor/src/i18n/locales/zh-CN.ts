@@ -44,6 +44,18 @@ export default {
 			squareIndex2: '二次根（指数 2）',
 			cube: '立方根'
 		},
+		integral: {
+			panelTitle: '积分',
+			int: '不定积分',
+			intSup: '积分（上限）',
+			intSubSup: '定积分',
+			iint: '二重积分',
+			iintSup: '二重积分（上限）',
+			iintSubSup: '二重定积分',
+			iiint: '三重积分',
+			iiintSup: '三重积分（上限）',
+			iiintSubSup: '三重定积分'
+		},
 		latexSource: 'LaTeX 原文',
 		editable: '可编辑公式',
 		preview: '实时预览',
@@ -62,7 +74,10 @@ export default {
 			sup: '上标',
 			sub: '下标',
 			rootIndex: '根指数',
-			radicand: '被开方数'
+			radicand: '被开方数',
+			integralSub: '积分下限',
+			integralSup: '积分上限',
+			integrand: '被积函数'
 		}
 	},
 	markdown: {
