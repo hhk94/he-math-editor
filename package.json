@@ -7,7 +7,8 @@
 		"dev": "pnpm --filter @hemath/demo dev",
 		"build:lib": "pnpm --filter he-math-editor build",
 		"build": "pnpm --filter he-math-editor build && pnpm --filter @hemath/demo build",
-		"preview": "pnpm --filter @hemath/demo preview"
+		"preview": "pnpm --filter @hemath/demo preview",
+		"test": "pnpm --filter he-math-editor test"
 	},
 	"packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61"
 

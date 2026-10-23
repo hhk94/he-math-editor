@@ -764,7 +764,8 @@ const parseLatex = (source: string): ParsedNode[] => {
 const createTextSlot = (value: string): HTMLElement => {
 	const slot = document.createElement('span')
 	slot.className = 'me-text-slot'
-	slot.contentEditable = 'true'
+	// 用 attribute 而不是 contentEditable property：浏览器中两者等价，jsdom 只认 attribute（单元测试依赖 [contenteditable] 选择器）
+	slot.setAttribute('contenteditable', 'true')
 	slot.spellcheck = false
 	slot.dataset.role = 'text'
 	slot.setAttribute('role', 'textbox')
