@@ -36,6 +36,14 @@ export default {
 			both: 'Sub- and superscript',
 			pre: 'Prescript'
 		},
+		root: {
+			panelTitle: 'Radical',
+			commonTitle: 'Common radicals',
+			square: 'Square root',
+			nth: 'nth root',
+			squareIndex2: 'Square root (index 2)',
+			cube: 'Cube root'
+		},
 		latexSource: 'LaTeX source',
 		editable: 'Editable formula',
 		preview: 'Live preview',
@@ -52,7 +60,9 @@ export default {
 			numerator: 'Numerator',
 			denominator: 'Denominator',
 			sup: 'Superscript',
-			sub: 'Subscript'
+			sub: 'Subscript',
+			rootIndex: 'Root index',
+			radicand: 'Radicand'
 		}
 	},
 	markdown: {

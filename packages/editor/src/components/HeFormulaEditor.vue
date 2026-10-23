@@ -94,6 +94,44 @@
 					</div>
 				</div>
 			</div>
+
+			<div
+				v-if="rootOpen"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.root.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.root.panelTitle') }}</div>
+				<div class="he-tool-popover__body">
+					<div class="he-tool-popover__grid">
+						<button
+							v-for="item in rootFormats"
+							:key="item.id"
+							class="he-tool-card he-tool-card--tall"
+							type="button"
+							:title="t('formula.root.' + item.id)"
+							@mousedown.prevent
+							@click="pickRootFormat(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.root.commonTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--half">
+						<button
+							v-for="item in commonRoots"
+							:key="item.label"
+							class="he-tool-card he-tool-card--wide"
+							type="button"
+							:title="item.label"
+							@mousedown.prevent
+							@click="pickCommonRoot(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<div class="he-field-label">{{ t('formula.latexSource') }}</div>
@@ -227,10 +265,14 @@ type CommonFraction = FractionChoice & { label: string }
 type ScriptFormatId = 'sup' | 'sub' | 'both' | 'pre'
 type ScriptFormat = { id: ScriptFormatId; preview: string }
 type CommonScript = { label: string; latex: string; preview: string }
+type RootFormatId = 'square' | 'nth' | 'squareIndex2' | 'cube'
+type RootFormat = { id: RootFormatId; preview: string; index: string | null }
+type CommonRoot = { label: string; latex: string; preview: string }
 
 const toolbarRef = ref<HTMLElement>()
 const fractionOpen = ref(false)
 const scriptsOpen = ref(false)
+const rootOpen = ref(false)
 
 /** 生成 HTML 分式预览，仅用于工具栏弹窗 */
 const frac = (num: string, den: string, small = false) =>
@@ -320,6 +362,35 @@ const commonScripts: CommonScript[] = [
 	}
 ]
 
+/**
+ * 生成根式预览，仅用于工具栏弹窗。
+ * dash 为虚线空槽，表示插入后可编辑的根指数 / 被开方数。
+ */
+const dashSlot = '<span class="math-dash"></span>'
+const rootPreview = (radicand: string, index = '') =>
+	`<span class="math-root">${index ? `<span class="math-root__index">${index}</span>` : ''}<span class="math-root__sign">√</span><span class="math-root__radicand">${radicand}</span></span>`
+
+const rootFormats: RootFormat[] = [
+	{ id: 'square', preview: rootPreview(dashSlot), index: null },
+	{ id: 'nth', preview: rootPreview(dashSlot, dashSlot), index: '' },
+	{ id: 'squareIndex2', preview: rootPreview(dashSlot, '2'), index: '2' },
+	{ id: 'cube', preview: rootPreview(dashSlot, '3'), index: '3' }
+]
+
+const commonRoots: CommonRoot[] = [
+	{
+		label: '(-b±√(b²-4ac))/2a',
+		// 用 ± 这类 Unicode 符号而不是 \pm：可编辑区不解析未知命令，\pm 会被当成文本显示
+		latex: '\\frac{-b±\\sqrt{b^{2}-4ac}}{2a}',
+		preview: frac(`−b ± ${rootPreview('b² − 4ac')}`, '2a')
+	},
+	{
+		label: '√(a²+b²)',
+		latex: '\\sqrt{a^{2}+b^{2}}',
+		preview: rootPreview('a² + b²')
+	}
+]
+
 const symbols = [
 	{ label: 'a/b', value: 'a/b' },
 	{ label: '√x', value: '√x' },
@@ -335,7 +406,7 @@ const symbols = [
 	{ label: '≠', value: '≠' }
 ]
 
-/** 工具栏按钮；分数与上下标已接入弹窗，其余暂未绑定行为 */
+/** 工具栏按钮；分数、上下标、根式已接入弹窗，其余暂未绑定行为 */
 const tools: Tool[] = [
 	{ id: 'symbols', icon: 'Ω' },
 	{ id: 'fraction', icon: '<span class="tb-frac"><span>X</span><span>Y</span></span>' },
@@ -370,6 +441,7 @@ type ParsedNode =
 	| { type: 'text'; value: string }
 	| { type: 'fraction'; style: FractionStyle; numerator: ParsedNode[]; denominator: ParsedNode[] }
 	| { type: 'script'; pre: boolean; sup: ParsedNode[] | null; sub: ParsedNode[] | null }
+	| { type: 'root'; index: ParsedNode[] | null; radicand: ParsedNode[] }
 
 const fractionCommands: { command: string; style: FractionStyle }[] = [
 	{ command: '\\tfrac', style: 'small' },
@@ -472,7 +544,30 @@ const readPrescript = (
 	return readScriptParts(source, cursor)
 }
 
-/** 递归解析 \frac / \tfrac / 斜式 / 上下标：分子、分母、上下标里的内容会继续结构化 */
+/**
+ * 解析根式：`\sqrt{x}` / `\sqrt[n]{x}`（也兼容 `\sqrt x`、`\sqrt[n]x`）。
+ * index 为 null 表示没有根指数，radicand 为被开方数。
+ */
+const readRoot = (
+	source: string,
+	start: number
+): { index: string | null; radicand: string; end: number } | null => {
+	if (!source.startsWith('\\sqrt', start)) return null
+	let cursor = start + 5
+	let index: string | null = null
+	const bracketStart = skipSpacing(source, cursor)
+	if (source[bracketStart] === '[') {
+		const close = source.indexOf(']', bracketStart + 1)
+		if (close === -1) return null
+		index = source.slice(bracketStart + 1, close).trim()
+		cursor = close + 1
+	}
+	const argument = readScriptArgument(source, cursor)
+	if (!argument) return null
+	return { index, radicand: argument.content, end: argument.end }
+}
+
+/** 递归解析 \frac / \tfrac / 斜式 / 上下标 / 根式：子结构里的内容会继续结构化 */
 const parseLatex = (source: string): ParsedNode[] => {
 	const nodes: ParsedNode[] = []
 	let buffer = ''
@@ -521,6 +616,17 @@ const parseLatex = (source: string): ParsedNode[] => {
 				i = postscript.end
 				continue
 			}
+		}
+		const rootNode = readRoot(source, i)
+		if (rootNode) {
+			flush()
+			nodes.push({
+				type: 'root',
+				index: rootNode.index !== null ? parseLatex(rootNode.index) : null,
+				radicand: parseLatex(rootNode.radicand)
+			})
+			i = rootNode.end
+			continue
 		}
 		const matched = fractionCommands.find(({ command }) => source.startsWith(command, i))
 		if (matched) {
@@ -621,6 +727,30 @@ const createScriptElement = (
 	return script
 }
 
+/** 创建根式节点；index 为 null 表示没有根指数 */
+const createRootElement = (index: ParsedNode[] | null, radicand: ParsedNode[]): HTMLElement => {
+	const rootNode = document.createElement('span')
+	rootNode.className = 'me-root'
+	if (index) {
+		rootNode.classList.add('me-root--indexed')
+		const indexEl = document.createElement('span')
+		indexEl.className = 'me-root__index'
+		indexEl.setAttribute('aria-label', t('formula.aria.rootIndex'))
+		appendNodes(indexEl, index)
+		rootNode.append(indexEl)
+	}
+	const sign = document.createElement('span')
+	sign.className = 'me-root__sign'
+	sign.textContent = '√'
+	sign.setAttribute('aria-hidden', 'true')
+	const radicandEl = document.createElement('span')
+	radicandEl.className = 'me-root__radicand'
+	radicandEl.setAttribute('aria-label', t('formula.aria.radicand'))
+	appendNodes(radicandEl, radicand)
+	rootNode.append(sign, radicandEl)
+	return rootNode
+}
+
 /** 把解析结果挂到容器上；空内容补一个空文本槽，保证光标有落点 */
 const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 	if (!nodes.length) {
@@ -632,6 +762,8 @@ const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 			container.append(createFractionElement(node.numerator, node.denominator, node.style))
 		} else if (node.type === 'script') {
 			container.append(createScriptElement(node.pre, node.sup, node.sub))
+		} else if (node.type === 'root') {
+			container.append(createRootElement(node.index, node.radicand))
 		} else {
 			container.append(createTextSlot(node.value))
 		}
@@ -675,6 +807,13 @@ const serializeNodes = (container: HTMLElement): string => {
 				const command = child.classList.contains('me-frac--small') ? '\\tfrac' : '\\frac'
 				result += `${command}{${numerator}}{${denominator}}`
 			}
+			hasContent = true
+		} else if (child.classList.contains('me-root')) {
+			const indexEl = child.querySelector(':scope > .me-root__index') as HTMLElement | null
+			const radicandEl = child.querySelector(':scope > .me-root__radicand') as HTMLElement | null
+			const index = indexEl ? serializeNodes(indexEl) : ''
+			const radicand = radicandEl ? serializeNodes(radicandEl) : ''
+			result += index ? `\\sqrt[${index}]{${radicand}}` : `\\sqrt{${radicand}}`
 			hasContent = true
 		} else if (child.classList.contains('me-text-slot')) {
 			const value = readSlotText(child)
@@ -753,23 +892,28 @@ const focusSlot = (slot: HTMLElement | null, selectAll = false, position: 'start
 	selection?.addRange(range)
 }
 
+type SlotRole = 'num' | 'den' | 'sup' | 'sub' | 'rootIndex' | 'radicand' | 'text'
+
 type ActiveSlotInfo = {
 	slot: HTMLElement
 	fraction: HTMLElement | null
 	script: HTMLElement | null
-	role: 'num' | 'den' | 'sup' | 'sub' | 'text'
+	rootNode: HTMLElement | null
+	role: SlotRole
 	atStart: boolean
 	atEnd: boolean
 	collapsed: boolean
 }
 
-/** 根据文本槽的父容器判断它属于分子、分母、上标、下标还是根级文本 */
-const getSlotRole = (slot: HTMLElement): 'num' | 'den' | 'sup' | 'sub' | 'text' => {
+/** 根据文本槽的父容器判断它属于分子、分母、上标、下标、根指数、被开方数还是根级文本 */
+const getSlotRole = (slot: HTMLElement): SlotRole => {
 	const parent = slot.parentElement
 	if (parent?.classList.contains('me-frac__num')) return 'num'
 	if (parent?.classList.contains('me-frac__den')) return 'den'
 	if (parent?.classList.contains('me-script__sup')) return 'sup'
 	if (parent?.classList.contains('me-script__sub')) return 'sub'
+	if (parent?.classList.contains('me-root__index')) return 'rootIndex'
+	if (parent?.classList.contains('me-root__radicand')) return 'radicand'
 	return 'text'
 }
 
@@ -801,6 +945,7 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 		slot,
 		fraction: (slot.closest('.me-frac') as HTMLElement | null) ?? null,
 		script: (slot.closest('.me-script') as HTMLElement | null) ?? null,
+		rootNode: (slot.closest('.me-root') as HTMLElement | null) ?? null,
 		role: getSlotRole(slot),
 		atStart: stripPlaceholder(before.toString()).length === 0,
 		atEnd: stripPlaceholder(after.toString()).length === 0,
@@ -830,6 +975,12 @@ const getEdgeSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement
 			) as HTMLElement | null
 			if (fallback) return getEdgeSlot(fallback, side)
 		}
+		if (child.classList.contains('me-root')) {
+			const indexEl = child.querySelector(':scope > .me-root__index') as HTMLElement | null
+			if (side === 'start' && indexEl) return getEdgeSlot(indexEl, side)
+			const radicandEl = child.querySelector(':scope > .me-root__radicand') as HTMLElement | null
+			if (radicandEl) return getEdgeSlot(radicandEl, side)
+		}
 	}
 	const slot = createTextSlot('')
 	if (side === 'start') container.prepend(slot)
@@ -847,6 +998,20 @@ const focusScriptSlot = (script: HTMLElement, prefer: 'sup' | 'sub' = 'sup', sel
 	return true
 }
 
+/** 聚焦根式节点内的槽位：优先根指数，其次被开方数 */
+const focusRootSlot = (
+	rootNode: HTMLElement,
+	prefer: 'index' | 'radicand' = 'radicand',
+	select = false
+): boolean => {
+	const indexEl = rootNode.querySelector(':scope > .me-root__index') as HTMLElement | null
+	const radicandEl = rootNode.querySelector(':scope > .me-root__radicand') as HTMLElement | null
+	const target = prefer === 'index' ? (indexEl ?? radicandEl) : (radicandEl ?? indexEl)
+	if (!target) return false
+	focusSlot(getEdgeSlot(target, 'start'), select, 'start')
+	return true
+}
+
 /** 取容器内同级的文本槽（不进入嵌套分式），没有就在对应边缘创建一个 */
 const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement => {
 	const children = Array.from(container.children) as HTMLElement[]
@@ -859,7 +1024,9 @@ const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HT
 }
 
 const isAtomElement = (element: HTMLElement): boolean =>
-	element.classList.contains('me-frac') || element.classList.contains('me-script')
+	element.classList.contains('me-frac') ||
+	element.classList.contains('me-script') ||
+	element.classList.contains('me-root')
 
 /**
  * 在根级或分式的分子/分母容器内左右移动。
@@ -886,6 +1053,20 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 		return true
 	}
 
+	const focusRootIndexEnd = (rootNode: HTMLElement): boolean => {
+		const indexEl = rootNode.querySelector(':scope > .me-root__index') as HTMLElement | null
+		if (!indexEl) return false
+		focusSlot(getEdgeSlot(indexEl, 'end'), false, 'end')
+		return true
+	}
+
+	const focusRootRadicandStart = (rootNode: HTMLElement): boolean => {
+		const radicandEl = rootNode.querySelector(':scope > .me-root__radicand') as HTMLElement | null
+		if (!radicandEl) return false
+		focusSlot(getEdgeSlot(radicandEl, 'start'), false, 'start')
+		return true
+	}
+
 	if (direction === 'left') {
 		const previous = node.previousElementSibling as HTMLElement | null
 
@@ -901,12 +1082,16 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 				focusSlot(slot, false, 'end')
 				return true
 			}
-			if (parent.classList.contains('me-frac__num')) {
+			if (parent.classList.contains('me-frac__num') || parent.classList.contains('me-root__index')) {
 				focusSlot(ensureDirectTextSlot(parent, 'start'), false, 'end')
 				return true
 			}
 			if (parent.classList.contains('me-frac__den')) {
 				return focusNumeratorEnd(parent.parentElement as HTMLElement)
+			}
+			if (parent.classList.contains('me-root__radicand')) {
+				const rootNode = parent.parentElement as HTMLElement
+				return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
 			}
 			return moveSibling(parent.parentElement as HTMLElement, 'left')
 		}
@@ -930,12 +1115,16 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 				focusSlot(slot, false, 'end')
 				return true
 			}
-			if (parent.classList.contains('me-frac__num')) {
+			if (parent.classList.contains('me-frac__num') || parent.classList.contains('me-root__index')) {
 				focusSlot(ensureDirectTextSlot(parent, 'start'), false, 'end')
 				return true
 			}
 			if (parent.classList.contains('me-frac__den')) {
 				return focusNumeratorEnd(parent.parentElement as HTMLElement)
+			}
+			if (parent.classList.contains('me-root__radicand')) {
+				const rootNode = parent.parentElement as HTMLElement
+				return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
 			}
 			return moveSibling(parent.parentElement as HTMLElement, 'left')
 		}
@@ -944,6 +1133,10 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 		if (parent === root) return false
 		if (parent.classList.contains('me-frac__den')) {
 			return focusNumeratorEnd(parent.parentElement as HTMLElement)
+		}
+		if (parent.classList.contains('me-root__radicand')) {
+			const rootNode = parent.parentElement as HTMLElement
+			return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
 		}
 		return moveSibling(parent.parentElement as HTMLElement, 'left')
 	}
@@ -962,7 +1155,7 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 			focusSlot(slot, false, 'start')
 			return true
 		}
-		if (parent.classList.contains('me-frac__num')) {
+		if (parent.classList.contains('me-frac__num') || parent.classList.contains('me-root__index')) {
 			focusSlot(ensureDirectTextSlot(parent, 'end'), false, 'start')
 			return true
 		}
@@ -988,7 +1181,7 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 			focusSlot(slot, false, 'start')
 			return true
 		}
-		if (parent.classList.contains('me-frac__num')) {
+		if (parent.classList.contains('me-frac__num') || parent.classList.contains('me-root__index')) {
 			focusSlot(ensureDirectTextSlot(parent, 'end'), false, 'start')
 			return true
 		}
@@ -999,6 +1192,9 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 	if (parent === root) return false
 	if (parent.classList.contains('me-frac__num')) {
 		return focusDenominatorStart(parent.parentElement as HTMLElement)
+	}
+	if (parent.classList.contains('me-root__index')) {
+		return focusRootRadicandStart(parent.parentElement as HTMLElement)
 	}
 	return moveSibling(parent.parentElement as HTMLElement, 'right')
 }
@@ -1029,6 +1225,34 @@ const handleArrow = (key: string): boolean => {
 		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
 		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
 		if (key === 'ArrowDown') return moveSibling(fraction, 'right')
+		return false
+	}
+
+	if ((role === 'rootIndex' || role === 'radicand') && info.rootNode) {
+		if (role === 'rootIndex') {
+			if (key === 'ArrowDown' || (key === 'ArrowRight' && atEnd)) {
+				const radicandEl = info.rootNode.querySelector(
+					':scope > .me-root__radicand'
+				) as HTMLElement | null
+				if (radicandEl) {
+					focusSlot(getEdgeSlot(radicandEl, 'start'), false, 'start')
+					return true
+				}
+			}
+			if (key === 'ArrowUp') return moveSibling(info.rootNode, 'left')
+			if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
+			return false
+		}
+		if (key === 'ArrowUp' || (key === 'ArrowLeft' && atStart)) {
+			const indexEl = info.rootNode.querySelector(':scope > .me-root__index') as HTMLElement | null
+			if (indexEl) {
+				focusSlot(getEdgeSlot(indexEl, 'end'), false, 'end')
+				return true
+			}
+			return moveSibling(info.rootNode, 'left')
+		}
+		if (key === 'ArrowDown') return moveSibling(info.rootNode, 'right')
+		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
 		return false
 	}
 
@@ -1079,11 +1303,11 @@ const removeAtomNode = (atom: HTMLElement, side: 'before' | 'after') => {
 	syncFromEditor()
 }
 
-/** 分式 / 上下标本身不是 contenteditable，需要在槽位边界用退格 / Delete 整块删除 */
+/** 分式 / 上下标 / 根式本身不是 contenteditable，需要在槽位边界用退格 / Delete 整块删除 */
 const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	const info = getActiveSlot()
 	if (!info || !info.collapsed) return false
-	const { slot, fraction, script, role, atStart, atEnd } = info
+	const { slot, fraction, script, rootNode, role, atStart, atEnd } = info
 
 	if (role === 'num' && fraction && key === 'Backspace' && atStart) {
 		removeAtomNode(fraction, 'before')
@@ -1092,6 +1316,19 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	if (role === 'den' && fraction && key === 'Delete' && atEnd) {
 		removeAtomNode(fraction, 'after')
 		return true
+	}
+	if ((role === 'rootIndex' || role === 'radicand') && rootNode) {
+		const hasIndex = Boolean(rootNode.querySelector(':scope > .me-root__index'))
+		// 根指数开头或（无根指数时）被开方数开头按退格：整块删除
+		if (key === 'Backspace' && atStart && (role === 'rootIndex' || !hasIndex)) {
+			removeAtomNode(rootNode, 'before')
+			return true
+		}
+		if (key === 'Delete' && atEnd && role === 'radicand') {
+			removeAtomNode(rootNode, 'after')
+			return true
+		}
+		return false
 	}
 	if ((role === 'sup' || role === 'sub') && script) {
 		if (key === 'Backspace' && atStart) {
@@ -1108,7 +1345,7 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	if (role === 'text') {
 		if (key === 'Backspace' && atStart) {
 			const previous = slot.previousElementSibling as HTMLElement | null
-			if (previous?.matches('.me-frac, .me-script')) {
+			if (previous?.matches('.me-frac, .me-script, .me-root')) {
 				previous.remove()
 				focusSlot(slot, false, 'start')
 				syncFromEditor()
@@ -1117,7 +1354,7 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 		}
 		if (key === 'Delete' && atEnd) {
 			const next = slot.nextElementSibling as HTMLElement | null
-			if (next?.matches('.me-frac, .me-script')) {
+			if (next?.matches('.me-frac, .me-script, .me-root')) {
 				next.remove()
 				focusSlot(slot, false, 'end')
 				syncFromEditor()
@@ -1152,6 +1389,8 @@ const focusByPoint = (x: number) => {
 					':scope > .me-script__sup, :scope > .me-script__sub'
 				) as HTMLElement | null
 				if (part) focusSlot(getEdgeSlot(part, 'start'), false, 'start')
+			} else if (child.classList.contains('me-root')) {
+				focusRootSlot(child, 'radicand')
 			} else {
 				const numerator = child.querySelector(':scope > .me-frac__num') as HTMLElement | null
 				if (numerator) focusSlot(getEdgeSlot(numerator, 'end'), false, 'end')
@@ -1291,6 +1530,34 @@ const insertScript = (format: ScriptFormatId) => {
 	focusScriptSlot(script, format === 'sub' ? 'sub' : 'sup', true)
 }
 
+/** 插入根式：index 为 null 表示平方根，空字符串表示空的根指数槽 */
+const insertRoot = (format: RootFormat) => {
+	const hasIndex = format.index !== null
+	const rootNode = createRootElement(
+		hasIndex ? (format.index ? [{ type: 'text', value: format.index }] : []) : null,
+		[]
+	)
+	insertNodesAtCaret([rootNode])
+	syncFromEditor()
+	focusRootSlot(rootNode, hasIndex ? 'index' : 'radicand', Boolean(format.index))
+}
+
+/** 聚焦插入节点中的第一个可编辑槽位（用于常用模板） */
+const focusFirstEditable = (nodes: Node[]): boolean => {
+	for (const node of nodes) {
+		if (node.nodeType !== Node.ELEMENT_NODE) continue
+		const element = node as HTMLElement
+		const slot = element.matches('[contenteditable]')
+			? element
+			: (element.querySelector('[contenteditable]') as HTMLElement | null)
+		if (slot) {
+			focusSlot(slot, false, 'start')
+			return true
+		}
+	}
+	return false
+}
+
 const insertText = (value: string) => {
 	insertTextAtCaret(value)
 }
@@ -1325,8 +1592,10 @@ const onEditorClick = (event: MouseEvent) => {
 	const target = event.target as HTMLElement
 	// 槽位自身负责光标定位
 	if (target.closest('[contenteditable]')) return
-	// 点在分子/分母容器的留白上：落到该容器同级的文本槽（不进入嵌套分式）
-	const part = target.closest('.me-frac__num, .me-frac__den') as HTMLElement | null
+	// 点在分子/分母、根指数/被开方数容器的留白上：落到该容器同级的文本槽（不进入嵌套结构）
+	const part = target.closest(
+		'.me-frac__num, .me-frac__den, .me-root__index, .me-root__radicand'
+	) as HTMLElement | null
 	if (part) {
 		const rect = part.getBoundingClientRect()
 		const side = event.clientX < rect.left + rect.width / 2 ? 'start' : 'end'
@@ -1342,6 +1611,11 @@ const onEditorClick = (event: MouseEvent) => {
 	const script = target.closest('.me-script') as HTMLElement | null
 	if (script) {
 		focusScriptSlot(script)
+		return
+	}
+	const rootNode = target.closest('.me-root') as HTMLElement | null
+	if (rootNode) {
+		focusRootSlot(rootNode, 'radicand')
 		return
 	}
 	if (target !== root) return
@@ -1387,15 +1661,24 @@ const onToolClick = (tool: Tool) => {
 	if (tool.id === 'fraction') {
 		fractionOpen.value = !fractionOpen.value
 		scriptsOpen.value = false
+		rootOpen.value = false
 		return
 	}
 	if (tool.id === 'scripts') {
 		scriptsOpen.value = !scriptsOpen.value
 		fractionOpen.value = false
+		rootOpen.value = false
+		return
+	}
+	if (tool.id === 'radical') {
+		rootOpen.value = !rootOpen.value
+		fractionOpen.value = false
+		scriptsOpen.value = false
 		return
 	}
 	fractionOpen.value = false
 	scriptsOpen.value = false
+	rootOpen.value = false
 }
 
 const pickFraction = (item: FractionChoice) => {
@@ -1425,11 +1708,27 @@ const pickCommonScript = (item: CommonScript) => {
 	if (script) focusScriptSlot(script)
 }
 
+const pickRootFormat = (item: RootFormat) => {
+	rootOpen.value = false
+	insertRoot(item)
+}
+
+const pickCommonRoot = (item: CommonRoot) => {
+	rootOpen.value = false
+	const holder = document.createElement('span')
+	appendNodes(holder, parseLatex(item.latex))
+	const nodes = Array.from(holder.childNodes)
+	insertNodesAtCaret(nodes)
+	syncFromEditor()
+	focusFirstEditable(nodes)
+}
+
 const onDocumentClick = (event: MouseEvent) => {
-	if (!fractionOpen.value && !scriptsOpen.value) return
+	if (!fractionOpen.value && !scriptsOpen.value && !rootOpen.value) return
 	if (toolbarRef.value?.contains(event.target as Node)) return
 	fractionOpen.value = false
 	scriptsOpen.value = false
+	rootOpen.value = false
 }
 
 onMounted(() => {
@@ -1476,6 +1775,12 @@ watch(locale, () => {
 	})
 	root.querySelectorAll('.me-script__sub').forEach((el) => {
 		el.setAttribute('aria-label', t('formula.aria.sub'))
+	})
+	root.querySelectorAll('.me-root__index').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.rootIndex'))
+	})
+	root.querySelectorAll('.me-root__radicand').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.radicand'))
 	})
 })
 
@@ -1653,6 +1958,11 @@ defineExpose({ focus, validate, clear })
 	gap: 8px;
 }
 
+/* 常用根式一行两张宽卡片 */
+.he-tool-popover__grid--half {
+	grid-template-columns: repeat(2, 1fr);
+}
+
 .he-tool-popover__section {
 	margin: 8px 0 6px;
 	font-size: 12px;
@@ -1679,6 +1989,15 @@ defineExpose({ focus, validate, clear })
 	background: #f7f9ff;
 }
 
+/* 根式格式卡片更高，留出根号与空槽的展示空间 */
+.he-tool-card--tall {
+	height: 104px;
+}
+
+.he-tool-card--wide {
+	height: 84px;
+}
+
 .he-tool-card__preview {
 	font-size: 17px;
 	line-height: 1.1;
@@ -1702,6 +2021,46 @@ defineExpose({ focus, validate, clear })
 
 .he-tool-card__preview :deep(.math-frac--small) {
 	font-size: 0.7em;
+}
+
+/* 根式预览：根号 + 上方横线 + 可选的根指数 */
+.he-tool-card__preview :deep(.math-root) {
+	display: inline-flex;
+	align-items: stretch;
+	line-height: 1.1;
+}
+
+.he-tool-card__preview :deep(.math-root__index) {
+	align-self: flex-start;
+	margin-right: -0.2em;
+	padding-top: 2px;
+	font-size: 0.55em;
+	line-height: 1;
+}
+
+.he-tool-card__preview :deep(.math-root__sign) {
+	align-self: stretch;
+	display: inline-flex;
+	align-items: flex-end;
+	font-size: 1.25em;
+	line-height: 0.9;
+}
+
+.he-tool-card__preview :deep(.math-root__radicand) {
+	display: inline-flex;
+	align-items: center;
+	min-width: 18px;
+	padding: 0 2px;
+	border-top: 1px solid currentColor;
+}
+
+/* 虚线空槽：表示插入后可编辑的位置 */
+.he-tool-card__preview :deep(.math-dash) {
+	flex: none;
+	width: 14px;
+	height: 12px;
+	border: 1px dashed #b9c0cc;
+	border-radius: 2px;
 }
 
 /* 上下标格式卡片：空白框表示待输入的上标 / 下标 */
@@ -1948,6 +2307,53 @@ defineExpose({ focus, validate, clear })
 
 /* 上下标里的嵌套上下标逐层缩小 */
 .he-formula-editable :deep(.me-script .me-script) {
+	font-size: 0.82em;
+}
+
+.he-formula-editable :deep(.me-root) {
+	display: inline-flex;
+	align-items: stretch;
+	margin: 0 2px;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-root__index) {
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	min-width: 8px;
+	margin-right: -0.18em;
+	padding-top: 0.1em;
+	font-size: 0.5em;
+	line-height: 1;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-root__sign) {
+	align-self: stretch;
+	display: inline-flex;
+	align-items: flex-end;
+	padding-right: 1px;
+	font-size: 1.2em;
+	line-height: 0.9;
+}
+
+.he-formula-editable :deep(.me-root__radicand) {
+	display: flex;
+	align-items: center;
+	min-width: 14px;
+	padding: 0 2px 0 1px;
+	border-top: 1px solid currentColor;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-root__index:focus-within),
+.he-formula-editable :deep(.me-root__radicand:focus-within) {
+	background: #eef3ff;
+}
+
+/* 根式里的嵌套结构逐层缩小 */
+.he-formula-editable :deep(.me-root .me-root) {
 	font-size: 0.82em;
 }
 
