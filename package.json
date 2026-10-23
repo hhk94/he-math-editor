@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"description": "heMathEditor - 基于 MathLive + MathJax 的数学公式编辑器",
+"license": "SEE LICENSE IN LICENSE",
 	"scripts": {
 		"dev": "vite",
 		"build": "vue-tsc --noEmit && vite build",
