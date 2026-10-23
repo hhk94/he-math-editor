@@ -97,7 +97,14 @@
 		</div>
 
 		<div class="he-field-label">{{ t('formula.latexSource') }}</div>
-		<div class="he-formula-source">{{ text || t('formula.empty') }}</div>
+		<textarea
+			v-model="text"
+			class="he-formula-source"
+			rows="2"
+			spellcheck="false"
+			:placeholder="t('formula.empty')"
+			@keydown.enter.prevent
+		></textarea>
 
 		<div class="he-field-label he-field-label--gap">{{ t('formula.editable') }}</div>
 		<div class="he-formula-editor__row">
@@ -1764,15 +1771,27 @@ defineExpose({ focus, validate, clear })
 }
 
 .he-formula-source {
+	width: 100%;
+	box-sizing: border-box;
 	padding: 8px 10px;
+	border: 1px solid #e3e8ef;
 	border-radius: 6px;
 	background: #f5f7fa;
 	font-family: Consolas, monospace;
 	font-size: 12px;
 	color: #555;
 	word-break: break-all;
-	white-space: pre-wrap;
-	min-height: 20px;
+	line-height: 1.6;
+	min-height: 38px;
+	resize: vertical;
+	outline: none;
+	transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.he-formula-source:focus {
+	border-color: #3b6ef5;
+	background: #fff;
+	box-shadow: 0 0 0 3px rgba(59, 110, 245, 0.12);
 }
 
 .he-formula-editable {
