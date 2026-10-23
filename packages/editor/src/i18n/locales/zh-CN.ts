@@ -36,6 +36,14 @@ export default {
 			both: '上下标',
 			pre: '前置上下标'
 		},
+		root: {
+			panelTitle: '根式',
+			commonTitle: '常用根式',
+			square: '平方根',
+			nth: 'n 次根',
+			squareIndex2: '二次根（指数 2）',
+			cube: '立方根'
+		},
 		latexSource: 'LaTeX 原文',
 		editable: '可编辑公式',
 		preview: '实时预览',
@@ -52,7 +60,9 @@ export default {
 			numerator: '分子',
 			denominator: '分母',
 			sup: '上标',
-			sub: '下标'
+			sub: '下标',
+			rootIndex: '根指数',
+			radicand: '被开方数'
 		}
 	},
 	markdown: {

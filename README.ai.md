@@ -154,23 +154,24 @@ Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正�
 - `HeFormulaDialog`：纯容器，只负责遮罩、标题、底部按钮、开关状态与打开时初始化；确认前调用 `HeFormulaEditor.validate()`。
 - `HeFormulaEditor`：三段展示（LaTeX 原文 / 自研可编辑渲染公式 / MathJax 实时预览），外加工具栏、分数弹窗、行间开关、符号面板与校验；`v-model` 绑定 LaTeX 文本。`display` prop 默认 `true`，即「行间公式（独立成行）」默认勾选；新建公式默认插入 `$$...$$`，点击已有公式时沿用其原 `display`。
 - **LaTeX 原文是可编辑 textarea**：`v-model` 直接绑定 `text`；源码框输入 → `watch(modelValue)` → 与 `lastSerialized` 不同则 `renderEditor` 重建编辑区；编辑区输入 → `syncFromEditor` 回写 `text` 并更新 `lastSerialized`，跳过反向重渲染，实现双向同步。
-- 可编辑区实现：`parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^{...}`、`_{...}`、前置 `{}^{...}`、`{}_{1}^{n}`，分子/分母与上下标里可继续嵌套；`renderEditor` 生成 `.me-frac > .me-frac__num/__den` 容器（斜式为 `.me-frac--skewed`，中间含 `.me-frac__slash`）与 `.me-script > .me-script__sup/__sub` 容器，容器内是 contenteditable `.me-text-slot`；`serializeEditor`/`serializeNodes` 递归还原 LaTeX（`\tfrac` 用 `.me-frac--small`，斜式输出 `{}^{...}\!/\!_{...}`，后置上下标位于容器开头时补 `{}` 空基底）；`syncFromEditor` 同步 v-model、LaTeX 原文与预览。
+- 可编辑区实现：`parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^{...}`、`_{...}`、前置 `{}^{...}`、`{}_{1}^{n}` / 根式 `\sqrt{...}`、`\sqrt[n]{...}`，分子/分母、上下标、根指数与被开方数里可继续嵌套；`renderEditor` 生成 `.me-frac > .me-frac__num/__den`（斜式为 `.me-frac--skewed`，中间含 `.me-frac__slash`）、`.me-script > .me-script__sup/__sub` 与 `.me-root > .me-root__index / .me-root__sign / .me-root__radicand` 容器，容器内是 contenteditable `.me-text-slot`；`serializeEditor`/`serializeNodes` 递归还原 LaTeX（`\tfrac` 用 `.me-frac--small`，斜式输出 `{}^{...}\!/\!_{...}`，根式为 `\sqrt{...}` / `\sqrt[n]{...}`，后置上下标位于容器开头时补 `{}` 空基底）；`syncFromEditor` 同步 v-model、LaTeX 原文与预览。
 - `lastSerialized` 用于跳过内部输入触发的重渲染，避免光标丢失；`lastFocusedSlot` 用于符号按钮失焦后的插入回退。
 - 分子/分母支持普通文本与嵌套分式混排：`ensureDirectTextSlot` 用于在容器同级取/建文本槽，不进入嵌套分式；分子内在嵌套分式边界按 `←` / `→` 会创建同级文本槽（`2\frac{a}{b}` 这类混排可编辑）；点击分子/分母容器留白也走该函数。`getEdgeSlot` 只用于需要递归进入分式边缘的场景（点击公式本体、分子→分母等）。
-- 键盘导航：`getActiveSlot` 通过槽位父容器判断 `num` / `den` / `sup` / `sub` / `text`；`handleArrow` 调用 `moveSibling`。公式外部把每个分式 / 上下标视为整体，`←` / `→` 跨过整座公式并落到相邻文本槽，不会进入分子/分母或上下标；只有点击进入公式后，方向键才在内部元素间移动。进入后：分子末尾 `↓` / `→` 进入分母，分母开头 `↑` / `←` 回到分子；上标 `↓` 进下标、下标 `↑` 回上标；公式外侧边界跳出到紧邻的文本槽，因此 `\frac{a}{b}+c` 的 `+c` 位于分式外层。
-- `insertFraction` / `insertNodesAtCaret` 在当前文本槽内按光标切分并插入新节点，所以在分子/分母或上下标内再次插入会形成嵌套结构，层级不设限。插入前若选区非折叠，先 `range.deleteContents()`，避免残留空文本槽。
+- 键盘导航：`getActiveSlot` 通过槽位父容器判断 `num` / `den` / `sup` / `sub` / `rootIndex` / `radicand` / `text`；`handleArrow` 调用 `moveSibling`。公式外部把每个分式 / 上下标 / 根式视为整体，`←` / `→` 跨过整座公式并落到相邻文本槽，不会进入内部；只有点击进入公式后，方向键才在内部元素间移动。进入后：分子末尾 `↓` / `→` 进入分母，分母开头 `↑` / `←` 回到分子；上标 `↓` 进下标、下标 `↑` 回上标；根指数 `↓` / 末尾 `→` 进被开方数、被开方数 `↑` / 开头 `←` 回根指数（无根指数时向左跳出整座根式）；公式外侧边界跳出到紧邻的文本槽，因此 `\frac{a}{b}+c` 的 `+c` 位于分式外层。
+- `insertFraction` / `insertNodesAtCaret` 在当前文本槽内按光标切分并插入新节点，所以在分子/分母、上下标或根式内再次插入会形成嵌套结构，层级不设限。插入前若选区非折叠，先 `range.deleteContents()`，避免残留空文本槽。
 - 空文本槽用零宽空格 `\u200b` 占位：`readSlotText` / `stripPlaceholder` 在序列化、首尾判断与空槽判定时过滤；槽位被删空后 `ensurePlaceholder` 自动补回并把光标放进文本节点；`onEditorFocusOut` 清理分子/分母中遗留的空槽，避免编辑区出现多余空白块。
 - 分数浮层第一排为 `分数（竖式）\frac`、`分数（横式）a/b`、`分数（斜式）{}^{a}\!/\!_{b}`、`分数（小型分数）\tfrac`，不再提供连分式卡片；下方保留常用分数。
 - `focusSlot` 必须把光标落到文本节点内部（`range.setStart(textNode, offset)`），落到 contenteditable 元素边界会导致方向键无法进入文字。
-- 分式 / 上下标不是 contenteditable，无法用默认退格删除：`handleDelete` 在 `Backspace`（分子 / 上标 / 下标开头）/ `Delete`（分母 / 上标 / 下标末尾）以及文本槽与原子节点相邻的边界删除整个 `.me-frac` / `.me-script`；`removeAtomNode` 会先确保前后有文本槽可落光标，再移除节点并同步 LaTeX。
-- 点击编辑区空白时用 `focusByPoint` 按 `clientX` 与子节点 `getBoundingClientRect()` 判断落点：分式左侧创建/进入前置文本槽，右侧创建/进入后置文本槽；点击 `.me-frac` 本体时聚焦分子。
-- 顶部工具栏共 12 个按钮：`符号`（Ω）、`分数`、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵；分数与上下标已绑定弹层，其余暂未绑定行为。
+- 分式 / 上下标 / 根式不是 contenteditable，无法用默认退格删除：`handleDelete` 在 `Backspace`（分子 / 上标 / 下标 / 根指数开头，平方根为被开方数开头）/ `Delete`（分母 / 上标 / 下标 / 被开方数末尾）以及文本槽与原子节点相邻的边界删除整个 `.me-frac` / `.me-script` / `.me-root`；`removeAtomNode` 会先确保前后有文本槽可落光标，再移除节点并同步 LaTeX。
+- 点击编辑区空白时用 `focusByPoint` 按 `clientX` 与子节点 `getBoundingClientRect()` 判断落点：分式左侧创建/进入前置文本槽，右侧创建/进入后置文本槽；点击 `.me-frac` 本体时聚焦分子，点击 `.me-root` 本体时聚焦被开方数。
+- 顶部工具栏共 12 个按钮：`符号`（Ω）、`分数`、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵；分数、上下标、根式已绑定弹层，其余暂未绑定行为。
 - 分数按钮打开浮层：第一排 4 个格式（分数（竖式）`\frac{a}{b}`、分数（横式）`a/b`、分数（斜式）`{}^{a}\!/\!_{b}`、分数（小型分数）`\tfrac{a}{b}`），下方「常用分数」（`dy/dx`、`Δy/Δx`、`∂y/∂x`、`δy/δx`、`π/2`）；竖式、斜式、小型和常用分数插入结构化分式并选中分子，横式以文本模板插入。
 - 上下标按钮打开浮层：第一排 4 个格式（上标 `x^{}`、下标 `x_{}`、上下标 `x_{}^{}`、前置上下标 `{}_{}^{}x`），下方「常用的下标和上标」（`x_{y^2}`、`e^{-iωt}`、`x^2`、`{}_{1}^{n}Y`）；格式卡片以 `x` 为基底插入结构化上下标并聚焦对应槽位，常用模板按解析结果插入并聚焦第一个上下标槽。
+- 根式按钮打开浮层：第一排 4 个格式（平方根 `\sqrt{}`、n 次根 `\sqrt[n]{}`、二次根 `\sqrt[2]{}`、立方根 `\sqrt[3]{}`），下方「常用根式」（求根公式 `\frac{-b±\sqrt{b^{2}-4ac}}{2a}`、`\sqrt{a^{2}+b^{2}}`）；格式卡片插入结构化根式并聚焦根指数或被开方数，常用模板按解析结果插入并聚焦第一个可编辑槽。
 - `#/input` 直接渲染 `HeFormulaEditor`；`HeMdEditor` 通过 `HeFormulaDialog` 使用同一个 UI。
 - 输入模型是 LaTeX 文本；`*` / `-` / `/` 映射为 `×` / `−` / `÷`；MathJax 已确认可直接排版这些 Unicode 字符。
 - `HeMathInput`（MathLive）仅保留在 EditorPage 的内嵌示例中，不再用于公式弹窗。
-- 当前限制：`\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^`、`_` 已结构化；`\cfrac` / `\dfrac` 和其他未支持的 LaTeX 命令在可编辑区仍显示为文本，实时预览会正确渲染。
+- 当前限制：`\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^`、`_` / 根式 `\sqrt` 已结构化；`\cfrac` / `\dfrac` 和其他未支持的 LaTeX 命令在可编辑区仍显示为文本，实时预览会正确渲染。因此常用模板里避免使用 `\pm` 这类未解析命令（求根公式直接用 `±`）。
 
 ### 5.9 国际化
 
@@ -257,8 +258,12 @@ pnpm dev          # http://localhost:3100 手工验证
 32. 插入上标后原文为 `x^{}` 并选中上标槽，输入 `2` 后原文为 `x^{2}`；插入上下标后原文为 `x_{}^{}`，上标槽按 `↓` 进入下标槽、下标槽按 `↑` 回到上标槽；插入前置上下标后原文为 `{}_{}^{}x`。
 33. 点击常用模板 `{}_{1}^{n}Y` 后原文保持 `{}_{1}^{n}Y`；点击 `x_{y^2}` 后原文为 `x_{y^{2}}`，可编辑区正确显示下标内嵌套上标，且无多余空白块。
 34. 在上下标槽位开头按 `Backspace`、末尾按 `Delete` 能整块删除上下标；在根级文本槽按 `←` / `→` 会跨过整座上下标而不是进入内部。
-35. LaTeX 原文是可编辑 textarea：在源码框直接输入/修改 `\frac{a}{b}+c`，下方编辑区实时重建为对应结构；反向在编辑区修改后源码框内容同步更新，两个方向都不会出现光标跳动或死循环。
-36. `pnpm build:lib` 产出 `packages/editor/dist-lib`：`index.js`、`full.js`、`full.d.ts`、`style.css`、`mathjax/tex-svg.js` 齐全；宿主通过 `he-math-editor` / `he-math-editor/full` / `he-math-editor/style.css` 三个入口可正常引入。
+35. 点击根式按钮打开浮层：第一排 4 张格式卡片（平方根 / n 次根 / 二次根 / 立方根），第二排为「常用根式」2 张宽卡片（求根公式、√(a²+b²)）；点击卡片关闭浮层并插入结构化根式。
+36. 插入平方根后原文为 `\sqrt{}` 并聚焦被开方数；插入 n 次根后原文为 `\sqrt{}`、编辑区出现根指数空槽，输入 `3` 后原文为 `\sqrt[3]{}`，`↓` 进入被开方数输入 `8` 后为 `\sqrt[3]{8}`。
+37. 插入立方根后根指数 `3` 预填并选中，直接输入 `5` 可替换为 `\sqrt[5]{}`；被开方数末尾按 `Delete` 或根指数开头按 `Backspace` 能整块删除根式。
+38. 在 LaTeX 源码框输入 `\sqrt{\sqrt{x}}+\frac{\sqrt{2}}{2}`，可编辑区正确渲染嵌套根式与根式分式；在根式外部按 `←` / `→` 会跨过整座根式，`↓` / `↑` 从被开方数跳出后不会误入根式内部。
+39. LaTeX 原文是可编辑 textarea：在源码框直接输入/修改 `\frac{a}{b}+c`，下方编辑区实时重建为对应结构；反向在编辑区修改后源码框内容同步更新，两个方向都不会出现光标跳动或死循环。
+40. `pnpm build:lib` 产出 `packages/editor/dist-lib`：`index.js`、`full.js`、`full.d.ts`、`style.css`、`mathjax/tex-svg.js` 齐全；宿主通过 `he-math-editor` / `he-math-editor/full` / `he-math-editor/style.css` 三个入口可正常引入。
 
 ## 8. 提交与版本规则（强制）
 
@@ -292,9 +297,10 @@ pnpm dev          # http://localhost:3100 手工验证
 - 分数浮层过高：在 `HeFormulaDialog` 的 `overflow-y` body 中底部会被裁切；卡片保持 68px、间距紧凑。
 - 每次 input 后用 Vue 响应式重渲染可编辑区：光标会丢失；当前使用命令式 DOM + `lastSerialized` 跳过自身更新。
 - LaTeX 源码 textarea 与编辑区双向同步依赖 `lastSerialized` 比对：源码输入路径必须走 `watch(modelValue)` + `renderEditor`，不能直接改 DOM，否则会出现回写循环。
-- `parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式 / 上下标：分子、分母、上下标里的内容继续结构化；斜式通过 `{}^{...}\!/\!_{...}` 识别（忽略空白与 `\!`），前置上下标通过 `{}^{...}` / `{}_{...}` 独占识别且不消费后面的基底；`\cfrac`、`\dfrac` 等未支持的命令按文本保留，避免错误拆分。
+- `parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式 / 上下标 / 根式：分子、分母、上下标、根指数与被开方数里的内容继续结构化；斜式通过 `{}^{...}\!/\!_{...}` 识别（忽略空白与 `\!`），前置上下标通过 `{}^{...}` / `{}_{...}` 独占识别且不消费后面的基底，根式通过 `\sqrt` + 可选 `[n]` + 参数识别；`\cfrac`、`\dfrac` 等未支持的命令按文本保留，避免错误拆分。
 - 上下标空内容用空数组 `[]` 表示存在该槽位（`[]` 为真值），`null` 表示该方向不存在；序列化后置上下标位于容器开头时必须补 `{}` 空基底，否则 `^{2}` 会被 MathJax 判为非法。
-- 可编辑槽位缺少 `contenteditable`，或分式 / 上下标容器缺少 `me-frac__num` / `me-frac__den`、`me-script__sup` / `me-script__sub` 类名：无法点击进入，键盘导航也无法判断槽位角色。
+- 可编辑槽位缺少 `contenteditable`，或分式 / 上下标 / 根式容器缺少 `me-frac__num` / `me-frac__den`、`me-script__sup` / `me-script__sub`、`me-root__index` / `me-root__radicand` 类名：无法点击进入，键盘导航也无法判断槽位角色。
+- 常用模板里写 `\pm`、`\Delta` 等未解析命令：可编辑区按纯文本显示成 `\pm`；模板应优先使用 `±`、`Δ` 这类 Unicode 符号，或在 `parseLatex` 中显式支持该命令。
 - 演示页使用 hash 路由，不要改成 history 模式，否则静态部署刷新会 404。
 - 只注册了 highlight.js 语言但没补 `.hljs-*` 样式：代码块有 span 但没有任何颜色。
 - 直接引入完整 `highlight.js` 而不是 `highlight.js/lib/core` + 语言模块：包体积会明显增大。
