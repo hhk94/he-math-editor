@@ -47,7 +47,7 @@ Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正�
 | `packages/editor/src/components/HeMdEditor.vue` | 第一层编辑器：工具栏、CodeMirror 挂载、250ms 防抖预览、弹窗联动 | 默认导出；暴露 `focus` / `insertText` / `getValue` |
 | `packages/editor/src/components/HeMdViewer.vue` | 只读展示：`markdown` 渲染、`emptyText` 空状态，仅依赖 core/renderer | 默认导出 |
 | `packages/editor/src/components/HeFormulaDialog.vue` | 弹窗容器：遮罩、标题、底部按钮、开关与打开时初始化 | 默认导出；`confirm(text, display)` |
-| `packages/editor/src/components/HeFormulaEditor.vue` | 共用编辑 UI：工具栏、分数/上下标弹窗、LaTeX 源码 textarea、结构化可编辑公式区、MathJax 预览、行间开关、符号面板、校验 | 默认导出；暴露 `focus` / `validate` / `clear` |
+| `packages/editor/src/components/HeFormulaEditor.vue` | 共用编辑 UI：工具栏、分数/上下标/根式/积分弹层、LaTeX 源码 textarea、结构化可编辑公式区、MathJax 预览、行间开关、符号面板、校验 | 默认导出；暴露 `focus` / `validate` / `clear` |
 | `packages/editor/src/components/HeMathInput.vue` | MathLive 输入封装，仅用于 EditorPage 内嵌示例 | 默认导出；暴露 `focus` / `insert` / `getValue` |
 | `packages/editor/src/components/HeMathPreview.vue` | MathJax 单公式预览，空值显示占位 | 默认导出 |
 | `packages/editor/src/core/formula/parser.ts` | **公式解析唯一实现**：`matchFormulaAt` / `scanFormulas` | `FormulaMatch`、`matchFormulaAt`、`scanFormulas` |
@@ -154,24 +154,25 @@ Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正�
 - `HeFormulaDialog`：纯容器，只负责遮罩、标题、底部按钮、开关状态与打开时初始化；确认前调用 `HeFormulaEditor.validate()`。
 - `HeFormulaEditor`：三段展示（LaTeX 原文 / 自研可编辑渲染公式 / MathJax 实时预览），外加工具栏、分数弹窗、行间开关、符号面板与校验；`v-model` 绑定 LaTeX 文本。`display` prop 默认 `true`，即「行间公式（独立成行）」默认勾选；新建公式默认插入 `$$...$$`，点击已有公式时沿用其原 `display`。
 - **LaTeX 原文是可编辑 textarea**：`v-model` 直接绑定 `text`；源码框输入 → `watch(modelValue)` → 与 `lastSerialized` 不同则 `renderEditor` 重建编辑区；编辑区输入 → `syncFromEditor` 回写 `text` 并更新 `lastSerialized`，跳过反向重渲染，实现双向同步。
-- 可编辑区实现：`parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^{...}`、`_{...}`、前置 `{}^{...}`、`{}_{1}^{n}` / 根式 `\sqrt{...}`、`\sqrt[n]{...}`，分子/分母、上下标、根指数与被开方数里可继续嵌套；`renderEditor` 生成 `.me-frac > .me-frac__num/__den`（斜式为 `.me-frac--skewed`，中间含 `.me-frac__slash`）、`.me-script > .me-script__sup/__sub` 与 `.me-root > .me-root__index / .me-root__sign / .me-root__radicand` 容器，容器内是 contenteditable `.me-text-slot`；`serializeEditor`/`serializeNodes` 递归还原 LaTeX（`\tfrac` 用 `.me-frac--small`，斜式输出 `{}^{...}\!/\!_{...}`，根式为 `\sqrt{...}` / `\sqrt[n]{...}`，后置上下标位于容器开头时补 `{}` 空基底）；`syncFromEditor` 同步 v-model、LaTeX 原文与预览。
+- 可编辑区实现：`parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^{...}`、`_{...}`、前置 `{}^{...}`、`{}_{1}^{n}` / 根式 `\sqrt{...}`、`\sqrt[n]{...}` / 积分 `\int` / `\iint` / `\iiint`（最长优先匹配，可选跳过 `\limits`），分子/分母、上下标、根指数、被开方数与积分限界/被积函数里可继续嵌套；`renderEditor` 生成 `.me-frac > .me-frac__num/__den`（斜式为 `.me-frac--skewed`，中间含 `.me-frac__slash`）、`.me-script > .me-script__sup/__sub`、`.me-root > .me-root__index / .me-root__sign / .me-root__radicand` 与 `.me-int > .me-int__sub/__sup/__sign/__integrand` 容器（CSS grid 命名区域排版），容器内是 contenteditable `.me-text-slot`；`serializeEditor`/`serializeNodes` 递归还原 LaTeX（`\tfrac` 用 `.me-frac--small`，斜式输出 `{}^{...}\!/\!_{...}`，根式为 `\sqrt{...}` / `\sqrt[n]{...}`，积分为 `\int_{下}^{上}{被积函数}` 且被积函数花括号始终保留，后置上下标位于容器开头时补 `{}` 空基底）；`syncFromEditor` 同步 v-model、LaTeX 原文与预览。
 - `lastSerialized` 用于跳过内部输入触发的重渲染，避免光标丢失；`lastFocusedSlot` 用于符号按钮失焦后的插入回退。
 - 分子/分母支持普通文本与嵌套分式混排：`ensureDirectTextSlot` 用于在容器同级取/建文本槽，不进入嵌套分式；分子内在嵌套分式边界按 `←` / `→` 会创建同级文本槽（`2\frac{a}{b}` 这类混排可编辑）；点击分子/分母容器留白也走该函数。`getEdgeSlot` 只用于需要递归进入分式边缘的场景（点击公式本体、分子→分母等）。
-- 键盘导航：`getActiveSlot` 通过槽位父容器判断 `num` / `den` / `sup` / `sub` / `rootIndex` / `radicand` / `text`；`handleArrow` 调用 `moveSibling`。公式外部把每个分式 / 上下标 / 根式视为整体，`←` / `→` 跨过整座公式并落到相邻文本槽，不会进入内部；只有点击进入公式后，方向键才在内部元素间移动。进入后：分子末尾 `↓` / `→` 进入分母，分母开头 `↑` / `←` 回到分子；上标 `↓` 进下标、下标 `↑` 回上标；根指数 `↓` / 末尾 `→` 进被开方数、被开方数 `↑` / 开头 `←` 回根指数（无根指数时向左跳出整座根式）；公式外侧边界跳出到紧邻的文本槽，因此 `\frac{a}{b}+c` 的 `+c` 位于分式外层。
+- 键盘导航：`getActiveSlot` 通过槽位父容器判断 `num` / `den` / `sup` / `sub` / `rootIndex` / `radicand` / `integralSub` / `integralSup` / `integrand` / `text`；`handleArrow` 调用 `moveSibling`。公式外部把每个分式 / 上下标 / 根式 / 积分视为整体，`←` / `→` 跨过整座公式并落到相邻文本槽，不会进入内部；只有点击进入公式后，方向键才在内部元素间移动。进入后：分子末尾 `↓` / `→` 进入分母，分母开头 `↑` / `←` 回到分子；上标 `↓` 进下标、下标 `↑` 回上标；根指数 `↓` / 末尾 `→` 进被开方数、被开方数 `↑` / 开头 `←` 回根指数（无根指数时向左跳出整座根式）；积分下限 `↑` 到上限、上限 `↓` 回下限、限界 `↓` / 末尾 `→` 进被积函数、被积函数 `↑` / 开头 `←` 回最近的限界；公式外侧边界跳出到紧邻的文本槽，因此 `\frac{a}{b}+c` 的 `+c` 位于分式外层。
 - `insertFraction` / `insertNodesAtCaret` 在当前文本槽内按光标切分并插入新节点，所以在分子/分母、上下标或根式内再次插入会形成嵌套结构，层级不设限。插入前若选区非折叠，先 `range.deleteContents()`，避免残留空文本槽。
 - 空文本槽用零宽空格 `\u200b` 占位：`readSlotText` / `stripPlaceholder` 在序列化、首尾判断与空槽判定时过滤；槽位被删空后 `ensurePlaceholder` 自动补回并把光标放进文本节点；`onEditorFocusOut` 清理分子/分母中遗留的空槽，避免编辑区出现多余空白块。
 - 分数浮层第一排为 `分数（竖式）\frac`、`分数（横式）a/b`、`分数（斜式）{}^{a}\!/\!_{b}`、`分数（小型分数）\tfrac`，不再提供连分式卡片；下方保留常用分数。
 - `focusSlot` 必须把光标落到文本节点内部（`range.setStart(textNode, offset)`），落到 contenteditable 元素边界会导致方向键无法进入文字。
-- 分式 / 上下标 / 根式不是 contenteditable，无法用默认退格删除：`handleDelete` 在 `Backspace`（分子 / 上标 / 下标 / 根指数开头，平方根为被开方数开头）/ `Delete`（分母 / 上标 / 下标 / 被开方数末尾）以及文本槽与原子节点相邻的边界删除整个 `.me-frac` / `.me-script` / `.me-root`；`removeAtomNode` 会先确保前后有文本槽可落光标，再移除节点并同步 LaTeX。
-- 点击编辑区空白时用 `focusByPoint` 按 `clientX` 与子节点 `getBoundingClientRect()` 判断落点：分式左侧创建/进入前置文本槽，右侧创建/进入后置文本槽；点击 `.me-frac` 本体时聚焦分子，点击 `.me-root` 本体时聚焦被开方数。
-- 顶部工具栏共 12 个按钮：`符号`（Ω）、`分数`、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵；分数、上下标、根式已绑定弹层，其余暂未绑定行为。
+- 分式 / 上下标 / 根式 / 积分不是 contenteditable，无法用默认退格删除：`handleDelete` 在 `Backspace`（分子 / 上标 / 下标 / 根指数开头，平方根为被开方数开头；积分任一限界开头，或无限界时被积函数开头）/ `Delete`（分母 / 上标 / 下标 / 被开方数末尾；积分被积函数末尾）以及文本槽与原子节点相邻的边界删除整个 `.me-frac` / `.me-script` / `.me-root` / `.me-int`；`removeAtomNode` 会先确保前后有文本槽可落光标，再移除节点并同步 LaTeX。
+- 点击编辑区空白时用 `focusByPoint` 按 `clientX` 与子节点 `getBoundingClientRect()` 判断落点：分式左侧创建/进入前置文本槽，右侧创建/进入后置文本槽；点击 `.me-frac` 本体时聚焦分子，点击 `.me-root` 本体时聚焦被开方数，点击 `.me-int` 本体时聚焦被积函数。
+- 顶部工具栏共 12 个按钮：`符号`（Ω）、`分数`、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵；分数、上下标、根式、积分已绑定弹层，其余暂未绑定行为。
 - 分数按钮打开浮层：第一排 4 个格式（分数（竖式）`\frac{a}{b}`、分数（横式）`a/b`、分数（斜式）`{}^{a}\!/\!_{b}`、分数（小型分数）`\tfrac{a}{b}`），下方「常用分数」（`dy/dx`、`Δy/Δx`、`∂y/∂x`、`δy/δx`、`π/2`）；竖式、斜式、小型和常用分数插入结构化分式并选中分子，横式以文本模板插入。
 - 上下标按钮打开浮层：第一排 4 个格式（上标 `x^{}`、下标 `x_{}`、上下标 `x_{}^{}`、前置上下标 `{}_{}^{}x`），下方「常用的下标和上标」（`x_{y^2}`、`e^{-iωt}`、`x^2`、`{}_{1}^{n}Y`）；格式卡片以 `x` 为基底插入结构化上下标并聚焦对应槽位，常用模板按解析结果插入并聚焦第一个上下标槽。
 - 根式按钮打开浮层：第一排 4 个格式（平方根 `\sqrt{}`、n 次根 `\sqrt[n]{}`、二次根 `\sqrt[2]{}`、立方根 `\sqrt[3]{}`），下方「常用根式」（求根公式 `\frac{-b±\sqrt{b^{2}-4ac}}{2a}`、`\sqrt{a^{2}+b^{2}}`）；格式卡片插入结构化根式并聚焦根指数或被开方数，常用模板按解析结果插入并聚焦第一个可编辑槽。
+- 积分按钮打开浮层：3×3 网格 9 种格式（∫ / ∬ / ∭ 每行 × 无限界 / 仅上限 / 上下限）；格式卡片插入结构化积分并聚焦下限（上下限）/ 上限（仅上限）/ 被积函数（无限界）。积分号存 `dataset.sign`，序列化时反查命令（`∭` → `\iiint`、`∬` → `\iint`、其余 `\int`）；输出 `\int_{下}^{上}{被积函数}`，被积函数花括号始终保留。
 - `#/input` 直接渲染 `HeFormulaEditor`；`HeMdEditor` 通过 `HeFormulaDialog` 使用同一个 UI。
 - 输入模型是 LaTeX 文本；`*` / `-` / `/` 映射为 `×` / `−` / `÷`；MathJax 已确认可直接排版这些 Unicode 字符。
 - `HeMathInput`（MathLive）仅保留在 EditorPage 的内嵌示例中，不再用于公式弹窗。
-- 当前限制：`\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^`、`_` / 根式 `\sqrt` 已结构化；`\cfrac` / `\dfrac` 和其他未支持的 LaTeX 命令在可编辑区仍显示为文本，实时预览会正确渲染。因此常用模板里避免使用 `\pm` 这类未解析命令（求根公式直接用 `±`）。
+- 当前限制：`\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^`、`_` / 根式 `\sqrt` / 积分 `\int`、`\iint`、`\iiint` 已结构化；`\cfrac` / `\dfrac` 和其他未支持的 LaTeX 命令在可编辑区仍显示为文本，实时预览会正确渲染。因此常用模板里避免使用 `\pm` 这类未解析命令（求根公式直接用 `±`）。
 
 ### 5.9 国际化
 
@@ -264,6 +265,9 @@ pnpm dev          # http://localhost:3100 手工验证
 38. 在 LaTeX 源码框输入 `\sqrt{\sqrt{x}}+\frac{\sqrt{2}}{2}`，可编辑区正确渲染嵌套根式与根式分式；在根式外部按 `←` / `→` 会跨过整座根式，`↓` / `↑` 从被开方数跳出后不会误入根式内部。
 39. LaTeX 原文是可编辑 textarea：在源码框直接输入/修改 `\frac{a}{b}+c`，下方编辑区实时重建为对应结构；反向在编辑区修改后源码框内容同步更新，两个方向都不会出现光标跳动或死循环。
 40. `pnpm build:lib` 产出 `packages/editor/dist-lib`：`index.js`、`full.js`、`full.d.ts`、`style.css`、`mathjax/tex-svg.js` 齐全；宿主通过 `he-math-editor` / `he-math-editor/full` / `he-math-editor/style.css` 三个入口可正常引入。
+41. 点击积分按钮打开浮层：3×3 网格 9 张格式卡（∫ / ∬ / ∭ 每行 × 无限界 / 仅上限 / 上下限）；插入定积分后原文为 `\int_{}^{ }{}` 且聚焦下限，输入下限后 `↑` 到上限、`↓` 回下限、再 `↓` 进被积函数；输入后被积函数带花括号序列化（如 `\int_{0}^{1}{f(x)}`）。
+42. 在 LaTeX 源码框输入 `\int\limits_{a}^{b}{x^{2}}dx` 与 `\iiint_{0}^{1}{x}+\iint^{2}{y}`，可编辑区正确渲染（`\limits` 被跳过、∭ 有下限、∬ 仅上限、尾部 `dx` 独立文本槽）；限界 / 被积函数内可嵌套分式与上下标（如 `\int_{0}^{1}{\frac{x}{2}}dx`）。
+43. 积分整块删除：被积函数末尾 `Delete`、限界开头 `Backspace` 或相邻文本槽边界 `Backspace` / `Delete` 能删除整座积分；被积函数开头 `Backspace` 仅在积分无限界时整块删除。
 
 ## 8. 提交与版本规则（强制）
 
@@ -299,6 +303,8 @@ pnpm dev          # http://localhost:3100 手工验证
 - LaTeX 源码 textarea 与编辑区双向同步依赖 `lastSerialized` 比对：源码输入路径必须走 `watch(modelValue)` + `renderEditor`，不能直接改 DOM，否则会出现回写循环。
 - `parseLatex` 递归解析 `\frac` / `\tfrac` / 斜式 / 上下标 / 根式：分子、分母、上下标、根指数与被开方数里的内容继续结构化；斜式通过 `{}^{...}\!/\!_{...}` 识别（忽略空白与 `\!`），前置上下标通过 `{}^{...}` / `{}_{...}` 独占识别且不消费后面的基底，根式通过 `\sqrt` + 可选 `[n]` + 参数识别；`\cfrac`、`\dfrac` 等未支持的命令按文本保留，避免错误拆分。
 - 上下标空内容用空数组 `[]` 表示存在该槽位（`[]` 为真值），`null` 表示该方向不存在；序列化后置上下标位于容器开头时必须补 `{}` 空基底，否则 `^{2}` 会被 MathJax 判为非法。
+- 积分序列化省略空被积函数的花括号：源码往返时会吞掉后续文本（`\int` + `dx` 序列化为 `\intdx`，再解析 `dx` 被当成被积函数）；被积函数花括号必须始终输出。
+- 积分命令匹配非最长优先：`\iiint` / `\iint` 必须先于 `\int` 匹配，否则被拆成 `\int` + 文本；源码中的 `\limits` 修饰符必须跳过，否则限界解析错位。
 - 可编辑槽位缺少 `contenteditable`，或分式 / 上下标 / 根式容器缺少 `me-frac__num` / `me-frac__den`、`me-script__sup` / `me-script__sub`、`me-root__index` / `me-root__radicand` 类名：无法点击进入，键盘导航也无法判断槽位角色。
 - 常用模板里写 `\pm`、`\Delta` 等未解析命令：可编辑区按纯文本显示成 `\pm`；模板应优先使用 `±`、`Δ` 这类 Unicode 符号，或在 `parseLatex` 中显式支持该命令。
 - 演示页使用 hash 路由，不要改成 history 模式，否则静态部署刷新会 404。

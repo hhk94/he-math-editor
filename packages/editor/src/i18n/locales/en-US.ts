@@ -44,6 +44,18 @@ export default {
 			squareIndex2: 'Square root (index 2)',
 			cube: 'Cube root'
 		},
+		integral: {
+			panelTitle: 'Integral',
+			int: 'Indefinite integral',
+			intSup: 'Integral (upper limit)',
+			intSubSup: 'Definite integral',
+			iint: 'Double integral',
+			iintSup: 'Double integral (upper limit)',
+			iintSubSup: 'Double definite integral',
+			iiint: 'Triple integral',
+			iiintSup: 'Triple integral (upper limit)',
+			iiintSubSup: 'Triple definite integral'
+		},
 		latexSource: 'LaTeX source',
 		editable: 'Editable formula',
 		preview: 'Live preview',
@@ -62,7 +74,10 @@ export default {
 			sup: 'Superscript',
 			sub: 'Subscript',
 			rootIndex: 'Root index',
-			radicand: 'Radicand'
+			radicand: 'Radicand',
+			integralSub: 'Integral lower limit',
+			integralSup: 'Integral upper limit',
+			integrand: 'Integrand'
 		}
 	},
 	markdown: {

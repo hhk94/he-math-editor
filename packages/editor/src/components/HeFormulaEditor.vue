@@ -132,6 +132,30 @@
 					</div>
 				</div>
 			</div>
+
+			<div
+				v-if="integralOpen"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.integral.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.integral.panelTitle') }}</div>
+				<div class="he-tool-popover__body">
+					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+						<button
+							v-for="item in integralFormats"
+							:key="item.id"
+							class="he-tool-card he-tool-card--tall"
+							type="button"
+							:title="t('formula.integral.' + item.id)"
+							@mousedown.prevent
+							@click="pickIntegralFormat(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<div class="he-field-label">{{ t('formula.latexSource') }}</div>
@@ -268,11 +292,23 @@ type CommonScript = { label: string; latex: string; preview: string }
 type RootFormatId = 'square' | 'nth' | 'squareIndex2' | 'cube'
 type RootFormat = { id: RootFormatId; preview: string; index: string | null }
 type CommonRoot = { label: string; latex: string; preview: string }
+type IntegralFormatId =
+	| 'int'
+	| 'intSup'
+	| 'intSubSup'
+	| 'iint'
+	| 'iintSup'
+	| 'iintSubSup'
+	| 'iiint'
+	| 'iiintSup'
+	| 'iiintSubSup'
+type IntegralFormat = { id: IntegralFormatId; preview: string; sign: string; limits: 'none' | 'sup' | 'both' }
 
 const toolbarRef = ref<HTMLElement>()
 const fractionOpen = ref(false)
 const scriptsOpen = ref(false)
 const rootOpen = ref(false)
+const integralOpen = ref(false)
 
 /** 生成 HTML 分式预览，仅用于工具栏弹窗 */
 const frac = (num: string, den: string, small = false) =>
@@ -377,6 +413,28 @@ const rootFormats: RootFormat[] = [
 	{ id: 'cube', preview: rootPreview(dashSlot, '3'), index: '3' }
 ]
 
+/**
+ * 生成积分预览，仅用于工具栏弹窗。
+ * limits: none 无限界 / sup 仅上限 / both 上下限；网格布局把限界排到积分号右上、右下。
+ */
+const integralPreview = (sign: string, limits: 'none' | 'sup' | 'both') => {
+	const sub = limits === 'both' ? `<span class="math-int__sub">${dashSlot}</span>` : ''
+	const sup = limits !== 'none' ? `<span class="math-int__sup">${dashSlot}</span>` : ''
+	return `<span class="math-int"><span class="math-int__sign">${sign}</span>${sub}${sup}<span class="math-int__integrand">${dashSlot}</span></span>`
+}
+
+const integralFormats: IntegralFormat[] = [
+	{ id: 'int', sign: '∫', limits: 'none', preview: integralPreview('∫', 'none') },
+	{ id: 'intSup', sign: '∫', limits: 'sup', preview: integralPreview('∫', 'sup') },
+	{ id: 'intSubSup', sign: '∫', limits: 'both', preview: integralPreview('∫', 'both') },
+	{ id: 'iint', sign: '∬', limits: 'none', preview: integralPreview('∬', 'none') },
+	{ id: 'iintSup', sign: '∬', limits: 'sup', preview: integralPreview('∬', 'sup') },
+	{ id: 'iintSubSup', sign: '∬', limits: 'both', preview: integralPreview('∬', 'both') },
+	{ id: 'iiint', sign: '∭', limits: 'none', preview: integralPreview('∭', 'none') },
+	{ id: 'iiintSup', sign: '∭', limits: 'sup', preview: integralPreview('∭', 'sup') },
+	{ id: 'iiintSubSup', sign: '∭', limits: 'both', preview: integralPreview('∭', 'both') }
+]
+
 const commonRoots: CommonRoot[] = [
 	{
 		label: '(-b±√(b²-4ac))/2a',
@@ -442,10 +500,18 @@ type ParsedNode =
 	| { type: 'fraction'; style: FractionStyle; numerator: ParsedNode[]; denominator: ParsedNode[] }
 	| { type: 'script'; pre: boolean; sup: ParsedNode[] | null; sub: ParsedNode[] | null }
 	| { type: 'root'; index: ParsedNode[] | null; radicand: ParsedNode[] }
+	| { type: 'integral'; sign: string; sub: ParsedNode[] | null; sup: ParsedNode[] | null; integrand: ParsedNode[] }
 
 const fractionCommands: { command: string; style: FractionStyle }[] = [
 	{ command: '\\tfrac', style: 'small' },
 	{ command: '\\frac', style: 'normal' }
+]
+
+/** 积分命令最长优先匹配，避免前缀误判 */
+const integralCommands: { command: string; sign: string }[] = [
+	{ command: '\\iiint', sign: '∭' },
+	{ command: '\\iint', sign: '∬' },
+	{ command: '\\int', sign: '∫' }
 ]
 
 const readGroup = (source: string, start: number): { content: string; end: number } | null => {
@@ -567,6 +633,31 @@ const readRoot = (
 	return { index, radicand: argument.content, end: argument.end }
 }
 
+/**
+ * 解析积分：`\int` / `\iint` / `\iiint`（兼容 `\limits`），
+ * 限界用 `_{a}^{b}` 读取，被积函数取一个参数；结尾没有内容时被积函数为空。
+ */
+const readIntegral = (
+	source: string,
+	start: number
+): { sign: string; sub: string | null; sup: string | null; integrand: string; end: number } | null => {
+	const matched = integralCommands.find(({ command }) => source.startsWith(command, start))
+	if (!matched) return null
+	let cursor = start + matched.command.length
+	if (source.startsWith('\\limits', cursor)) cursor += 7
+	const parts = readScriptParts(source, cursor)
+	let sub: string | null = null
+	let sup: string | null = null
+	if (parts) {
+		sub = parts.sub
+		sup = parts.sup
+		cursor = parts.end
+	}
+	const argument = readScriptArgument(source, cursor)
+	if (!argument) return { sign: matched.sign, sub, sup, integrand: '', end: cursor }
+	return { sign: matched.sign, sub, sup, integrand: argument.content, end: argument.end }
+}
+
 /** 递归解析 \frac / \tfrac / 斜式 / 上下标 / 根式：子结构里的内容会继续结构化 */
 const parseLatex = (source: string): ParsedNode[] => {
 	const nodes: ParsedNode[] = []
@@ -626,6 +717,19 @@ const parseLatex = (source: string): ParsedNode[] => {
 				radicand: parseLatex(rootNode.radicand)
 			})
 			i = rootNode.end
+			continue
+		}
+		const integralNode = readIntegral(source, i)
+		if (integralNode) {
+			flush()
+			nodes.push({
+				type: 'integral',
+				sign: integralNode.sign,
+				sub: integralNode.sub !== null ? parseLatex(integralNode.sub) : null,
+				sup: integralNode.sup !== null ? parseLatex(integralNode.sup) : null,
+				integrand: parseLatex(integralNode.integrand)
+			})
+			i = integralNode.end
 			continue
 		}
 		const matched = fractionCommands.find(({ command }) => source.startsWith(command, i))
@@ -751,6 +855,42 @@ const createRootElement = (index: ParsedNode[] | null, radicand: ParsedNode[]): 
 	return rootNode
 }
 
+/** 创建积分节点；sub / sup 为 null 表示没有对应限界，sign 存到 dataset 供序列化 */
+const createIntegralElement = (
+	sign: string,
+	sub: ParsedNode[] | null,
+	sup: ParsedNode[] | null,
+	integrand: ParsedNode[]
+): HTMLElement => {
+	const integral = document.createElement('span')
+	integral.className = 'me-int'
+	integral.dataset.sign = sign
+	if (sub) {
+		const subEl = document.createElement('span')
+		subEl.className = 'me-int__sub'
+		subEl.setAttribute('aria-label', t('formula.aria.integralSub'))
+		appendNodes(subEl, sub)
+		integral.append(subEl)
+	}
+	if (sup) {
+		const supEl = document.createElement('span')
+		supEl.className = 'me-int__sup'
+		supEl.setAttribute('aria-label', t('formula.aria.integralSup'))
+		appendNodes(supEl, sup)
+		integral.append(supEl)
+	}
+	const signEl = document.createElement('span')
+	signEl.className = 'me-int__sign'
+	signEl.textContent = sign
+	signEl.setAttribute('aria-hidden', 'true')
+	const integrandEl = document.createElement('span')
+	integrandEl.className = 'me-int__integrand'
+	integrandEl.setAttribute('aria-label', t('formula.aria.integrand'))
+	appendNodes(integrandEl, integrand)
+	integral.append(signEl, integrandEl)
+	return integral
+}
+
 /** 把解析结果挂到容器上；空内容补一个空文本槽，保证光标有落点 */
 const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 	if (!nodes.length) {
@@ -764,6 +904,8 @@ const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 			container.append(createScriptElement(node.pre, node.sup, node.sub))
 		} else if (node.type === 'root') {
 			container.append(createRootElement(node.index, node.radicand))
+		} else if (node.type === 'integral') {
+			container.append(createIntegralElement(node.sign, node.sub, node.sup, node.integrand))
 		} else {
 			container.append(createTextSlot(node.value))
 		}
@@ -814,6 +956,17 @@ const serializeNodes = (container: HTMLElement): string => {
 			const index = indexEl ? serializeNodes(indexEl) : ''
 			const radicand = radicandEl ? serializeNodes(radicandEl) : ''
 			result += index ? `\\sqrt[${index}]{${radicand}}` : `\\sqrt{${radicand}}`
+			hasContent = true
+		} else if (child.classList.contains('me-int')) {
+			const sign = child.dataset.sign ?? '∫'
+			const subEl = child.querySelector(':scope > .me-int__sub') as HTMLElement | null
+			const supEl = child.querySelector(':scope > .me-int__sup') as HTMLElement | null
+			const integrandEl = child.querySelector(':scope > .me-int__integrand') as HTMLElement | null
+			const command = sign === '∭' ? '\\iiint' : sign === '∬' ? '\\iint' : '\\int'
+			// 被积函数始终带花括号：空被积函数若省略花括号，后接文本会被解析吞掉（如 \intdx）
+			const sub = subEl !== null ? `_{${serializeNodes(subEl)}}` : ''
+			const sup = supEl !== null ? `^{${serializeNodes(supEl)}}` : ''
+			result += `${command}${sub}${sup}{${integrandEl ? serializeNodes(integrandEl) : ''}}`
 			hasContent = true
 		} else if (child.classList.contains('me-text-slot')) {
 			const value = readSlotText(child)
@@ -892,20 +1045,31 @@ const focusSlot = (slot: HTMLElement | null, selectAll = false, position: 'start
 	selection?.addRange(range)
 }
 
-type SlotRole = 'num' | 'den' | 'sup' | 'sub' | 'rootIndex' | 'radicand' | 'text'
+type SlotRole =
+	| 'num'
+	| 'den'
+	| 'sup'
+	| 'sub'
+	| 'rootIndex'
+	| 'radicand'
+	| 'integralSub'
+	| 'integralSup'
+	| 'integrand'
+	| 'text'
 
 type ActiveSlotInfo = {
 	slot: HTMLElement
 	fraction: HTMLElement | null
 	script: HTMLElement | null
 	rootNode: HTMLElement | null
+	integral: HTMLElement | null
 	role: SlotRole
 	atStart: boolean
 	atEnd: boolean
 	collapsed: boolean
 }
 
-/** 根据文本槽的父容器判断它属于分子、分母、上标、下标、根指数、被开方数还是根级文本 */
+/** 根据文本槽的父容器判断它属于分子、分母、上标、下标、根指数、被开方数、积分限界/被积函数还是根级文本 */
 const getSlotRole = (slot: HTMLElement): SlotRole => {
 	const parent = slot.parentElement
 	if (parent?.classList.contains('me-frac__num')) return 'num'
@@ -914,6 +1078,9 @@ const getSlotRole = (slot: HTMLElement): SlotRole => {
 	if (parent?.classList.contains('me-script__sub')) return 'sub'
 	if (parent?.classList.contains('me-root__index')) return 'rootIndex'
 	if (parent?.classList.contains('me-root__radicand')) return 'radicand'
+	if (parent?.classList.contains('me-int__sub')) return 'integralSub'
+	if (parent?.classList.contains('me-int__sup')) return 'integralSup'
+	if (parent?.classList.contains('me-int__integrand')) return 'integrand'
 	return 'text'
 }
 
@@ -946,6 +1113,7 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 		fraction: (slot.closest('.me-frac') as HTMLElement | null) ?? null,
 		script: (slot.closest('.me-script') as HTMLElement | null) ?? null,
 		rootNode: (slot.closest('.me-root') as HTMLElement | null) ?? null,
+		integral: (slot.closest('.me-int') as HTMLElement | null) ?? null,
 		role: getSlotRole(slot),
 		atStart: stripPlaceholder(before.toString()).length === 0,
 		atEnd: stripPlaceholder(after.toString()).length === 0,
@@ -981,6 +1149,16 @@ const getEdgeSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement
 			const radicandEl = child.querySelector(':scope > .me-root__radicand') as HTMLElement | null
 			if (radicandEl) return getEdgeSlot(radicandEl, side)
 		}
+		if (child.classList.contains('me-int')) {
+			if (side === 'start') {
+				const subEl = child.querySelector(':scope > .me-int__sub') as HTMLElement | null
+				const supEl = child.querySelector(':scope > .me-int__sup') as HTMLElement | null
+				const part = subEl ?? supEl
+				if (part) return getEdgeSlot(part, side)
+			}
+			const integrandEl = child.querySelector(':scope > .me-int__integrand') as HTMLElement | null
+			if (integrandEl) return getEdgeSlot(integrandEl, side)
+		}
 	}
 	const slot = createTextSlot('')
 	if (side === 'start') container.prepend(slot)
@@ -1012,6 +1190,27 @@ const focusRootSlot = (
 	return true
 }
 
+/** 聚焦积分节点内的槽位：按 prefer 优先级选 sub / sup / integrand */
+const focusIntegralSlot = (
+	integral: HTMLElement,
+	prefer: 'sub' | 'sup' | 'integrand' = 'integrand',
+	select = false
+): boolean => {
+	const subEl = integral.querySelector(':scope > .me-int__sub') as HTMLElement | null
+	const supEl = integral.querySelector(':scope > .me-int__sup') as HTMLElement | null
+	const integrandEl = integral.querySelector(':scope > .me-int__integrand') as HTMLElement | null
+	const pool: (HTMLElement | null)[] =
+		prefer === 'sub'
+			? [subEl, supEl, integrandEl]
+			: prefer === 'sup'
+				? [supEl, subEl, integrandEl]
+				: [integrandEl, supEl, subEl]
+	const target = pool.find(Boolean) ?? null
+	if (!target) return false
+	focusSlot(getEdgeSlot(target, 'start'), select, 'start')
+	return true
+}
+
 /** 取容器内同级的文本槽（不进入嵌套分式），没有就在对应边缘创建一个 */
 const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement => {
 	const children = Array.from(container.children) as HTMLElement[]
@@ -1026,7 +1225,8 @@ const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HT
 const isAtomElement = (element: HTMLElement): boolean =>
 	element.classList.contains('me-frac') ||
 	element.classList.contains('me-script') ||
-	element.classList.contains('me-root')
+	element.classList.contains('me-root') ||
+	element.classList.contains('me-int')
 
 /**
  * 在根级或分式的分子/分母容器内左右移动。
@@ -1067,6 +1267,15 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 		return true
 	}
 
+	const focusIntegralLimitsEnd = (integral: HTMLElement): boolean => {
+		const supEl = integral.querySelector(':scope > .me-int__sup') as HTMLElement | null
+		const subEl = integral.querySelector(':scope > .me-int__sub') as HTMLElement | null
+		const target = supEl ?? subEl
+		if (!target) return false
+		focusSlot(getEdgeSlot(target, 'end'), false, 'end')
+		return true
+	}
+
 	if (direction === 'left') {
 		const previous = node.previousElementSibling as HTMLElement | null
 
@@ -1092,6 +1301,10 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 			if (parent.classList.contains('me-root__radicand')) {
 				const rootNode = parent.parentElement as HTMLElement
 				return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
+			}
+			if (parent.classList.contains('me-int__integrand')) {
+				const integral = parent.parentElement as HTMLElement
+				return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
 			}
 			return moveSibling(parent.parentElement as HTMLElement, 'left')
 		}
@@ -1126,20 +1339,28 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 				const rootNode = parent.parentElement as HTMLElement
 				return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
 			}
+			if (parent.classList.contains('me-int__integrand')) {
+				const integral = parent.parentElement as HTMLElement
+				return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
+			}
 			return moveSibling(parent.parentElement as HTMLElement, 'left')
 		}
 
-		// 左侧没有节点
-		if (parent === root) return false
-		if (parent.classList.contains('me-frac__den')) {
-			return focusNumeratorEnd(parent.parentElement as HTMLElement)
-		}
-		if (parent.classList.contains('me-root__radicand')) {
-			const rootNode = parent.parentElement as HTMLElement
-			return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
-		}
-		return moveSibling(parent.parentElement as HTMLElement, 'left')
+	// 左侧没有节点
+	if (parent === root) return false
+	if (parent.classList.contains('me-frac__den')) {
+		return focusNumeratorEnd(parent.parentElement as HTMLElement)
 	}
+	if (parent.classList.contains('me-root__radicand')) {
+		const rootNode = parent.parentElement as HTMLElement
+		return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
+	}
+	if (parent.classList.contains('me-int__integrand')) {
+		const integral = parent.parentElement as HTMLElement
+		return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
+	}
+	return moveSibling(parent.parentElement as HTMLElement, 'left')
+}
 
 	const next = node.nextElementSibling as HTMLElement | null
 
@@ -1276,6 +1497,70 @@ const handleArrow = (key: string): boolean => {
 		return false
 	}
 
+	if ((role === 'integralSub' || role === 'integralSup' || role === 'integrand') && info.integral) {
+		const integral = info.integral
+		const subEl = integral.querySelector(':scope > .me-int__sub') as HTMLElement | null
+		const supEl = integral.querySelector(':scope > .me-int__sup') as HTMLElement | null
+		const integrandEl = integral.querySelector(':scope > .me-int__integrand') as HTMLElement | null
+		if (role === 'integralSub') {
+			if (key === 'ArrowUp' && supEl) {
+				focusSlot(getEdgeSlot(supEl, 'end'), false, 'end')
+				return true
+			}
+			if (key === 'ArrowRight' && atEnd) {
+				if (supEl) {
+					focusSlot(getEdgeSlot(supEl, 'start'), false, 'start')
+					return true
+				}
+				return moveSibling(slot, 'right')
+			}
+			if (key === 'ArrowDown' && integrandEl) {
+				focusSlot(getEdgeSlot(integrandEl, 'start'), false, 'start')
+				return true
+			}
+			if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
+			return false
+		}
+		if (role === 'integralSup') {
+			if (key === 'ArrowDown') {
+				if (subEl) {
+					focusSlot(getEdgeSlot(subEl, 'start'), false, 'start')
+					return true
+				}
+				if (integrandEl) {
+					focusSlot(getEdgeSlot(integrandEl, 'start'), false, 'start')
+					return true
+				}
+				return false
+			}
+			if (key === 'ArrowLeft' && atStart) {
+				if (subEl) {
+					focusSlot(getEdgeSlot(subEl, 'end'), false, 'end')
+					return true
+				}
+				return moveSibling(slot, 'left')
+			}
+			if (key === 'ArrowRight' && atEnd && integrandEl) {
+				focusSlot(getEdgeSlot(integrandEl, 'start'), false, 'start')
+				return true
+			}
+			if (key === 'ArrowUp') return moveSibling(integral, 'left')
+			return false
+		}
+		// 被积函数：↑/←开头回限界（优先上限），↓/→末尾跳出
+		if (key === 'ArrowUp' || (key === 'ArrowLeft' && atStart)) {
+			const target = supEl ?? subEl
+			if (target) {
+				focusSlot(getEdgeSlot(target, 'end'), false, 'end')
+				return true
+			}
+			return moveSibling(integral, 'left')
+		}
+		if (key === 'ArrowDown') return moveSibling(integral, 'right')
+		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
+		return false
+	}
+
 	if (role === 'text') {
 		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
 		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
@@ -1307,7 +1592,7 @@ const removeAtomNode = (atom: HTMLElement, side: 'before' | 'after') => {
 const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	const info = getActiveSlot()
 	if (!info || !info.collapsed) return false
-	const { slot, fraction, script, rootNode, role, atStart, atEnd } = info
+	const { slot, fraction, script, rootNode, integral: integralEl, role, atStart, atEnd } = info
 
 	if (role === 'num' && fraction && key === 'Backspace' && atStart) {
 		removeAtomNode(fraction, 'before')
@@ -1330,6 +1615,25 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 		}
 		return false
 	}
+	if ((role === 'integralSub' || role === 'integralSup' || role === 'integrand') && integralEl) {
+		const hasLimits = Boolean(
+			integralEl.querySelector(':scope > .me-int__sub, :scope > .me-int__sup')
+		)
+		// 限界开头退格整块删除；被积函数开头退格仅无限界时整块删除；被积函数末尾 Delete 整块删除
+		if (
+			key === 'Backspace' &&
+			atStart &&
+			((role === 'integralSub' || role === 'integralSup') || !hasLimits)
+		) {
+			removeAtomNode(integralEl, 'before')
+			return true
+		}
+		if (key === 'Delete' && atEnd && role === 'integrand') {
+			removeAtomNode(integralEl, 'after')
+			return true
+		}
+		return false
+	}
 	if ((role === 'sup' || role === 'sub') && script) {
 		if (key === 'Backspace' && atStart) {
 			removeAtomNode(script, 'before')
@@ -1345,7 +1649,7 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	if (role === 'text') {
 		if (key === 'Backspace' && atStart) {
 			const previous = slot.previousElementSibling as HTMLElement | null
-			if (previous?.matches('.me-frac, .me-script, .me-root')) {
+			if (previous?.matches('.me-frac, .me-script, .me-root, .me-int')) {
 				previous.remove()
 				focusSlot(slot, false, 'start')
 				syncFromEditor()
@@ -1354,7 +1658,7 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 		}
 		if (key === 'Delete' && atEnd) {
 			const next = slot.nextElementSibling as HTMLElement | null
-			if (next?.matches('.me-frac, .me-script, .me-root')) {
+			if (next?.matches('.me-frac, .me-script, .me-root, .me-int')) {
 				next.remove()
 				focusSlot(slot, false, 'end')
 				syncFromEditor()
@@ -1391,6 +1695,8 @@ const focusByPoint = (x: number) => {
 				if (part) focusSlot(getEdgeSlot(part, 'start'), false, 'start')
 			} else if (child.classList.contains('me-root')) {
 				focusRootSlot(child, 'radicand')
+			} else if (child.classList.contains('me-int')) {
+				focusIntegralSlot(child, 'integrand')
 			} else {
 				const numerator = child.querySelector(':scope > .me-frac__num') as HTMLElement | null
 				if (numerator) focusSlot(getEdgeSlot(numerator, 'end'), false, 'end')
@@ -1542,6 +1848,22 @@ const insertRoot = (format: RootFormat) => {
 	focusRootSlot(rootNode, hasIndex ? 'index' : 'radicand', Boolean(format.index))
 }
 
+/** 插入积分：limits 决定限界槽位（none 仅被积函数 / sup 加上限 / both 加上下限） */
+const insertIntegral = (format: IntegralFormat) => {
+	const integral = createIntegralElement(
+		format.sign,
+		format.limits === 'both' ? [] : null,
+		format.limits === 'none' ? null : [],
+		[]
+	)
+	insertNodesAtCaret([integral])
+	syncFromEditor()
+	focusIntegralSlot(
+		integral,
+		format.limits === 'both' ? 'sub' : format.limits === 'sup' ? 'sup' : 'integrand'
+	)
+}
+
 /** 聚焦插入节点中的第一个可编辑槽位（用于常用模板） */
 const focusFirstEditable = (nodes: Node[]): boolean => {
 	for (const node of nodes) {
@@ -1594,7 +1916,7 @@ const onEditorClick = (event: MouseEvent) => {
 	if (target.closest('[contenteditable]')) return
 	// 点在分子/分母、根指数/被开方数容器的留白上：落到该容器同级的文本槽（不进入嵌套结构）
 	const part = target.closest(
-		'.me-frac__num, .me-frac__den, .me-root__index, .me-root__radicand'
+		'.me-frac__num, .me-frac__den, .me-root__index, .me-root__radicand, .me-int__sub, .me-int__sup, .me-int__integrand'
 	) as HTMLElement | null
 	if (part) {
 		const rect = part.getBoundingClientRect()
@@ -1616,6 +1938,11 @@ const onEditorClick = (event: MouseEvent) => {
 	const rootNode = target.closest('.me-root') as HTMLElement | null
 	if (rootNode) {
 		focusRootSlot(rootNode, 'radicand')
+		return
+	}
+	const integralNode = target.closest('.me-int') as HTMLElement | null
+	if (integralNode) {
+		focusIntegralSlot(integralNode, 'integrand')
 		return
 	}
 	if (target !== root) return
@@ -1662,23 +1989,34 @@ const onToolClick = (tool: Tool) => {
 		fractionOpen.value = !fractionOpen.value
 		scriptsOpen.value = false
 		rootOpen.value = false
+		integralOpen.value = false
 		return
 	}
 	if (tool.id === 'scripts') {
 		scriptsOpen.value = !scriptsOpen.value
 		fractionOpen.value = false
 		rootOpen.value = false
+		integralOpen.value = false
 		return
 	}
 	if (tool.id === 'radical') {
 		rootOpen.value = !rootOpen.value
 		fractionOpen.value = false
 		scriptsOpen.value = false
+		integralOpen.value = false
+		return
+	}
+	if (tool.id === 'integral') {
+		integralOpen.value = !integralOpen.value
+		fractionOpen.value = false
+		scriptsOpen.value = false
+		rootOpen.value = false
 		return
 	}
 	fractionOpen.value = false
 	scriptsOpen.value = false
 	rootOpen.value = false
+	integralOpen.value = false
 }
 
 const pickFraction = (item: FractionChoice) => {
@@ -1713,6 +2051,11 @@ const pickRootFormat = (item: RootFormat) => {
 	insertRoot(item)
 }
 
+const pickIntegralFormat = (item: IntegralFormat) => {
+	integralOpen.value = false
+	insertIntegral(item)
+}
+
 const pickCommonRoot = (item: CommonRoot) => {
 	rootOpen.value = false
 	const holder = document.createElement('span')
@@ -1724,11 +2067,12 @@ const pickCommonRoot = (item: CommonRoot) => {
 }
 
 const onDocumentClick = (event: MouseEvent) => {
-	if (!fractionOpen.value && !scriptsOpen.value && !rootOpen.value) return
+	if (!fractionOpen.value && !scriptsOpen.value && !rootOpen.value && !integralOpen.value) return
 	if (toolbarRef.value?.contains(event.target as Node)) return
 	fractionOpen.value = false
 	scriptsOpen.value = false
 	rootOpen.value = false
+	integralOpen.value = false
 }
 
 onMounted(() => {
@@ -1781,6 +2125,15 @@ watch(locale, () => {
 	})
 	root.querySelectorAll('.me-root__radicand').forEach((el) => {
 		el.setAttribute('aria-label', t('formula.aria.radicand'))
+	})
+	root.querySelectorAll('.me-int__sub').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.integralSub'))
+	})
+	root.querySelectorAll('.me-int__sup').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.integralSup'))
+	})
+	root.querySelectorAll('.me-int__integrand').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.integrand'))
 	})
 })
 
@@ -1963,6 +2316,11 @@ defineExpose({ focus, validate, clear })
 	grid-template-columns: repeat(2, 1fr);
 }
 
+/* 积分格式 3×3 网格 */
+.he-tool-popover__grid--thirds {
+	grid-template-columns: repeat(3, 1fr);
+}
+
 .he-tool-popover__section {
 	margin: 8px 0 6px;
 	font-size: 12px;
@@ -2061,6 +2419,45 @@ defineExpose({ focus, validate, clear })
 	height: 12px;
 	border: 1px dashed #b9c0cc;
 	border-radius: 2px;
+}
+
+/* 积分预览：积分号 + 右上上限/右下下限 + 被积函数空槽，网格区域布局 */
+.he-tool-card__preview :deep(.math-int) {
+	display: inline-grid;
+	grid-template-areas:
+		'sign sup integrand'
+		'sign sub integrand';
+	align-items: center;
+	column-gap: 3px;
+	line-height: 1.1;
+}
+
+.he-tool-card__preview :deep(.math-int__sign) {
+	grid-area: sign;
+	font-size: 1.6em;
+	line-height: 0.9;
+}
+
+.he-tool-card__preview :deep(.math-int__sup) {
+	grid-area: sup;
+	align-self: end;
+	padding-bottom: 1px;
+	font-size: 0.55em;
+	line-height: 1;
+}
+
+.he-tool-card__preview :deep(.math-int__sub) {
+	grid-area: sub;
+	align-self: start;
+	padding-top: 1px;
+	font-size: 0.55em;
+	line-height: 1;
+}
+
+.he-tool-card__preview :deep(.math-int__integrand) {
+	grid-area: integrand;
+	display: inline-flex;
+	align-items: center;
 }
 
 /* 上下标格式卡片：空白框表示待输入的上标 / 下标 */
@@ -2354,6 +2751,64 @@ defineExpose({ focus, validate, clear })
 
 /* 根式里的嵌套结构逐层缩小 */
 .he-formula-editable :deep(.me-root .me-root) {
+	font-size: 0.82em;
+}
+
+.he-formula-editable :deep(.me-int) {
+	display: inline-grid;
+	grid-template-areas:
+		'sign sup integrand'
+		'sign sub integrand';
+	align-items: center;
+	column-gap: 2px;
+	margin: 0 2px;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-int__sign) {
+	grid-area: sign;
+	font-size: 1.5em;
+	line-height: 0.9;
+}
+
+.he-formula-editable :deep(.me-int__sup),
+.he-formula-editable :deep(.me-int__sub) {
+	display: inline-flex;
+	align-items: center;
+	min-width: 10px;
+	padding: 0 1px;
+	font-size: 0.55em;
+	line-height: 1.1;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-int__sup) {
+	grid-area: sup;
+	align-self: end;
+}
+
+.he-formula-editable :deep(.me-int__sub) {
+	grid-area: sub;
+	align-self: start;
+}
+
+.he-formula-editable :deep(.me-int__integrand) {
+	grid-area: integrand;
+	display: flex;
+	align-items: center;
+	min-width: 14px;
+	padding: 0 1px;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-int__sup:focus-within),
+.he-formula-editable :deep(.me-int__sub:focus-within),
+.he-formula-editable :deep(.me-int__integrand:focus-within) {
+	background: #eef3ff;
+}
+
+/* 积分里的嵌套结构逐层缩小 */
+.he-formula-editable :deep(.me-int .me-int) {
 	font-size: 0.82em;
 }
 
