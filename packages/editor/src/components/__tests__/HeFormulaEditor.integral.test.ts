@@ -6,7 +6,7 @@ import { i18n } from '../../i18n'
 
 /**
  * 积分弹层与结构化积分的单元测试
- * 覆盖：弹层 9 卡 / 插入槽位与序列化 / LaTeX 解析 / 往返契约 / 键盘导航 / 整块删除
+ * 覆盖：弹层双栏 18 卡（积分 + 围道积分）+ 底部微分栏 3 卡 / 插入槽位与序列化 / LaTeX 解析 / 往返契约 / 键盘导航 / 整块删除
  */
 
 // ============ 挂载与操作辅助 ============
@@ -35,6 +35,18 @@ const openIntegral = async (wrapper: VueWrapper<any>) => {
 /** 点击积分弹层里的第 n 张格式卡（顺序同 integralFormats：∫/∬/∭ × 无限界/仅上限/上下限） */
 const pickCard = async (wrapper: VueWrapper<any>, index: number) => {
 	const cards = wrapper.findAll('.he-tool-popover .he-tool-card')
+	await cards[index]!.trigger('click')
+}
+
+/** 点击围道积分栏里的第 n 张格式卡（顺序同 contourFormats：∮/∯/∰ × 无限界/仅上限/上下限） */
+const pickContourCard = async (wrapper: VueWrapper<any>, index: number) => {
+	const cards = wrapper.findAll('.he-tool-popover__col')[1]!.findAll('.he-tool-card')
+	await cards[index]!.trigger('click')
+}
+
+/** 点击底部微分栏里的第 n 张卡（顺序同 differentialFormats：dx / dy / dθ） */
+const pickDifferentialCard = async (wrapper: VueWrapper<any>, index: number) => {
+	const cards = wrapper.findAll('.he-tool-popover__grid')[2]!.findAll('.he-tool-card')
 	await cards[index]!.trigger('click')
 }
 
@@ -95,7 +107,7 @@ afterEach(() => {
 // ============ 弹层 ============
 
 describe('积分弹层', () => {
-	it('点击积分按钮打开 3×3 弹层：9 张卡、标题与格式名', async () => {
+	it('点击积分按钮打开双栏弹层：左积分 9 卡 + 右围道积分 9 卡', async () => {
 		wrapper = mountEditor()
 		await openIntegral(wrapper)
 
@@ -104,8 +116,14 @@ describe('积分弹层', () => {
 		expect(popover.attributes('aria-label')).toBe('积分')
 		expect(popover.find('.he-tool-popover__header').text()).toBe('积分')
 
+		// 双栏：左积分、右围道积分，各带栏目标题
+		const cols = popover.findAll('.he-tool-popover__col')
+		expect(cols).toHaveLength(2)
+		expect(cols[0]!.find('.he-tool-popover__section').text()).toBe('积分')
+		expect(cols[1]!.find('.he-tool-popover__section').text()).toBe('围道积分')
+
 		const cards = popover.findAll('.he-tool-card')
-		expect(cards).toHaveLength(9)
+		expect(cards).toHaveLength(21)
 		expect(cards[0]!.attributes('title')).toBe('不定积分')
 		expect(cards[1]!.attributes('title')).toBe('积分（上限）')
 		expect(cards[2]!.attributes('title')).toBe('定积分')
@@ -113,6 +131,18 @@ describe('积分弹层', () => {
 		expect(cards[5]!.attributes('title')).toBe('二重定积分')
 		expect(cards[6]!.attributes('title')).toBe('三重积分')
 		expect(cards[8]!.attributes('title')).toBe('三重定积分')
+		// 右栏围道积分：∮ / ∯ / ∰ 各三种限界
+		expect(cards[9]!.attributes('title')).toBe('围道积分')
+		expect(cards[10]!.attributes('title')).toBe('围道积分（上限）')
+		expect(cards[11]!.attributes('title')).toBe('围道定积分')
+		expect(cards[12]!.attributes('title')).toBe('二重围道积分')
+		expect(cards[14]!.attributes('title')).toBe('二重围道定积分')
+		expect(cards[15]!.attributes('title')).toBe('三重围道积分')
+		expect(cards[17]!.attributes('title')).toBe('三重围道定积分')
+		// 底部微分栏：dx / dy / dθ
+		expect(cards[18]!.attributes('title')).toBe('微分 dx')
+		expect(cards[19]!.attributes('title')).toBe('微分 dy')
+		expect(cards[20]!.attributes('title')).toBe('微分 dθ')
 	})
 
 	it('格式卡预览按限界类型区分：无限界无限界槽、仅上限只有上限槽、上下限两者都有', async () => {
@@ -215,6 +245,155 @@ describe('插入积分', () => {
 		await pickCard(wrapper, 8)
 		expect((wrapper.find('.me-int').element as HTMLElement).dataset.sign).toBe('∭')
 		expect(lastEmitted(wrapper)).toBe('\\iiint_{}^{}{}')
+	})
+})
+
+// ============ 围道积分 ============
+
+describe('围道积分', () => {
+	it('围道栏 9 张卡：∮ / ∯ / ∰ 三行 × 三种限界', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+
+		const cards = wrapper.findAll('.he-tool-popover__col')[1]!.findAll('.he-tool-card')
+		expect(cards).toHaveLength(9)
+		// ∮ / ∯ / ∰ 三行
+		expect(cards[0]!.find('.math-int__sign').text()).toBe('∮')
+		expect(cards[3]!.find('.math-int__sign').text()).toBe('∯')
+		expect(cards[6]!.find('.math-int__sign').text()).toBe('∰')
+		// 无限界 / 仅上限 / 上下限
+		expect(cards[0]!.find('.math-int__sub').exists()).toBe(false)
+		expect(cards[0]!.find('.math-int__sup').exists()).toBe(false)
+		expect(cards[1]!.find('.math-int__sub').exists()).toBe(false)
+		expect(cards[1]!.find('.math-int__sup').exists()).toBe(true)
+		expect(cards[2]!.find('.math-int__sub').exists()).toBe(true)
+		expect(cards[2]!.find('.math-int__sup').exists()).toBe(true)
+		// 每张卡都有被积函数槽
+		for (const index of [0, 1, 2]) {
+			expect(cards[index]!.find('.math-int__integrand').exists()).toBe(true)
+		}
+	})
+
+	it('插入围道积分：dataset.sign 为 ∮，序列化 \\oint{}，焦点落在被积函数', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickContourCard(wrapper, 0)
+
+		const integral = wrapper.find('.me-int')
+		expect((integral.element as HTMLElement).dataset.sign).toBe('∮')
+		expect(lastEmitted(wrapper)).toBe('\\oint{}')
+		expect(selectionIn('.me-int__integrand')).toBe(true)
+	})
+
+	it('插入围道定积分：序列化 \\oint_{}^{}{}，焦点落在下限', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickContourCard(wrapper, 2)
+
+		const integral = wrapper.find('.me-int')
+		expect(integral.find('.me-int__sub').exists()).toBe(true)
+		expect(integral.find('.me-int__sup').exists()).toBe(true)
+		expect(lastEmitted(wrapper)).toBe('\\oint_{}^{}{}')
+		expect(selectionIn('.me-int__sub')).toBe(true)
+	})
+
+	it('插入二重/三重围道积分：∯ 反查 \\oiint、∰ 反查 \\oiiint', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickContourCard(wrapper, 5)
+		expect((wrapper.find('.me-int').element as HTMLElement).dataset.sign).toBe('∯')
+		expect(lastEmitted(wrapper)).toBe('\\oiint_{}^{}{}')
+
+		wrapper.unmount()
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickContourCard(wrapper, 6)
+		expect((wrapper.find('.me-int').element as HTMLElement).dataset.sign).toBe('∰')
+		expect(lastEmitted(wrapper)).toBe('\\oiiint{}')
+	})
+
+	it('解析 \\oint_{C}{f(z)dz}，\\oiint / \\oiiint 最长优先匹配', () => {
+		wrapper = mountEditor('\\oint_{C}{f(z)dz}')
+		expect(wrapper.findAll('.me-int')).toHaveLength(1)
+		expect(wrapper.find('.me-int__sign').text()).toBe('∮')
+		expect(wrapper.find('.me-int__sub').text()).toBe('C')
+		expect(wrapper.find('.me-int__integrand').text()).toBe('f(z)dz')
+
+		wrapper.unmount()
+		wrapper = mountEditor('\\oiint_{S}{E}')
+		expect((wrapper.find('.me-int').element as HTMLElement).dataset.sign).toBe('∯')
+
+		wrapper.unmount()
+		wrapper = mountEditor('\\oiiint_{V}{1}')
+		expect((wrapper.find('.me-int').element as HTMLElement).dataset.sign).toBe('∰')
+	})
+
+	it('围道积分序列化往返：\\oint_{C}{f(z)dz} 保持不变', async () => {
+		wrapper = mountEditor('\\oint_{C}{f(z)dz}')
+		;(wrapper.find('.he-formula-editable').element as HTMLElement).dispatchEvent(
+			new Event('input')
+		)
+		await nextTick()
+		expect(lastEmitted(wrapper)).toBe('\\oint_{C}{f(z)dz}')
+	})
+
+	it('围道积分复用积分键盘导航与整块删除', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickContourCard(wrapper, 2)
+		expect(selectionIn('.me-int__sub')).toBe(true)
+
+		pressKey('ArrowUp')
+		expect(selectionIn('.me-int__sup')).toBe(true)
+		pressKey('ArrowDown')
+		expect(selectionIn('.me-int__sub')).toBe(true)
+		pressKey('Backspace')
+		expect(wrapper.findAll('.me-int')).toHaveLength(0)
+		expect(lastEmitted(wrapper)).toBe('')
+	})
+})
+
+// ============ 微分 ============
+
+describe('微分', () => {
+	it('底部微分栏 3 张卡：dx / dy / dθ，纯文本预览', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+
+		const cards = wrapper.findAll('.he-tool-popover__grid')[2]!.findAll('.he-tool-card')
+		expect(cards).toHaveLength(3)
+		expect(cards[0]!.attributes('title')).toBe('微分 dx')
+		expect(cards[1]!.attributes('title')).toBe('微分 dy')
+		expect(cards[2]!.attributes('title')).toBe('微分 dθ')
+		expect(cards[0]!.find('.he-tool-card__preview').text()).toBe('dx')
+		expect(cards[2]!.find('.he-tool-card__preview').text()).toBe('dθ')
+	})
+
+	it('点击 dx 卡：插入文本 dx 并关闭弹层', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickDifferentialCard(wrapper, 0)
+
+		expect(wrapper.find('.he-tool-popover').exists()).toBe(false)
+		expect(lastEmitted(wrapper)).toBe('dx')
+	})
+
+	it('点击 dθ 卡：插入 Unicode 文本 dθ', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickDifferentialCard(wrapper, 2)
+		expect(lastEmitted(wrapper)).toBe('dθ')
+	})
+
+	it('光标在被积函数槽内点 dx：插入 \\int{dx}', async () => {
+		wrapper = mountEditor()
+		await openIntegral(wrapper)
+		await pickCard(wrapper, 0)
+		expect(selectionIn('.me-int__integrand')).toBe(true)
+
+		await openIntegral(wrapper)
+		await pickDifferentialCard(wrapper, 0)
+		expect(lastEmitted(wrapper)).toBe('\\int{dx}')
 	})
 })
 
