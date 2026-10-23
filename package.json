@@ -1,35 +1,14 @@
 {
-	"name": "he-math-editor",
-	"version": "0.1.0",
+	"name": "he-math-editor-monorepo",
 	"private": true,
-	"type": "module",
-	"description": "heMathEditor - 基于 MathLive + MathJax 的数学公式编辑器",
-"license": "SEE LICENSE IN LICENSE",
+	"version": "0.0.0",
+	"description": "heMathEditor monorepo：packages/editor 是发布到 npm 的核心库，apps/demo 是演示站",
 	"scripts": {
-		"dev": "vite",
-		"build": "vue-tsc --noEmit && vite build",
-		"preview": "vite preview"
+		"dev": "pnpm --filter @hemath/demo dev",
+		"build:lib": "pnpm --filter he-math-editor build",
+		"build": "pnpm --filter he-math-editor build && pnpm --filter @hemath/demo build",
+		"preview": "pnpm --filter @hemath/demo preview"
 	},
-	"dependencies": {
-		"@codemirror/commands": "^6.11.1",
-		"@codemirror/lang-markdown": "^6.5.2",
-		"@codemirror/language": "^6.13.1",
-		"@codemirror/state": "^6.7.6",
-		"@codemirror/view": "^6.43.15",
-		"codemirror": "^6.0.2",
-		"highlight.js": "^11.12.0",
-		"markdown-it": "^14.1.0",
-		"mathlive": "^0.100.0",
-		"vue": "^3.5.13",
-		"vue-i18n": "^11.4.16"
-	},
-	"devDependencies": {
-		"@types/markdown-it": "^14.1.2",
-		"@types/node": "^20.11.28",
-		"@vitejs/plugin-vue": "^5.2.4",
-		"sass": "^1.72.0",
-		"typescript": "~5.4.2",
-		"vite": "^6.3.5",
-		"vue-tsc": "^2.2.8"
-	}
+	"packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61"
+
 }

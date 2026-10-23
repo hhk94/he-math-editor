@@ -1,0 +1,57 @@
+{
+	"name": "he-math-editor",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "heMathEditor - 基于 MathLive + MathJax 的数学公式编辑器（Markdown 编辑 + 公式原子化 + 所见即所得公式输入）",
+	"license": "SEE LICENSE IN LICENSE",
+	"main": "./dist-lib/index.js",
+	"module": "./dist-lib/index.js",
+	"types": "./dist-lib/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist-lib/index.d.ts",
+			"default": "./dist-lib/index.js"
+		},
+		"./full": {
+			"types": "./dist-lib/full.d.ts",
+			"default": "./dist-lib/full.js"
+		},
+		"./style.css": "./dist-lib/style.css"
+	},
+	"files": [
+		"dist-lib",
+		"public/mathjax",
+		"LICENSE"
+	],
+	"scripts": {
+		"build": "vite build --config vite.lib.config.ts"
+	},
+	"peerDependencies": {
+		"vue": "^3.5.13",
+		"vue-i18n": "^11.4.16"
+	},
+	"dependencies": {
+		"@codemirror/commands": "^6.11.1",
+		"@codemirror/lang-markdown": "^6.5.2",
+		"@codemirror/language": "^6.13.1",
+		"@codemirror/state": "^6.7.6",
+		"@codemirror/view": "^6.43.15",
+		"codemirror": "^6.0.2",
+		"highlight.js": "^11.12.0",
+		"markdown-it": "^14.1.0",
+		"mathlive": "^0.100.0"
+	},
+	"devDependencies": {
+		"@types/markdown-it": "^14.1.2",
+		"@types/node": "^20.11.28",
+		"@vitejs/plugin-vue": "^5.2.4",
+		"sass": "^1.72.0",
+		"typescript": "~5.4.2",
+		"vite": "^6.3.5",
+		"vite-plugin-dts": "^4.5.0",
+		"vue": "^3.5.13",
+		"vue-i18n": "^11.4.16",
+		"vue-tsc": "^2.2.8"
+	}
+}

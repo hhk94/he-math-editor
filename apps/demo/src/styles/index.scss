@@ -1,0 +1,24 @@
+/* demo 演示站全局样式（库自身的全局样式已随 he-math-editor 引入） */
+
+@use './demo';
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+	width: 100%;
+	min-height: 100%;
+}
+
+body {
+	font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+	font-size: 14px;
+	color: #1f2329;
+	background: #f5f7fa;
+	-webkit-font-smoothing: antialiased;
+}

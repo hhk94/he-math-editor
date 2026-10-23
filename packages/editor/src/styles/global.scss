@@ -1,0 +1,9 @@
+/* heMathEditor 库全局样式（随包发布，打进 dist-lib/style.css） */
+
+@use './math-font';
+@use './markdown-body';
+
+/* MathLive 虚拟键盘挂在 body 上，默认 z-index 仅 105，需高于编辑器弹窗 */
+body > .ML__keyboard {
+	z-index: 3000;
+}
