@@ -54,7 +54,17 @@ export default {
 			iintSubSup: 'Double definite integral',
 			iiint: 'Triple integral',
 			iiintSup: 'Triple integral (upper limit)',
-			iiintSubSup: 'Triple definite integral'
+			iiintSubSup: 'Triple definite integral',
+			contourPanelTitle: 'Contour integral',
+			oint: 'Contour integral',
+			ointSup: 'Contour integral (upper limit)',
+			ointSubSup: 'Contour definite integral',
+			oiint: 'Double contour integral',
+			oiintSup: 'Double contour integral (upper limit)',
+			oiintSubSup: 'Double contour definite integral',
+			oiiint: 'Triple contour integral',
+			oiiintSup: 'Triple contour integral (upper limit)',
+			oiiintSubSup: 'Triple contour definite integral'
 		},
 		latexSource: 'LaTeX source',
 		editable: 'Editable formula',

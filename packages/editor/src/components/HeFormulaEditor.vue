@@ -135,24 +135,43 @@
 
 			<div
 				v-if="integralOpen"
-				class="he-tool-popover"
+				class="he-tool-popover he-tool-popover--wide"
 				role="dialog"
 				:aria-label="t('formula.integral.panelTitle')"
 			>
 				<div class="he-tool-popover__header">{{ t('formula.integral.panelTitle') }}</div>
-				<div class="he-tool-popover__body">
-					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
-						<button
-							v-for="item in integralFormats"
-							:key="item.id"
-							class="he-tool-card he-tool-card--tall"
-							type="button"
-							:title="t('formula.integral.' + item.id)"
-							@mousedown.prevent
-							@click="pickIntegralFormat(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+				<div class="he-tool-popover__body he-tool-popover__body--columns">
+					<div class="he-tool-popover__col">
+						<div class="he-tool-popover__section">{{ t('formula.integral.panelTitle') }}</div>
+						<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+							<button
+								v-for="item in integralFormats"
+								:key="item.id"
+								class="he-tool-card he-tool-card--tall"
+								type="button"
+								:title="t('formula.integral.' + item.id)"
+								@mousedown.prevent
+								@click="pickIntegralFormat(item)"
+							>
+								<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+							</button>
+						</div>
+					</div>
+					<div class="he-tool-popover__col">
+						<div class="he-tool-popover__section">{{ t('formula.integral.contourPanelTitle') }}</div>
+						<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+							<button
+								v-for="item in contourFormats"
+								:key="item.id"
+								class="he-tool-card he-tool-card--tall"
+								type="button"
+								:title="t('formula.integral.' + item.id)"
+								@mousedown.prevent
+								@click="pickIntegralFormat(item)"
+							>
+								<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -302,6 +321,15 @@ type IntegralFormatId =
 	| 'iiint'
 	| 'iiintSup'
 	| 'iiintSubSup'
+	| 'oint'
+	| 'ointSup'
+	| 'ointSubSup'
+	| 'oiint'
+	| 'oiintSup'
+	| 'oiintSubSup'
+	| 'oiiint'
+	| 'oiiintSup'
+	| 'oiiintSubSup'
 type IntegralFormat = { id: IntegralFormatId; preview: string; sign: string; limits: 'none' | 'sup' | 'both' }
 
 const toolbarRef = ref<HTMLElement>()
@@ -435,6 +463,22 @@ const integralFormats: IntegralFormat[] = [
 	{ id: 'iiintSubSup', sign: '∭', limits: 'both', preview: integralPreview('∭', 'both') }
 ]
 
+/**
+ * 围道积分：∮ / ∯ / ∰ 三行 × 三种限界形式。
+ * 复用普通积分的 me-int 结构与序列化，仅积分号不同。
+ */
+const contourFormats: IntegralFormat[] = [
+	{ id: 'oint', sign: '∮', limits: 'none', preview: integralPreview('∮', 'none') },
+	{ id: 'ointSup', sign: '∮', limits: 'sup', preview: integralPreview('∮', 'sup') },
+	{ id: 'ointSubSup', sign: '∮', limits: 'both', preview: integralPreview('∮', 'both') },
+	{ id: 'oiint', sign: '∯', limits: 'none', preview: integralPreview('∯', 'none') },
+	{ id: 'oiintSup', sign: '∯', limits: 'sup', preview: integralPreview('∯', 'sup') },
+	{ id: 'oiintSubSup', sign: '∯', limits: 'both', preview: integralPreview('∯', 'both') },
+	{ id: 'oiiint', sign: '∰', limits: 'none', preview: integralPreview('∰', 'none') },
+	{ id: 'oiiintSup', sign: '∰', limits: 'sup', preview: integralPreview('∰', 'sup') },
+	{ id: 'oiiintSubSup', sign: '∰', limits: 'both', preview: integralPreview('∰', 'both') }
+]
+
 const commonRoots: CommonRoot[] = [
 	{
 		label: '(-b±√(b²-4ac))/2a',
@@ -507,12 +551,20 @@ const fractionCommands: { command: string; style: FractionStyle }[] = [
 	{ command: '\\frac', style: 'normal' }
 ]
 
-/** 积分命令最长优先匹配，避免前缀误判 */
+/** 积分命令最长优先匹配，避免前缀误判（含围道积分 \oint / \oiint / \oiiint） */
 const integralCommands: { command: string; sign: string }[] = [
+	{ command: '\\oiiint', sign: '∰' },
+	{ command: '\\oiint', sign: '∯' },
+	{ command: '\\oint', sign: '∮' },
 	{ command: '\\iiint', sign: '∭' },
 	{ command: '\\iint', sign: '∬' },
 	{ command: '\\int', sign: '∫' }
 ]
+
+/** 序列化反查：积分符号 → LaTeX 命令（与 integralCommands 同源） */
+const integralSignToCommand: Record<string, string> = Object.fromEntries(
+	integralCommands.map(({ command, sign }) => [sign, command])
+)
 
 const readGroup = (source: string, start: number): { content: string; end: number } | null => {
 	if (source[start] !== '{') return null
@@ -963,7 +1015,7 @@ const serializeNodes = (container: HTMLElement): string => {
 			const subEl = child.querySelector(':scope > .me-int__sub') as HTMLElement | null
 			const supEl = child.querySelector(':scope > .me-int__sup') as HTMLElement | null
 			const integrandEl = child.querySelector(':scope > .me-int__integrand') as HTMLElement | null
-			const command = sign === '∭' ? '\\iiint' : sign === '∬' ? '\\iint' : '\\int'
+			const command = integralSignToCommand[sign] ?? '\\int'
 			// 被积函数始终带花括号：空被积函数若省略花括号，后接文本会被解析吞掉（如 \intdx）
 			const sub = subEl !== null ? `_{${serializeNodes(subEl)}}` : ''
 			const sup = supEl !== null ? `^{${serializeNodes(supEl)}}` : ''
@@ -2294,6 +2346,11 @@ defineExpose({ focus, validate, clear })
 	overflow: hidden;
 }
 
+/* 积分弹层双栏（普通积分 + 围道积分）更宽 */
+.he-tool-popover--wide {
+	width: 560px;
+}
+
 .he-tool-popover__header {
 	padding: 8px 14px;
 	border-bottom: 1px solid #eef0f3;
@@ -2304,6 +2361,21 @@ defineExpose({ focus, validate, clear })
 
 .he-tool-popover__body {
 	padding: 10px 14px 12px;
+}
+
+/* 积分弹层双栏：普通积分居左、围道积分居右 */
+.he-tool-popover__body--columns {
+	display: flex;
+	gap: 14px;
+}
+
+.he-tool-popover__col {
+	flex: 1;
+	min-width: 0;
+}
+
+.he-tool-popover__col .he-tool-popover__section {
+	margin-top: 0;
 }
 
 .he-tool-popover__grid {
