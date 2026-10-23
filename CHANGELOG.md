@@ -72,6 +72,7 @@
 
 ### 文档
 
+- README.ai.md 文件地图补充 `vitest.config.ts` 与 `src/components/__tests__/`，验证方式新增 `pnpm test` 及 jsdom 焦点 / contenteditable 的测试注意事项。
 - README.md / README.zh-CN.md 同步 monorepo 现状：快速开始改为 pnpm 命令（`pnpm dev` / `build` / `build:lib` / `preview`）、目录结构改为 `packages/editor` + `apps/demo`、组件示例导入路径从 `@/index` 改为 `he-math-editor`、新增「作为 npm 包使用」与「许可证」章节、MathJax 服务说明更新为三级来源策略、国际化说明按库 / demo 文案拆分更新、开发约定与分支流程命令同步。
 - README.ai.md 同步 monorepo 现状：架构分层图、文件地图（全部路径改为 `packages/editor/src/*` / `apps/demo/src/*`）、常见改动路径、验证命令改为 pnpm、易错点补充 pnpm 安装 / 库内禁用 `@` 别名 / 库依赖归属 / full 入口资产重建等条目；手工回归清单新增 LaTeX 源码双向同步与 `pnpm build:lib` 产物完整性两项。
 - README 支持中英文：`README.md` 为英文默认，`README.zh-CN.md` 为中文，两份顶部均提供语言切换；同步补充 GitHub 仓库地址。
@@ -99,6 +100,7 @@
 
 ### 新增
 
+- 新增组件单元测试设施与积分弹层测试：`packages/editor` 引入 vitest 5 + @vue/test-utils + jsdom（新增 `vitest.config.ts`，根与包 `package.json` 注册 `test` 脚本）；新增 `HeFormulaEditor.integral.test.ts` 30 个用例，覆盖积分弹层 9 卡结构、五类积分插入的 DOM 结构 / 序列化 / 光标落点、`\int` / `\iint` / `\iiint` 解析（含 `\limits` 兼容与最长优先匹配）、LaTeX 序列化往返（`\limits` 规整、被积函数花括号始终保留）、限界与被积函数的方向键导航、限界开头 `Backspace` / 被积函数末尾 `Delete` 整块删除。
 - 新增自研公式输入实验页 `#/input`：直接展示 `HeFormulaEditor` UI 组件，支持键盘数字、字母与符号；`*`、`-`、`/` 在 keydown 时自动映射为 `×`、`−`、`÷`。
 - 新增 `HeFormulaEditor` UI 组件：三段展示与自研可编辑公式区、MathJax 预览、行间开关、Unicode 符号面板与校验；暴露 `focus` / `validate` / `clear`，由 `HeFormulaDialog` 与 `#/input` 共用。
 - `HeFormulaEditor` 新增顶部公式工具栏 UI：最左侧「符号」按钮（Ω）+ 分数、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵，共 12 个按钮；分数、上下标、根式、积分按钮已接入弹层，其余暂未绑定行为。
@@ -128,6 +130,8 @@
 
 ### 工程
 
+- 新增测试依赖（仅 devDependencies）：`vitest@^5`、`@vue/test-utils@^2.5`、`jsdom@^30`；根 `package.json` 新增 `test`（转发 `pnpm --filter he-math-editor test`）。
+- `createTextSlot` 的 `contenteditable` 改为 `setAttribute` 写入：浏览器行为不变；jsdom 不做 `contentEditable` property → attribute 反射，attribute 写法是单元测试中 `[contenteditable]` 选择器生效的前提。
 - 采用 **AGPL-3.0 / 商业双许可**：`packages/editor/LICENSE` 含 AGPL-3.0 全文与双许可声明（开源使用遵循 AGPL-3.0-or-later，闭源商用需购买商业授权）及第三方依赖许可清单；`packages/editor/package.json` 增加 `license` 字段。
 - 迁移包管理器为 pnpm：`packageManager` 固定 pnpm@12.15.0，删除 `package-lock.json`，新增 `pnpm-lock.yaml` 与 `pnpm-workspace.yaml`（`packages/*` + `apps/*`，`onlyBuiltDependencies` 仅放行 esbuild 与 @parcel/watcher）。
 - 新增依赖 `highlight.js@^11.12.0`（core 构建 + 按需语言模块）。

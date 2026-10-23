@@ -62,6 +62,8 @@ Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正�
 | `packages/editor/src/styles/markdown-body.scss` | 编辑器预览与只读展示共享的 Markdown 排版 | - |
 | `packages/editor/src/styles/math-font.scss` | `HeMathFont`：通过 unicode-range 组合 KaTeX_Main 与 KaTeX_Math | `HeMathFont`、`.he-math-font` |
 | `packages/editor/vite.lib.config.ts` | 库模式构建：双入口（index/full）、vite-plugin-dts、external 策略、tex-svg 外置资产插件 | - |
+| `packages/editor/vitest.config.ts` | 单元测试配置：jsdom 环境 + @vitejs/plugin-vue，匹配 `src/**/*.{test,spec}.ts` | - |
+| `packages/editor/src/components/__tests__/` | 组件单元测试（当前为 `HeFormulaEditor.integral.test.ts`，覆盖积分弹层 / 插入 / 解析 / 序列化 / 导航 / 删除） | `pnpm test` |
 | `packages/editor/LICENSE` | AGPL-3.0 全文 + 商业双许可声明 + 第三方依赖清单 | - |
 | `apps/demo/src/App.vue` | 应用外壳：顶部导航、hash 路由、页面切换与标题同步 | - |
 | `apps/demo/src/main.ts` | `installDemoMessages()` 后 `app.use(HeMathEditor)` 整体安装 | - |
@@ -215,7 +217,15 @@ Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正�
 
 ## 7. 验证方式
 
-无测试框架，最低验证标准：
+单元测试（jsdom 环境，不依赖浏览器与 MathJax，`HeMathPreview` 以 stub 隔离）：
+
+```bash
+pnpm test         # = pnpm --filter he-math-editor test（vitest run）
+```
+
+注意：jsdom 中 contenteditable 元素的 `focus()` 不会更新 `document.activeElement`，测试断言基于 `window.getSelection()` 光标落点，键盘事件从光标所在槽位直接派发；`createTextSlot` 必须用 `setAttribute('contenteditable', 'true')` 而不是 `contentEditable` property（jsdom 不做 property → attribute 反射，`[contenteditable]` 选择器会失效）。
+
+最低手工验证标准：
 
 ```bash
 pnpm build        # 库构建 + demo 构建（demo 构建含 vue-tsc --noEmit 类型检查）
