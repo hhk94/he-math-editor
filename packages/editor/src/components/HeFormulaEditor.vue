@@ -191,6 +191,73 @@
 				</div>
 			</div>
 			</div>
+
+			<div
+				v-if="bigOperatorOpen"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.bigOperator.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.bigOperator.panelTitle') }}</div>
+				<div class="he-tool-popover__body">
+					<div class="he-tool-popover__section">{{ t('formula.bigOperator.summationTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--fifths">
+						<button
+							v-for="item in sumFormats"
+							:key="item.id"
+							class="he-tool-card he-tool-card--tall"
+							type="button"
+							:title="t('formula.bigOperator.' + item.id)"
+							@mousedown.prevent
+							@click="pickBigOpFormat(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.bigOperator.productCoproductTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--fifths">
+						<button
+							v-for="item in productFormats"
+							:key="item.id"
+							class="he-tool-card he-tool-card--tall"
+							type="button"
+							:title="t('formula.bigOperator.' + item.id)"
+							@mousedown.prevent
+							@click="pickBigOpFormat(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.bigOperator.unionIntersectionTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--fifths">
+						<button
+							v-for="item in unionFormats"
+							:key="item.id"
+							class="he-tool-card he-tool-card--tall"
+							type="button"
+							:title="t('formula.bigOperator.' + item.id)"
+							@mousedown.prevent
+							@click="pickBigOpFormat(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.bigOperator.otherTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--fifths">
+						<button
+							v-for="item in otherFormats"
+							:key="item.id"
+							class="he-tool-card he-tool-card--tall"
+							type="button"
+							:title="t('formula.bigOperator.' + item.id)"
+							@mousedown.prevent
+							@click="pickBigOpFormat(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<div class="he-field-label">{{ t('formula.latexSource') }}</div>
@@ -349,12 +416,57 @@ type IntegralFormatId =
 type IntegralFormat = { id: IntegralFormatId; preview: string; sign: string; limits: 'none' | 'sup' | 'both' }
 /** 微分卡片：纯文本模板（dx / dy / dθ），无结构化槽位 */
 type DifferentialFormat = { id: 'dx' | 'dy' | 'dtheta'; latex: string }
+/** 大型运算符格式：limits 决定堆叠限界（none/sup/sub/both），inline 为行内上下标形式（Word 第五张卡） */
+type BigOpFormatId =
+	| 'sum'
+	| 'sumSup'
+	| 'sumSub'
+	| 'sumSubSup'
+	| 'sumInline'
+	| 'prod'
+	| 'prodSup'
+	| 'prodSub'
+	| 'prodSubSup'
+	| 'prodInline'
+	| 'coprod'
+	| 'coprodSup'
+	| 'coprodSub'
+	| 'coprodSubSup'
+	| 'coprodInline'
+	| 'union'
+	| 'unionSubSup'
+	| 'unionInline'
+	| 'unionSub'
+	| 'unionSubInline'
+	| 'intersection'
+	| 'intersectionSubSup'
+	| 'intersectionInline'
+	| 'intersectionSub'
+	| 'intersectionSubInline'
+	| 'bigvee'
+	| 'bigveeSubSup'
+	| 'bigveeInline'
+	| 'bigveeSub'
+	| 'bigveeSubInline'
+	| 'bigwedge'
+	| 'bigwedgeSubSup'
+	| 'bigwedgeInline'
+	| 'bigwedgeSub'
+	| 'bigwedgeSubInline'
+type BigOpFormat = {
+	id: BigOpFormatId
+	preview: string
+	sign: string
+	limits: 'none' | 'sup' | 'sub' | 'both'
+	inline: boolean
+}
 
 const toolbarRef = ref<HTMLElement>()
 const fractionOpen = ref(false)
 const scriptsOpen = ref(false)
 const rootOpen = ref(false)
 const integralOpen = ref(false)
+const bigOperatorOpen = ref(false)
 
 /** 生成 HTML 分式预览，仅用于工具栏弹窗 */
 const frac = (num: string, den: string, small = false) =>
@@ -469,6 +581,17 @@ const integralPreview = (sign: string, limits: 'none' | 'sup' | 'both') => {
 	return `<span class="math-int"><span class="math-int__sign">${sign}</span>${sub}${sup}<span class="math-int__integrand">${dashSlot}</span></span>`
 }
 
+/**
+ * 生成大型运算符预览，仅用于工具栏弹窗。
+ * 堆叠式：符号居中，上下限堆叠在正上/正下（Word 模板）；
+ * inline 行内式：限界排到右上/右下（同积分布局）。
+ */
+const bigOpPreview = (sign: string, limits: 'none' | 'sup' | 'sub' | 'both', inline = false) => {
+	const sub = limits === 'both' || limits === 'sub' ? `<span class="math-bigop__sub">${dashSlot}</span>` : ''
+	const sup = limits === 'both' || limits === 'sup' ? `<span class="math-bigop__sup">${dashSlot}</span>` : ''
+	return `<span class="math-bigop${inline ? ' math-bigop--inline' : ''}"><span class="math-bigop__sign">${sign}</span>${sup}${sub}<span class="math-bigop__operand">${dashSlot}</span></span>`
+}
+
 const integralFormats: IntegralFormat[] = [
 	{ id: 'int', sign: '∫', limits: 'none', preview: integralPreview('∫', 'none') },
 	{ id: 'intSup', sign: '∫', limits: 'sup', preview: integralPreview('∫', 'sup') },
@@ -507,6 +630,66 @@ const differentialFormats: DifferentialFormat[] = [
 	{ id: 'dtheta', latex: 'dθ' }
 ]
 
+/** 求和 5 卡：对应 Word「大型运算符 → 求和」分区的 5 张模板 */
+const sumFormats: BigOpFormat[] = [
+	{ id: 'sum', sign: '∑', preview: bigOpPreview('∑', 'none'), limits: 'none', inline: false },
+	{ id: 'sumSup', sign: '∑', preview: bigOpPreview('∑', 'sup'), limits: 'sup', inline: false },
+	{ id: 'sumSub', sign: '∑', preview: bigOpPreview('∑', 'sub'), limits: 'sub', inline: false },
+	{ id: 'sumSubSup', sign: '∑', preview: bigOpPreview('∑', 'both'), limits: 'both', inline: false },
+	{ id: 'sumInline', sign: '∑', preview: bigOpPreview('∑', 'both', true), limits: 'both', inline: true }
+]
+
+/**
+ * 乘积与副积 10 卡：第一行 ∏ 乘积、第二行 ∐ 副积，
+ * 每行 5 种形式与求和一致（无界限 / 上限 / 下限 / 上下限 / 上下标）。
+ */
+const productFormats: BigOpFormat[] = [
+	{ id: 'prod', sign: '∏', preview: bigOpPreview('∏', 'none'), limits: 'none', inline: false },
+	{ id: 'prodSup', sign: '∏', preview: bigOpPreview('∏', 'sup'), limits: 'sup', inline: false },
+	{ id: 'prodSub', sign: '∏', preview: bigOpPreview('∏', 'sub'), limits: 'sub', inline: false },
+	{ id: 'prodSubSup', sign: '∏', preview: bigOpPreview('∏', 'both'), limits: 'both', inline: false },
+	{ id: 'prodInline', sign: '∏', preview: bigOpPreview('∏', 'both', true), limits: 'both', inline: true },
+	{ id: 'coprod', sign: '∐', preview: bigOpPreview('∐', 'none'), limits: 'none', inline: false },
+	{ id: 'coprodSup', sign: '∐', preview: bigOpPreview('∐', 'sup'), limits: 'sup', inline: false },
+	{ id: 'coprodSub', sign: '∐', preview: bigOpPreview('∐', 'sub'), limits: 'sub', inline: false },
+	{ id: 'coprodSubSup', sign: '∐', preview: bigOpPreview('∐', 'both'), limits: 'both', inline: false },
+	{ id: 'coprodInline', sign: '∐', preview: bigOpPreview('∐', 'both', true), limits: 'both', inline: true }
+]
+
+/**
+ * 并集和交集 10 卡：第一行 ⋃ 并集、第二行 ⋂ 交集，
+ * 每行 5 种形式（无界限 / 带上下限 / 带上下标 / 带下限 / 带下标）。
+ */
+const unionFormats: BigOpFormat[] = [
+	{ id: 'union', sign: '⋃', preview: bigOpPreview('⋃', 'none'), limits: 'none', inline: false },
+	{ id: 'unionSubSup', sign: '⋃', preview: bigOpPreview('⋃', 'both'), limits: 'both', inline: false },
+	{ id: 'unionInline', sign: '⋃', preview: bigOpPreview('⋃', 'both', true), limits: 'both', inline: true },
+	{ id: 'unionSub', sign: '⋃', preview: bigOpPreview('⋃', 'sub'), limits: 'sub', inline: false },
+	{ id: 'unionSubInline', sign: '⋃', preview: bigOpPreview('⋃', 'sub', true), limits: 'sub', inline: true },
+	{ id: 'intersection', sign: '⋂', preview: bigOpPreview('⋂', 'none'), limits: 'none', inline: false },
+	{ id: 'intersectionSubSup', sign: '⋂', preview: bigOpPreview('⋂', 'both'), limits: 'both', inline: false },
+	{ id: 'intersectionInline', sign: '⋂', preview: bigOpPreview('⋂', 'both', true), limits: 'both', inline: true },
+	{ id: 'intersectionSub', sign: '⋂', preview: bigOpPreview('⋂', 'sub'), limits: 'sub', inline: false },
+	{ id: 'intersectionSubInline', sign: '⋂', preview: bigOpPreview('⋂', 'sub', true), limits: 'sub', inline: true }
+]
+
+/**
+ * 其他大型运算符 10 卡：第一行 ⋁ 或运算、第二行 ⋀ 与运算，
+ * 每行 5 种形式（无界限 / 带上下限 / 带上下标 / 带下限 / 带下标）。
+ */
+const otherFormats: BigOpFormat[] = [
+	{ id: 'bigvee', sign: '⋁', preview: bigOpPreview('⋁', 'none'), limits: 'none', inline: false },
+	{ id: 'bigveeSubSup', sign: '⋁', preview: bigOpPreview('⋁', 'both'), limits: 'both', inline: false },
+	{ id: 'bigveeInline', sign: '⋁', preview: bigOpPreview('⋁', 'both', true), limits: 'both', inline: true },
+	{ id: 'bigveeSub', sign: '⋁', preview: bigOpPreview('⋁', 'sub'), limits: 'sub', inline: false },
+	{ id: 'bigveeSubInline', sign: '⋁', preview: bigOpPreview('⋁', 'sub', true), limits: 'sub', inline: true },
+	{ id: 'bigwedge', sign: '⋀', preview: bigOpPreview('⋀', 'none'), limits: 'none', inline: false },
+	{ id: 'bigwedgeSubSup', sign: '⋀', preview: bigOpPreview('⋀', 'both'), limits: 'both', inline: false },
+	{ id: 'bigwedgeInline', sign: '⋀', preview: bigOpPreview('⋀', 'both', true), limits: 'both', inline: true },
+	{ id: 'bigwedgeSub', sign: '⋀', preview: bigOpPreview('⋀', 'sub'), limits: 'sub', inline: false },
+	{ id: 'bigwedgeSubInline', sign: '⋀', preview: bigOpPreview('⋀', 'sub', true), limits: 'sub', inline: true }
+]
+
 const commonRoots: CommonRoot[] = [
 	{
 		label: '(-b±√(b²-4ac))/2a',
@@ -536,7 +719,7 @@ const symbols = [
 	{ label: '≠', value: '≠' }
 ]
 
-/** 工具栏按钮；分数、上下标、根式已接入弹窗，其余暂未绑定行为 */
+/** 工具栏按钮；分数、上下标、根式、积分、大型运算符已接入弹窗，其余暂未绑定行为 */
 const tools: Tool[] = [
 	{ id: 'symbols', icon: 'Ω' },
 	{ id: 'fraction', icon: '<span class="tb-frac"><span>X</span><span>Y</span></span>' },
@@ -573,6 +756,14 @@ type ParsedNode =
 	| { type: 'script'; pre: boolean; sup: ParsedNode[] | null; sub: ParsedNode[] | null }
 	| { type: 'root'; index: ParsedNode[] | null; radicand: ParsedNode[] }
 	| { type: 'integral'; sign: string; sub: ParsedNode[] | null; sup: ParsedNode[] | null; integrand: ParsedNode[] }
+	| {
+			type: 'bigop'
+			sign: string
+			inline: boolean
+			sub: ParsedNode[] | null
+			sup: ParsedNode[] | null
+			operand: ParsedNode[]
+	  }
 
 const fractionCommands: { command: string; style: FractionStyle }[] = [
 	{ command: '\\tfrac', style: 'small' },
@@ -593,6 +784,39 @@ const integralCommands: { command: string; sign: string }[] = [
 const integralSignToCommand: Record<string, string> = Object.fromEntries(
 	integralCommands.map(({ command, sign }) => [sign, command])
 )
+
+/** 大型运算符命令最长优先匹配（∑ 求和 / ∏ 乘积 / ∐ 副积 / ⋃ 并集 / ⋂ 交集 / ⋁ 或运算 / ⋀ 与运算） */
+const bigOpCommands: { command: string; sign: string }[] = [
+	{ command: '\\bigwedge', sign: '⋀' },
+	{ command: '\\bigvee', sign: '⋁' },
+	{ command: '\\bigcup', sign: '⋃' },
+	{ command: '\\bigcap', sign: '⋂' },
+	{ command: '\\coprod', sign: '∐' },
+	{ command: '\\prod', sign: '∏' },
+	{ command: '\\sum', sign: '∑' }
+]
+
+/** 序列化反查：运算符符号 → LaTeX 命令（与 bigOpCommands 同源） */
+const bigOpSignToCommand: Record<string, string> = Object.fromEntries(
+	bigOpCommands.map(({ command, sign }) => [sign, command])
+)
+
+/** 大型运算符无障碍名称：按符号取对应文案前缀（∑ 求和 / ∏ 乘积 / ∐ 副积 / ⋃ 并集 / ⋂ 交集 / ⋁ 或运算 / ⋀ 与运算） */
+const bigOpAriaPrefix: Record<string, string> = {
+	'∑': 'bigop',
+	'∏': 'prod',
+	'∐': 'coprod',
+	'⋃': 'union',
+	'⋂': 'intersection',
+	'⋁': 'bigvee',
+	'⋀': 'bigwedge'
+}
+const bigOpAriaKey = (sign: string, part: 'Sub' | 'Sup' | 'Operand') =>
+	`formula.aria.${bigOpAriaPrefix[sign] ?? 'bigop'}${part}`
+
+/** 槽位所属运算符的符号，用于切换语言时按类型刷新无障碍名称 */
+const bigOpSignOf = (slot: Element): string =>
+	(slot.closest('.me-bigop') as HTMLElement | null)?.dataset.sign ?? '∑'
 
 const readGroup = (source: string, start: number): { content: string; end: number } | null => {
 	if (source[start] !== '{') return null
@@ -738,6 +962,45 @@ const readIntegral = (
 	return { sign: matched.sign, sub, sup, integrand: argument.content, end: argument.end }
 }
 
+/**
+ * 解析大型运算符：`\sum`（兼容 `\limits` 与 `\nolimits`）。
+ * \nolimits 表示行内式（限界排右上/右下，优先判断，避免被 \limits 分支误吃）；
+ * 限界用 `_{a}^{b}` 读取，表达式取一个参数，结尾没有内容时为空。
+ */
+const readBigOp = (
+	source: string,
+	start: number
+): {
+	sign: string
+	inline: boolean
+	sub: string | null
+	sup: string | null
+	operand: string
+	end: number
+} | null => {
+	const matched = bigOpCommands.find(({ command }) => source.startsWith(command, start))
+	if (!matched) return null
+	let cursor = start + matched.command.length
+	let inline = false
+	if (source.startsWith('\\nolimits', cursor)) {
+		inline = true
+		cursor += 9
+	} else if (source.startsWith('\\limits', cursor)) {
+		cursor += 7
+	}
+	const parts = readScriptParts(source, cursor)
+	let sub: string | null = null
+	let sup: string | null = null
+	if (parts) {
+		sub = parts.sub
+		sup = parts.sup
+		cursor = parts.end
+	}
+	const argument = readScriptArgument(source, cursor)
+	if (!argument) return { sign: matched.sign, inline, sub, sup, operand: '', end: cursor }
+	return { sign: matched.sign, inline, sub, sup, operand: argument.content, end: argument.end }
+}
+
 /** 递归解析 \frac / \tfrac / 斜式 / 上下标 / 根式：子结构里的内容会继续结构化 */
 const parseLatex = (source: string): ParsedNode[] => {
 	const nodes: ParsedNode[] = []
@@ -810,6 +1073,20 @@ const parseLatex = (source: string): ParsedNode[] => {
 				integrand: parseLatex(integralNode.integrand)
 			})
 			i = integralNode.end
+			continue
+		}
+		const bigOpNode = readBigOp(source, i)
+		if (bigOpNode) {
+			flush()
+			nodes.push({
+				type: 'bigop',
+				sign: bigOpNode.sign,
+				inline: bigOpNode.inline,
+				sub: bigOpNode.sub !== null ? parseLatex(bigOpNode.sub) : null,
+				sup: bigOpNode.sup !== null ? parseLatex(bigOpNode.sup) : null,
+				operand: parseLatex(bigOpNode.operand)
+			})
+			i = bigOpNode.end
 			continue
 		}
 		const matched = fractionCommands.find(({ command }) => source.startsWith(command, i))
@@ -972,6 +1249,46 @@ const createIntegralElement = (
 	return integral
 }
 
+/**
+ * 创建大型运算符节点；inline 行内式限界排右上/右下（同积分），
+ * 堆叠式限界居中于符号正上/正下（Word 求和 / 乘积模板），sign 存到 dataset 供序列化。
+ */
+const createBigOpElement = (
+	sign: string,
+	inline: boolean,
+	sub: ParsedNode[] | null,
+	sup: ParsedNode[] | null,
+	operand: ParsedNode[]
+): HTMLElement => {
+	const bigop = document.createElement('span')
+	bigop.className = inline ? 'me-bigop me-bigop--inline' : 'me-bigop'
+	bigop.dataset.sign = sign
+	if (sub) {
+		const subEl = document.createElement('span')
+		subEl.className = 'me-bigop__sub'
+		subEl.setAttribute('aria-label', t(bigOpAriaKey(sign, 'Sub')))
+		appendNodes(subEl, sub)
+		bigop.append(subEl)
+	}
+	if (sup) {
+		const supEl = document.createElement('span')
+		supEl.className = 'me-bigop__sup'
+		supEl.setAttribute('aria-label', t(bigOpAriaKey(sign, 'Sup')))
+		appendNodes(supEl, sup)
+		bigop.append(supEl)
+	}
+	const signEl = document.createElement('span')
+	signEl.className = 'me-bigop__sign'
+	signEl.textContent = sign
+	signEl.setAttribute('aria-hidden', 'true')
+	const operandEl = document.createElement('span')
+	operandEl.className = 'me-bigop__operand'
+	operandEl.setAttribute('aria-label', t(bigOpAriaKey(sign, 'Operand')))
+	appendNodes(operandEl, operand)
+	bigop.append(signEl, operandEl)
+	return bigop
+}
+
 /** 把解析结果挂到容器上；空内容补一个空文本槽，保证光标有落点 */
 const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 	if (!nodes.length) {
@@ -987,6 +1304,8 @@ const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 			container.append(createRootElement(node.index, node.radicand))
 		} else if (node.type === 'integral') {
 			container.append(createIntegralElement(node.sign, node.sub, node.sup, node.integrand))
+		} else if (node.type === 'bigop') {
+			container.append(createBigOpElement(node.sign, node.inline, node.sub, node.sup, node.operand))
 		} else {
 			container.append(createTextSlot(node.value))
 		}
@@ -1048,6 +1367,19 @@ const serializeNodes = (container: HTMLElement): string => {
 			const sub = subEl !== null ? `_{${serializeNodes(subEl)}}` : ''
 			const sup = supEl !== null ? `^{${serializeNodes(supEl)}}` : ''
 			result += `${command}${sub}${sup}{${integrandEl ? serializeNodes(integrandEl) : ''}}`
+			hasContent = true
+		} else if (child.classList.contains('me-bigop')) {
+			const sign = child.dataset.sign ?? '∑'
+			const subEl = child.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
+			const supEl = child.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
+			const operandEl = child.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
+			const command = bigOpSignToCommand[sign] ?? '\\sum'
+			// 行内式补 \nolimits，渲染时限界排右上/右下而不是上下堆叠
+			const nolimits = child.classList.contains('me-bigop--inline') ? '\\nolimits' : ''
+			// 表达式始终带花括号：空表达式若省略花括号，后接文本会被解析吞掉（如 \sumdx）
+			const sub = subEl !== null ? `_{${serializeNodes(subEl)}}` : ''
+			const sup = supEl !== null ? `^{${serializeNodes(supEl)}}` : ''
+			result += `${command}${nolimits}${sub}${sup}{${operandEl ? serializeNodes(operandEl) : ''}}`
 			hasContent = true
 		} else if (child.classList.contains('me-text-slot')) {
 			const value = readSlotText(child)
@@ -1136,6 +1468,9 @@ type SlotRole =
 	| 'integralSub'
 	| 'integralSup'
 	| 'integrand'
+	| 'bigopSub'
+	| 'bigopSup'
+	| 'bigopOperand'
 	| 'text'
 
 type ActiveSlotInfo = {
@@ -1144,6 +1479,7 @@ type ActiveSlotInfo = {
 	script: HTMLElement | null
 	rootNode: HTMLElement | null
 	integral: HTMLElement | null
+	bigop: HTMLElement | null
 	role: SlotRole
 	atStart: boolean
 	atEnd: boolean
@@ -1162,6 +1498,9 @@ const getSlotRole = (slot: HTMLElement): SlotRole => {
 	if (parent?.classList.contains('me-int__sub')) return 'integralSub'
 	if (parent?.classList.contains('me-int__sup')) return 'integralSup'
 	if (parent?.classList.contains('me-int__integrand')) return 'integrand'
+	if (parent?.classList.contains('me-bigop__sub')) return 'bigopSub'
+	if (parent?.classList.contains('me-bigop__sup')) return 'bigopSup'
+	if (parent?.classList.contains('me-bigop__operand')) return 'bigopOperand'
 	return 'text'
 }
 
@@ -1195,6 +1534,7 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 		script: (slot.closest('.me-script') as HTMLElement | null) ?? null,
 		rootNode: (slot.closest('.me-root') as HTMLElement | null) ?? null,
 		integral: (slot.closest('.me-int') as HTMLElement | null) ?? null,
+		bigop: (slot.closest('.me-bigop') as HTMLElement | null) ?? null,
 		role: getSlotRole(slot),
 		atStart: stripPlaceholder(before.toString()).length === 0,
 		atEnd: stripPlaceholder(after.toString()).length === 0,
@@ -1239,6 +1579,16 @@ const getEdgeSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement
 			}
 			const integrandEl = child.querySelector(':scope > .me-int__integrand') as HTMLElement | null
 			if (integrandEl) return getEdgeSlot(integrandEl, side)
+		}
+		if (child.classList.contains('me-bigop')) {
+			if (side === 'start') {
+				const subEl = child.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
+				const supEl = child.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
+				const part = subEl ?? supEl
+				if (part) return getEdgeSlot(part, side)
+			}
+			const operandEl = child.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
+			if (operandEl) return getEdgeSlot(operandEl, side)
 		}
 	}
 	const slot = createTextSlot('')
@@ -1292,6 +1642,27 @@ const focusIntegralSlot = (
 	return true
 }
 
+/** 聚焦求和节点内的槽位：按 prefer 优先级选 sub / sup / operand */
+const focusBigOpSlot = (
+	bigop: HTMLElement,
+	prefer: 'sub' | 'sup' | 'operand' = 'operand',
+	select = false
+): boolean => {
+	const subEl = bigop.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
+	const supEl = bigop.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
+	const operandEl = bigop.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
+	const pool: (HTMLElement | null)[] =
+		prefer === 'sub'
+			? [subEl, supEl, operandEl]
+			: prefer === 'sup'
+				? [supEl, subEl, operandEl]
+				: [operandEl, supEl, subEl]
+	const target = pool.find(Boolean) ?? null
+	if (!target) return false
+	focusSlot(getEdgeSlot(target, 'start'), select, 'start')
+	return true
+}
+
 /** 取容器内同级的文本槽（不进入嵌套分式），没有就在对应边缘创建一个 */
 const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement => {
 	const children = Array.from(container.children) as HTMLElement[]
@@ -1307,7 +1678,8 @@ const isAtomElement = (element: HTMLElement): boolean =>
 	element.classList.contains('me-frac') ||
 	element.classList.contains('me-script') ||
 	element.classList.contains('me-root') ||
-	element.classList.contains('me-int')
+	element.classList.contains('me-int') ||
+	element.classList.contains('me-bigop')
 
 /**
  * 在根级或分式的分子/分母容器内左右移动。
@@ -1357,6 +1729,15 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 		return true
 	}
 
+	const focusBigOpLimitsEnd = (bigop: HTMLElement): boolean => {
+		const supEl = bigop.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
+		const subEl = bigop.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
+		const target = supEl ?? subEl
+		if (!target) return false
+		focusSlot(getEdgeSlot(target, 'end'), false, 'end')
+		return true
+	}
+
 	if (direction === 'left') {
 		const previous = node.previousElementSibling as HTMLElement | null
 
@@ -1386,6 +1767,10 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 			if (parent.classList.contains('me-int__integrand')) {
 				const integral = parent.parentElement as HTMLElement
 				return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
+			}
+			if (parent.classList.contains('me-bigop__operand')) {
+				const bigop = parent.parentElement as HTMLElement
+				return focusBigOpLimitsEnd(bigop) || moveSibling(bigop, 'left')
 			}
 			return moveSibling(parent.parentElement as HTMLElement, 'left')
 		}
@@ -1424,6 +1809,10 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 				const integral = parent.parentElement as HTMLElement
 				return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
 			}
+			if (parent.classList.contains('me-bigop__operand')) {
+				const bigop = parent.parentElement as HTMLElement
+				return focusBigOpLimitsEnd(bigop) || moveSibling(bigop, 'left')
+			}
 			return moveSibling(parent.parentElement as HTMLElement, 'left')
 		}
 
@@ -1439,6 +1828,10 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 	if (parent.classList.contains('me-int__integrand')) {
 		const integral = parent.parentElement as HTMLElement
 		return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
+	}
+	if (parent.classList.contains('me-bigop__operand')) {
+		const bigop = parent.parentElement as HTMLElement
+		return focusBigOpLimitsEnd(bigop) || moveSibling(bigop, 'left')
 	}
 	return moveSibling(parent.parentElement as HTMLElement, 'left')
 }
@@ -1642,12 +2035,110 @@ const handleArrow = (key: string): boolean => {
 		return false
 	}
 
+	if ((role === 'bigopSub' || role === 'bigopSup' || role === 'bigopOperand') && info.bigop) {
+		const bigop = info.bigop
+		const subEl = bigop.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
+		const supEl = bigop.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
+		const operandEl = bigop.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
+		if (role === 'bigopSub') {
+			if (key === 'ArrowUp' && supEl) {
+				focusSlot(getEdgeSlot(supEl, 'end'), false, 'end')
+				return true
+			}
+			if (key === 'ArrowRight' && atEnd) {
+				if (supEl) {
+					focusSlot(getEdgeSlot(supEl, 'start'), false, 'start')
+					return true
+				}
+				// 无上限（如带下标的并集）：下标末尾直接进入表达式
+				if (operandEl) {
+					focusSlot(getEdgeSlot(operandEl, 'start'), false, 'start')
+					return true
+				}
+				return moveSibling(slot, 'right')
+			}
+			if (key === 'ArrowDown' && operandEl) {
+				focusSlot(getEdgeSlot(operandEl, 'start'), false, 'start')
+				return true
+			}
+			if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
+			return false
+		}
+		if (role === 'bigopSup') {
+			if (key === 'ArrowDown') {
+				if (subEl) {
+					focusSlot(getEdgeSlot(subEl, 'start'), false, 'start')
+					return true
+				}
+				if (operandEl) {
+					focusSlot(getEdgeSlot(operandEl, 'start'), false, 'start')
+					return true
+				}
+				return false
+			}
+			if (key === 'ArrowLeft' && atStart) {
+				if (subEl) {
+					focusSlot(getEdgeSlot(subEl, 'end'), false, 'end')
+					return true
+				}
+				return moveSibling(slot, 'left')
+			}
+			if (key === 'ArrowRight' && atEnd && operandEl) {
+				focusSlot(getEdgeSlot(operandEl, 'start'), false, 'start')
+				return true
+			}
+			if (key === 'ArrowUp') return moveSibling(bigop, 'left')
+			return false
+		}
+		// 求和表达式：↑/←开头回限界（优先上限），↓/→末尾跳出
+		if (key === 'ArrowUp' || (key === 'ArrowLeft' && atStart)) {
+			const target = supEl ?? subEl
+			if (target) {
+				focusSlot(getEdgeSlot(target, 'end'), false, 'end')
+				return true
+			}
+			return moveSibling(bigop, 'left')
+		}
+		if (key === 'ArrowDown') return moveSibling(bigop, 'right')
+		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
+		return false
+	}
+
 	if (role === 'text') {
 		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
 		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
 	}
 	return false
 }
+
+/** 光标移到槽位内的指定字符偏移处 */
+const focusSlotAt = (slot: HTMLElement | null, offset: number) => {
+	if (!slot) return
+	slot.focus()
+	lastFocusedSlot = slot
+	const range = document.createRange()
+	const textNode = slot.firstChild
+	if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+		range.setStart(textNode, Math.min(offset, (textNode.textContent ?? '').length))
+	} else {
+		range.setStart(slot, 0)
+	}
+	range.collapse(true)
+	const selection = window.getSelection()
+	selection?.removeAllRanges()
+	selection?.addRange(range)
+}
+
+/** 把相邻的两个文本槽拼成一个，返回合并后的槽位和拼接处偏移 */
+const mergeTextSlots = (left: HTMLElement, right: HTMLElement): { slot: HTMLElement; offset: number } => {
+	const leftText = readSlotText(left)
+	left.textContent = leftText + readSlotText(right) || '\u200b'
+	right.remove()
+	return { slot: left, offset: leftText.length }
+}
+
+/** 原子节点选择器：这些节点不是编辑宿主，退格 / Delete 需要在槽位边界整块处理 */
+const ATOM_SELECTOR = '.me-frac, .me-script, .me-root, .me-int, .me-bigop'
 
 /** 在分式旁找到或创建可落光标的文本槽，返回该槽位 */
 const ensureAdjacentTextSlot = (reference: HTMLElement, side: 'before' | 'after'): HTMLElement => {
@@ -1672,8 +2163,27 @@ const removeAtomNode = (atom: HTMLElement, side: 'before' | 'after') => {
 /** 分式 / 上下标 / 根式本身不是 contenteditable，需要在槽位边界用退格 / Delete 整块删除 */
 const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	const info = getActiveSlot()
-	if (!info || !info.collapsed) return false
-	const { slot, fraction, script, rootNode, integral: integralEl, role, atStart, atEnd } = info
+	if (!info) return false
+	const { slot, fraction, script, rootNode, integral: integralEl, bigop: bigopEl, role, atStart, atEnd } = info
+
+	// 插入符号后槽位内容常被整段选中，选区里只有零宽占位符时浏览器原生删除是空操作，
+	// 这里先自行处理非折叠选区，避免按一次退格没有任何反应
+	if (!info.collapsed) {
+		const selection = window.getSelection()
+		const range = selection?.getRangeAt(0)
+		if (!selection || !range) return false
+		const placeholderOnly = stripPlaceholder(range.toString()) === '' && atStart && atEnd
+		if (!placeholderOnly) {
+			range.deleteContents()
+			const empty = readSlotText(slot) === ''
+			if (empty) slot.textContent = '\u200b'
+			focusSlot(slot, false, empty ? 'start' : 'end')
+			syncFromEditor()
+			return true
+		}
+		// 占位符被选中：折叠成光标后按边界规则整块删除
+		focusSlot(slot, false, key === 'Backspace' ? 'start' : 'end')
+	}
 
 	if (role === 'num' && fraction && key === 'Backspace' && atStart) {
 		removeAtomNode(fraction, 'before')
@@ -1715,6 +2225,25 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 		}
 		return false
 	}
+	if ((role === 'bigopSub' || role === 'bigopSup' || role === 'bigopOperand') && bigopEl) {
+		const hasLimits = Boolean(
+			bigopEl.querySelector(':scope > .me-bigop__sub, :scope > .me-bigop__sup')
+		)
+		// 限界开头退格整块删除；表达式开头退格仅无限界时整块删除；表达式末尾 Delete 整块删除
+		if (
+			key === 'Backspace' &&
+			atStart &&
+			((role === 'bigopSub' || role === 'bigopSup') || !hasLimits)
+		) {
+			removeAtomNode(bigopEl, 'before')
+			return true
+		}
+		if (key === 'Delete' && atEnd && role === 'bigopOperand') {
+			removeAtomNode(bigopEl, 'after')
+			return true
+		}
+		return false
+	}
 	if ((role === 'sup' || role === 'sub') && script) {
 		if (key === 'Backspace' && atStart) {
 			removeAtomNode(script, 'before')
@@ -1729,19 +2258,68 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 
 	if (role === 'text') {
 		if (key === 'Backspace' && atStart) {
-			const previous = slot.previousElementSibling as HTMLElement | null
-			if (previous?.matches('.me-frac, .me-script, .me-root, .me-int')) {
+			let previous = slot.previousElementSibling as HTMLElement | null
+			// 先回收相邻空槽，避免历史残留的空槽挡住后续退格
+			while (previous?.classList.contains('me-text-slot') && readSlotText(previous) === '') {
 				previous.remove()
-				focusSlot(slot, false, 'start')
+				previous = slot.previousElementSibling as HTMLElement | null
+			}
+			if (previous?.matches(ATOM_SELECTOR)) {
+				const target = ensureAdjacentTextSlot(previous, 'before')
+				previous.remove()
+				if (readSlotText(slot) === '') {
+					slot.remove()
+					focusSlot(target, false, 'end')
+				} else {
+					// 原子节点删掉后当前槽与前面的文本槽要合成一个，否则会残留相邻空槽导致退格失效
+					const merged = mergeTextSlots(target, slot)
+					focusSlotAt(merged.slot, merged.offset)
+				}
+				syncFromEditor()
+				return true
+			}
+			if (previous?.classList.contains('me-text-slot')) {
+				// 相邻文本槽是两个独立编辑宿主，浏览器原生退格无法跨槽，这里手动删掉前一个槽的末字符
+				previous.textContent = readSlotText(previous).slice(0, -1) || '\u200b'
+				if (readSlotText(slot) === '') {
+					slot.remove()
+					focusSlot(previous, false, 'end')
+				} else {
+					const merged = mergeTextSlots(previous, slot)
+					focusSlotAt(merged.slot, merged.offset)
+				}
 				syncFromEditor()
 				return true
 			}
 		}
 		if (key === 'Delete' && atEnd) {
-			const next = slot.nextElementSibling as HTMLElement | null
-			if (next?.matches('.me-frac, .me-script, .me-root, .me-int')) {
+			let next = slot.nextElementSibling as HTMLElement | null
+			while (next?.classList.contains('me-text-slot') && readSlotText(next) === '') {
 				next.remove()
-				focusSlot(slot, false, 'end')
+				next = slot.nextElementSibling as HTMLElement | null
+			}
+			if (next?.matches(ATOM_SELECTOR)) {
+				const target = ensureAdjacentTextSlot(next, 'after')
+				next.remove()
+				if (readSlotText(slot) === '') {
+					slot.remove()
+					focusSlot(target, false, 'start')
+				} else {
+					const merged = mergeTextSlots(slot, target)
+					focusSlotAt(merged.slot, merged.offset)
+				}
+				syncFromEditor()
+				return true
+			}
+			if (next?.classList.contains('me-text-slot')) {
+				next.textContent = readSlotText(next).slice(1) || '\u200b'
+				if (readSlotText(slot) === '') {
+					slot.remove()
+					focusSlot(next, false, 'start')
+				} else {
+					const merged = mergeTextSlots(slot, next)
+					focusSlotAt(merged.slot, merged.offset)
+				}
 				syncFromEditor()
 				return true
 			}
@@ -1778,6 +2356,8 @@ const focusByPoint = (x: number) => {
 				focusRootSlot(child, 'radicand')
 			} else if (child.classList.contains('me-int')) {
 				focusIntegralSlot(child, 'integrand')
+			} else if (child.classList.contains('me-bigop')) {
+				focusBigOpSlot(child, 'operand')
 			} else {
 				const numerator = child.querySelector(':scope > .me-frac__num') as HTMLElement | null
 				if (numerator) focusSlot(getEdgeSlot(numerator, 'end'), false, 'end')
@@ -1945,6 +2525,16 @@ const insertIntegral = (format: IntegralFormat) => {
 	)
 }
 
+/** 插入大型运算符：limits 决定限界槽位，inline 行内式限界排右上/右下 */
+const insertBigOp = (format: BigOpFormat) => {
+	const sub = format.limits === 'both' || format.limits === 'sub' ? [] : null
+	const sup = format.limits === 'both' || format.limits === 'sup' ? [] : null
+	const bigop = createBigOpElement(format.sign, format.inline, sub, sup, [])
+	insertNodesAtCaret([bigop])
+	syncFromEditor()
+	focusBigOpSlot(bigop, format.limits === 'none' ? 'operand' : 'sub')
+}
+
 /** 聚焦插入节点中的第一个可编辑槽位（用于常用模板） */
 const focusFirstEditable = (nodes: Node[]): boolean => {
 	for (const node of nodes) {
@@ -1997,7 +2587,7 @@ const onEditorClick = (event: MouseEvent) => {
 	if (target.closest('[contenteditable]')) return
 	// 点在分子/分母、根指数/被开方数容器的留白上：落到该容器同级的文本槽（不进入嵌套结构）
 	const part = target.closest(
-		'.me-frac__num, .me-frac__den, .me-root__index, .me-root__radicand, .me-int__sub, .me-int__sup, .me-int__integrand'
+		'.me-frac__num, .me-frac__den, .me-root__index, .me-root__radicand, .me-int__sub, .me-int__sup, .me-int__integrand, .me-bigop__sub, .me-bigop__sup, .me-bigop__operand'
 	) as HTMLElement | null
 	if (part) {
 		const rect = part.getBoundingClientRect()
@@ -2024,6 +2614,11 @@ const onEditorClick = (event: MouseEvent) => {
 	const integralNode = target.closest('.me-int') as HTMLElement | null
 	if (integralNode) {
 		focusIntegralSlot(integralNode, 'integrand')
+		return
+	}
+	const bigopNode = target.closest('.me-bigop') as HTMLElement | null
+	if (bigopNode) {
+		focusBigOpSlot(bigopNode, 'operand')
 		return
 	}
 	if (target !== root) return
@@ -2071,6 +2666,7 @@ const onToolClick = (tool: Tool) => {
 		scriptsOpen.value = false
 		rootOpen.value = false
 		integralOpen.value = false
+		bigOperatorOpen.value = false
 		return
 	}
 	if (tool.id === 'scripts') {
@@ -2078,6 +2674,7 @@ const onToolClick = (tool: Tool) => {
 		fractionOpen.value = false
 		rootOpen.value = false
 		integralOpen.value = false
+		bigOperatorOpen.value = false
 		return
 	}
 	if (tool.id === 'radical') {
@@ -2085,6 +2682,7 @@ const onToolClick = (tool: Tool) => {
 		fractionOpen.value = false
 		scriptsOpen.value = false
 		integralOpen.value = false
+		bigOperatorOpen.value = false
 		return
 	}
 	if (tool.id === 'integral') {
@@ -2092,12 +2690,22 @@ const onToolClick = (tool: Tool) => {
 		fractionOpen.value = false
 		scriptsOpen.value = false
 		rootOpen.value = false
+		bigOperatorOpen.value = false
+		return
+	}
+	if (tool.id === 'largeOperator') {
+		bigOperatorOpen.value = !bigOperatorOpen.value
+		fractionOpen.value = false
+		scriptsOpen.value = false
+		rootOpen.value = false
+		integralOpen.value = false
 		return
 	}
 	fractionOpen.value = false
 	scriptsOpen.value = false
 	rootOpen.value = false
 	integralOpen.value = false
+	bigOperatorOpen.value = false
 }
 
 const pickFraction = (item: FractionChoice) => {
@@ -2142,6 +2750,11 @@ const pickDifferentialFormat = (item: DifferentialFormat) => {
 	insertTextAtCaret(item.latex)
 }
 
+const pickBigOpFormat = (item: BigOpFormat) => {
+	bigOperatorOpen.value = false
+	insertBigOp(item)
+}
+
 const pickCommonRoot = (item: CommonRoot) => {
 	rootOpen.value = false
 	const holder = document.createElement('span')
@@ -2153,12 +2766,20 @@ const pickCommonRoot = (item: CommonRoot) => {
 }
 
 const onDocumentClick = (event: MouseEvent) => {
-	if (!fractionOpen.value && !scriptsOpen.value && !rootOpen.value && !integralOpen.value) return
+	if (
+		!fractionOpen.value &&
+		!scriptsOpen.value &&
+		!rootOpen.value &&
+		!integralOpen.value &&
+		!bigOperatorOpen.value
+	)
+		return
 	if (toolbarRef.value?.contains(event.target as Node)) return
 	fractionOpen.value = false
 	scriptsOpen.value = false
 	rootOpen.value = false
 	integralOpen.value = false
+	bigOperatorOpen.value = false
 }
 
 onMounted(() => {
@@ -2220,6 +2841,15 @@ watch(locale, () => {
 	})
 	root.querySelectorAll('.me-int__integrand').forEach((el) => {
 		el.setAttribute('aria-label', t('formula.aria.integrand'))
+	})
+	root.querySelectorAll('.me-bigop__sub').forEach((el) => {
+		el.setAttribute('aria-label', t(bigOpAriaKey(bigOpSignOf(el), 'Sub')))
+	})
+	root.querySelectorAll('.me-bigop__sup').forEach((el) => {
+		el.setAttribute('aria-label', t(bigOpAriaKey(bigOpSignOf(el), 'Sup')))
+	})
+	root.querySelectorAll('.me-bigop__operand').forEach((el) => {
+		el.setAttribute('aria-label', t(bigOpAriaKey(bigOpSignOf(el), 'Operand')))
 	})
 })
 
@@ -2427,6 +3057,15 @@ defineExpose({ focus, validate, clear })
 	grid-template-columns: repeat(3, 1fr);
 }
 
+/* 求和格式一行五张卡片 */
+.he-tool-popover__grid--fifths {
+	grid-template-columns: repeat(5, 1fr);
+}
+
+.he-tool-popover__section:first-child {
+	margin-top: 0;
+}
+
 .he-tool-popover__section {
 	margin: 8px 0 6px;
 	font-size: 12px;
@@ -2564,6 +3203,67 @@ defineExpose({ focus, validate, clear })
 	grid-area: integrand;
 	display: inline-flex;
 	align-items: center;
+}
+
+/* 大型运算符预览：堆叠式限界位于符号正上/正下，行内式排右上/右下 */
+.he-tool-card__preview :deep(.math-bigop) {
+	display: inline-grid;
+	grid-template-areas:
+		'sup operand'
+		'sign operand'
+		'sub operand';
+	/* 缺省上限或下限时仍保留该行高度，保证符号恒在垂直中轴 */
+	grid-template-rows: minmax(0.62em, auto) auto minmax(0.62em, auto);
+	align-items: center;
+	line-height: 1.1;
+	vertical-align: middle;
+}
+
+.he-tool-card__preview :deep(.math-bigop__sign) {
+	grid-area: sign;
+	font-size: 1.6em;
+	line-height: 0.9;
+}
+
+.he-tool-card__preview :deep(.math-bigop__sup),
+.he-tool-card__preview :deep(.math-bigop__sub) {
+	font-size: 0.55em;
+	line-height: 1;
+	justify-self: center;
+}
+
+.he-tool-card__preview :deep(.math-bigop__sup) {
+	grid-area: sup;
+	padding-bottom: 1px;
+}
+
+.he-tool-card__preview :deep(.math-bigop__sub) {
+	grid-area: sub;
+	padding-top: 1px;
+}
+
+.he-tool-card__preview :deep(.math-bigop__operand) {
+	grid-area: operand;
+	display: inline-flex;
+	align-items: center;
+}
+
+.he-tool-card__preview :deep(.math-bigop--inline) {
+	grid-template-areas:
+		'sign sup operand'
+		'sign sub operand';
+	grid-template-rows: auto auto;
+	column-gap: 3px;
+}
+
+.he-tool-card__preview :deep(.math-bigop--inline .math-bigop__sup) {
+	justify-self: start;
+	align-self: end;
+}
+
+.he-tool-card__preview :deep(.math-bigop--inline .math-bigop__sub) {
+	justify-self: start;
+	align-self: start;
 }
 
 /* 上下标格式卡片：空白框表示待输入的上标 / 下标 */
@@ -2915,6 +3615,81 @@ defineExpose({ focus, validate, clear })
 
 /* 积分里的嵌套结构逐层缩小 */
 .he-formula-editable :deep(.me-int .me-int) {
+	font-size: 0.82em;
+}
+
+/* 求和：堆叠式限界位于 Σ 正上/正下，行内式排右上/右下 */
+.he-formula-editable :deep(.me-bigop) {
+	display: inline-grid;
+	grid-template-areas:
+		'sup operand'
+		'sign operand'
+		'sub operand';
+	/* 缺省上限或下限时仍保留该行高度，保证 Σ 恒在垂直中轴 */
+	grid-template-rows: minmax(0.62em, auto) auto minmax(0.62em, auto);
+	align-items: center;
+	row-gap: 1px;
+	margin: 0 2px;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-bigop__sign) {
+	grid-area: sign;
+	font-size: 1.5em;
+	line-height: 0.9;
+	text-align: center;
+}
+
+.he-formula-editable :deep(.me-bigop__sup),
+.he-formula-editable :deep(.me-bigop__sub) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 10px;
+	padding: 0 1px;
+	font-size: 0.55em;
+	line-height: 1.1;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-bigop__sup) {
+	grid-area: sup;
+}
+
+.he-formula-editable :deep(.me-bigop__sub) {
+	grid-area: sub;
+}
+
+.he-formula-editable :deep(.me-bigop__operand) {
+	grid-area: operand;
+	display: flex;
+	align-items: center;
+	min-width: 14px;
+	padding: 0 1px;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-bigop__sub:focus-within),
+.he-formula-editable :deep(.me-bigop__sup:focus-within),
+.he-formula-editable :deep(.me-bigop__operand:focus-within) {
+	background: #eef3ff;
+}
+
+.he-formula-editable :deep(.me-bigop--inline) {
+	grid-template-areas:
+		'sign sup operand'
+		'sign sub operand';
+	grid-template-rows: auto auto;
+	column-gap: 2px;
+}
+
+.he-formula-editable :deep(.me-bigop--inline .me-bigop__sup),
+.he-formula-editable :deep(.me-bigop--inline .me-bigop__sub) {
+	justify-content: flex-start;
+}
+
+/* 求和里的嵌套结构逐层缩小 */
+.he-formula-editable :deep(.me-bigop .me-bigop) {
 	font-size: 0.82em;
 }
 
