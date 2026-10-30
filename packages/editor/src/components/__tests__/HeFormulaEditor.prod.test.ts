@@ -99,16 +99,17 @@ afterEach(() => {
 // ============ 弹层 ============
 
 describe('乘积与副积弹层', () => {
-	it('大型运算符弹层包含四个板块：求和 / 乘积和副积 / 并集和交集 / 其他大型运算符', async () => {
+	it('大型运算符弹层包含五个板块：求和 / 乘积和副积 / 并集和交集 / 其他大型运算符 / 常用大型运算符', async () => {
 		wrapper = mountEditor()
 		await openBigOperator(wrapper)
 
 		const sections = wrapper.findAll('.he-tool-popover__section')
-		expect(sections).toHaveLength(4)
+		expect(sections).toHaveLength(5)
 		expect(sections[0]!.text()).toBe('求和')
 		expect(sections[1]!.text()).toBe('乘积和副积')
 		expect(sections[2]!.text()).toBe('并集和交集')
 		expect(sections[3]!.text()).toBe('其他大型运算符')
+		expect(sections[4]!.text()).toBe('常用大型运算符')
 	})
 
 	it('乘积与副积板块一行 10 张卡：前 5 张 ∏，后 5 张 ∐', async () => {

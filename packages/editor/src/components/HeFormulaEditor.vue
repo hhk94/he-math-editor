@@ -256,6 +256,20 @@
 							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
 						</button>
 					</div>
+					<div class="he-tool-popover__section">{{ t('formula.bigOperator.commonTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+						<button
+							v-for="item in commonBigOps"
+							:key="item.id"
+							class="he-tool-card he-tool-card--wide"
+							type="button"
+							:title="t('formula.bigOperator.' + item.id)"
+							@mousedown.prevent
+							@click="pickCommonBigOp(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -394,6 +408,7 @@ type CommonScript = { label: string; latex: string; preview: string }
 type RootFormatId = 'square' | 'nth' | 'squareIndex2' | 'cube'
 type RootFormat = { id: RootFormatId; preview: string; index: string | null }
 type CommonRoot = { label: string; latex: string; preview: string }
+type CommonBigOp = { id: string; label: string; latex: string; preview: string }
 type IntegralFormatId =
 	| 'int'
 	| 'intSup'
@@ -592,6 +607,16 @@ const bigOpPreview = (sign: string, limits: 'none' | 'sup' | 'sub' | 'both', inl
 	return `<span class="math-bigop${inline ? ' math-bigop--inline' : ''}"><span class="math-bigop__sign">${sign}</span>${sup}${sub}<span class="math-bigop__operand">${dashSlot}</span></span>`
 }
 
+/**
+ * 生成常用大型运算符模板预览（含实际内容，仅用于工具栏弹窗）。
+ * sub / sup 传 null 表示该模板没有对应限界。
+ */
+const commonBigOpPreview = (sign: string, sub: string | null, sup: string | null, operand: string) => {
+	const subEl = sub !== null ? `<span class="math-bigop__sub">${sub}</span>` : ''
+	const supEl = sup !== null ? `<span class="math-bigop__sup">${sup}</span>` : ''
+	return `<span class="math-bigop"><span class="math-bigop__sign">${sign}</span>${supEl}${subEl}<span class="math-bigop__operand">${operand}</span></span>`
+}
+
 const integralFormats: IntegralFormat[] = [
 	{ id: 'int', sign: '∫', limits: 'none', preview: integralPreview('∫', 'none') },
 	{ id: 'intSup', sign: '∫', limits: 'sup', preview: integralPreview('∫', 'sup') },
@@ -688,6 +713,44 @@ const otherFormats: BigOpFormat[] = [
 	{ id: 'bigwedgeInline', sign: '⋀', preview: bigOpPreview('⋀', 'both', true), limits: 'both', inline: true },
 	{ id: 'bigwedgeSub', sign: '⋀', preview: bigOpPreview('⋀', 'sub'), limits: 'sub', inline: false },
 	{ id: 'bigwedgeSubInline', sign: '⋀', preview: bigOpPreview('⋀', 'sub', true), limits: 'sub', inline: true }
+]
+
+/**
+ * 常用大型运算符 5 卡：预填完整内容的成品模板（Word「常用大型运算符」）。
+ * 编辑区无 \binom / 多行下限结构，组合数以括号小分数近似、
+ * 多条件下限折衷为单行文本；模板 2 的表达式留空（虚线槽）供用户填写。
+ */
+const commonBigOps: CommonBigOp[] = [
+	{
+		id: 'commonSumBinom',
+		label: '∑_k (n k)',
+		latex: '\\sum_{k}{(\\tfrac{n}{k})}',
+		preview: commonBigOpPreview('∑', 'k', null, `(${frac('n', 'k', true)})`)
+	},
+	{
+		id: 'commonSumLimits',
+		label: '∑_{i=0}^{n} □',
+		latex: '\\sum_{i=0}^{n}{}',
+		preview: commonBigOpPreview('∑', 'i=0', 'n', dashSlot)
+	},
+	{
+		id: 'commonSumConditions',
+		label: '∑_{0≤i≤m, 0<j<n} P(i,j)',
+		latex: '\\sum_{0≤i≤m, 0<j<n}{P(i,j)}',
+		preview: commonBigOpPreview('∑', '0≤i≤m<br>0&lt;j&lt;n', null, 'P(i, j)')
+	},
+	{
+		id: 'commonProduct',
+		label: '∏_{k=1}^{n} A_k',
+		latex: '\\prod_{k=1}^{n}{A_k}',
+		preview: commonBigOpPreview('∏', 'k=1', 'n', 'A<sub>k</sub>')
+	},
+	{
+		id: 'commonUnion',
+		label: '⋃_{i=1}^{m} (X_i ∩ Y_n)',
+		latex: '\\bigcup_{i=1}^{m}{(X_i∩Y_n)}',
+		preview: commonBigOpPreview('⋃', 'i=1', 'm', '(X<sub>i</sub> ∩ Y<sub>n</sub>)')
+	}
 ]
 
 const commonRoots: CommonRoot[] = [
@@ -2753,6 +2816,26 @@ const pickDifferentialFormat = (item: DifferentialFormat) => {
 const pickBigOpFormat = (item: BigOpFormat) => {
 	bigOperatorOpen.value = false
 	insertBigOp(item)
+}
+
+const pickCommonBigOp = (item: CommonBigOp) => {
+	bigOperatorOpen.value = false
+	const holder = document.createElement('span')
+	appendNodes(holder, parseLatex(item.latex))
+	const nodes = Array.from(holder.childNodes)
+	insertNodesAtCaret(nodes)
+	syncFromEditor()
+	// 优先聚焦模板预留的空槽（如带上下限求和的空表达式），全部预填时退回首槽
+	for (const node of nodes) {
+		if (node.nodeType !== Node.ELEMENT_NODE) continue
+		const slots = Array.from((node as HTMLElement).querySelectorAll('[contenteditable]')) as HTMLElement[]
+		const empty = slots.find((slot) => readSlotText(slot) === '')
+		if (empty) {
+			focusSlot(empty, false, 'start')
+			return
+		}
+	}
+	focusFirstEditable(nodes)
 }
 
 const pickCommonRoot = (item: CommonRoot) => {

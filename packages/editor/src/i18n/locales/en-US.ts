@@ -110,7 +110,13 @@ export default {
 			bigwedgeSubSup: 'And operator (limits)',
 			bigwedgeInline: 'And operator (sub/superscript)',
 			bigwedgeSub: 'And operator (lower limit)',
-			bigwedgeSubInline: 'And operator (subscript)'
+			bigwedgeSubInline: 'And operator (subscript)',
+			commonTitle: 'Common big operators',
+			commonSumBinom: 'Binomial sum template',
+			commonSumLimits: 'Sum with limits template',
+			commonSumConditions: 'Multi-condition sum template',
+			commonProduct: 'Product with limits template',
+			commonUnion: 'Union with limits template'
 		},
 		latexSource: 'LaTeX source',
 		editable: 'Editable formula',

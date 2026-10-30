@@ -110,7 +110,13 @@ export default {
 			bigwedgeSubSup: '带上下限的与运算',
 			bigwedgeInline: '带上下标的与运算',
 			bigwedgeSub: '带下限的与运算',
-			bigwedgeSubInline: '带下标的与运算'
+			bigwedgeSubInline: '带下标的与运算',
+			commonTitle: '常用大型运算符',
+			commonSumBinom: '组合数求和模板',
+			commonSumLimits: '上下限求和模板',
+			commonSumConditions: '多条件求和模板',
+			commonProduct: '上下限乘积模板',
+			commonUnion: '上下限并集模板'
 		},
 		latexSource: 'LaTeX 原文',
 		editable: '可编辑公式',
