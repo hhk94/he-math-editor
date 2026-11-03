@@ -63,7 +63,7 @@ Vue 3 + Vite 的「两层公式编辑器」：CodeMirror 6 负责 Markdown 正�
 | `packages/editor/src/styles/math-font.scss` | `HeMathFont`：通过 unicode-range 组合 KaTeX_Main 与 KaTeX_Math | `HeMathFont`、`.he-math-font` |
 | `packages/editor/vite.lib.config.ts` | 库模式构建：双入口（index/full）、vite-plugin-dts、external 策略、tex-svg 外置资产插件 | - |
 | `packages/editor/vitest.config.ts` | 单元测试配置：jsdom 环境 + @vitejs/plugin-vue，匹配 `src/**/*.{test,spec}.ts` | - |
-| `packages/editor/src/components/__tests__/` | 组件单元测试（当前为 `HeFormulaEditor.integral.test.ts`，覆盖积分 / 围道积分 / 微分弹层 / 插入 / 解析 / 序列化 / 导航 / 删除） | `pnpm test` |
+| `packages/editor/src/components/__tests__/` | 组件单元测试（`HeFormulaEditor.integral.test.ts` 覆盖积分 / 围道积分 / 微分弹层，`HeFormulaEditor.bracket.test.ts` 覆盖括号 / 分隔符 / 单侧括号 / 事例堆栈 / 常用公式的弹层 / 插入 / 解析 / 序列化 / 导航 / 删除） | `pnpm test` |
 | `packages/editor/LICENSE` | AGPL-3.0 全文 + 商业双许可声明 + 第三方依赖清单 | - |
 | `apps/demo/src/App.vue` | 应用外壳：顶部导航、hash 路由、页面切换与标题同步 | - |
 | `apps/demo/src/main.ts` | `installDemoMessages()` 后 `app.use(HeMathEditor)` 整体安装 | - |
@@ -280,6 +280,9 @@ pnpm dev          # http://localhost:3100 手工验证
 43. 积分整块删除：被积函数末尾 `Delete`、限界开头 `Backspace` 或相邻文本槽边界 `Backspace` / `Delete` 能删除整座积分；被积函数开头 `Backspace` 仅在积分无限界时整块删除。
 44. 点击右栏「围道积分」卡片：`\oint` / `\oiint` / `\oiiint` 分别插入 `∮{}` / `∯_{}^{ }{}` / `∰{}` 并聚焦对应槽位；源码框输入 `\oint_{C}{f(z)dz}` 正确解析与往返，`\oiint` 不会被 `\oint` 前缀误匹配（最长优先）；围道积分的限界互跳、整块删除与普通积分一致。
 45. 点击底部「微分」栏的 dx / dy / dθ 卡片：浮层关闭，光标所在槽位按普通文本插入对应内容；插入不定积分聚焦被积函数后再打开浮层点 dx，原文为 `\int{dx}`。
+46. 点击括号按钮打开浮层：四个分区共 41 张卡（12 种括号 + 4 种带分隔符 + 18 种单侧 + 4 种事例堆栈 + 3 个常用公式）；点「花括号两行事例」插入 `\begin{cases}\\\end{cases}` 且光标在第一行，`↓` 到第二行、`↑` 回第一行，第一行开头 `Backspace` 整块删除。
+47. 源码框输入 `\begin{cases}a\\\\b\\\\c\end{cases}` 与 `\left(\begin{matrix}n\\\\k\end{matrix}\right)`，可编辑区分别渲染 3 行 / 2 行堆栈且外层圆括号完整，往返序列化与输入一致；行内嵌套 `a^{2}` 不会被 `\\` 误切。
+48. 点击「常用方括号」的分段函数卡片：原文为 `f(x)=\begin{cases}-x, x<0\\\\x, x≥0\end{cases}`；圆括号 / 尖括号组合数分别插入 `\left(\begin{matrix}n\\\\k\end{matrix}\right)` 与 `\left\langle\begin{matrix}n\\\\k\end{matrix}\right\rangle`，且左侧花括号 / 圆括号 / 尖括号在 MathJax 预览中随两行高度拉伸。
 
 ## 8. 提交与版本规则（强制）
 
