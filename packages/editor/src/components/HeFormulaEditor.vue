@@ -272,6 +272,86 @@
 					</div>
 				</div>
 			</div>
+
+			<div
+				v-if="bracketOpen"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.bracket.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.bracket.panelTitle') }}</div>
+				<div class="he-tool-popover__body he-tool-popover__body--scroll">
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<button
+							v-for="item in bracketFormats"
+							:key="item.id"
+							class="he-tool-card"
+							type="button"
+							:title="t('formula.bracket.' + item.id)"
+							@mousedown.prevent
+							@click="pickBracket(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.bracket.separatorTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<button
+							v-for="item in separatorBracketFormats"
+							:key="item.id"
+							class="he-tool-card"
+							type="button"
+							:title="t('formula.bracket.' + item.id)"
+							@mousedown.prevent
+							@click="pickSeparatorBracket(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.bracket.singleTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<button
+							v-for="item in singleBracketFormats"
+							:key="item.id"
+							class="he-tool-card"
+							type="button"
+							:title="t('formula.bracket.' + item.id)"
+							@mousedown.prevent
+							@click="pickBracket(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.bracket.casesTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<button
+							v-for="item in stackFormats"
+							:key="item.id"
+							class="he-tool-card he-tool-card--tall"
+							type="button"
+							:title="t('formula.bracket.' + item.id)"
+							@mousedown.prevent
+							@click="pickStackFormat(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.bracket.commonTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+						<button
+							v-for="item in commonBracketFormulas"
+							:key="item.id"
+							class="he-tool-card he-tool-card--wide"
+							type="button"
+							:title="t('formula.bracket.' + item.id)"
+							@mousedown.prevent
+							@click="pickCommonBracket(item)"
+						>
+							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
+						</button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<div class="he-field-label">{{ t('formula.latexSource') }}</div>
@@ -475,6 +555,76 @@ type BigOpFormat = {
 	limits: 'none' | 'sup' | 'sub' | 'both'
 	inline: boolean
 }
+type BracketFormatId =
+	| 'paren'
+	| 'bracket'
+	| 'brace'
+	| 'angle'
+	| 'floor'
+	| 'ceil'
+	| 'bar'
+	| 'dbar'
+	| 'leftOpen'
+	| 'leftClose'
+	| 'reverse'
+	| 'doubleBracket'
+	| 'singleParenOpen'
+	| 'singleParenClose'
+	| 'singleBracketOpen'
+	| 'singleBracketClose'
+	| 'singleBraceOpen'
+	| 'singleBraceClose'
+	| 'singleAngleOpen'
+	| 'singleAngleClose'
+	| 'singleFloorOpen'
+	| 'singleFloorClose'
+	| 'singleCeilOpen'
+	| 'singleCeilClose'
+	| 'singleBarOpen'
+	| 'singleBarClose'
+	| 'singleDbarOpen'
+	| 'singleDbarClose'
+	| 'singleDoubleOpen'
+	| 'singleDoubleClose'
+/**
+ * 括号格式：left / right 是 \left / \right 后的定界符 token，
+ * glyphLeft / glyphRight 是编辑区显示的字符（如 ⟦ ⟧）。
+ */
+type BracketFormat = {
+	id: BracketFormatId
+	preview: string
+	left: string
+	right: string
+	glyphLeft: string
+	glyphRight: string
+}
+
+/** 带分隔符的括号模板：groups 表示内容被竖线切成几段 */
+type SeparatorBracketFormat = {
+	id: string
+	preview: string
+	format: BracketFormatId
+	groups: number
+}
+
+/** 堆栈样式：cases 左侧花括号分段，matrix 无定界符（可在外层套括号） */
+type StackStyle = 'cases' | 'matrix'
+
+/** 事例与堆栈模板：rows 表示竖向堆叠的行数，wrap 表示外层再套一层括号 */
+type StackFormat = {
+	id: string
+	preview: string
+	style: StackStyle
+	rows: number
+	wrap: BracketFormatId | null
+}
+
+/** 常用方括号模板：整段 LaTeX，插入后仍是可继续编辑的结构化节点 */
+type CommonBracketFormula = {
+	id: string
+	latex: string
+	preview: string
+}
 
 const toolbarRef = ref<HTMLElement>()
 const fractionOpen = ref(false)
@@ -482,10 +632,184 @@ const scriptsOpen = ref(false)
 const rootOpen = ref(false)
 const integralOpen = ref(false)
 const bigOperatorOpen = ref(false)
+const bracketOpen = ref(false)
+
+/** 生成括号预览：虚线空框两侧加定界符，仅用于工具栏弹窗 */
+const bracketPreview = (left: string, right: string) =>
+	`<span class="bracket-preview"><span class="bracket-preview__delim">${left}</span><span class="bracket-preview__box"></span><span class="bracket-preview__delim">${right}</span></span>`
+
+/** 12 种括号模板，顺序即弹层 4 列 × 3 行的展示顺序 */
+const bracketFormats: BracketFormat[] = [
+	{ id: 'paren', preview: bracketPreview('(', ')'), left: '(', right: ')', glyphLeft: '(', glyphRight: ')' },
+	{ id: 'bracket', preview: bracketPreview('[', ']'), left: '[', right: ']', glyphLeft: '[', glyphRight: ']' },
+	{ id: 'brace', preview: bracketPreview('{', '}'), left: '\\{', right: '\\}', glyphLeft: '{', glyphRight: '}' },
+	{
+		id: 'angle',
+		preview: bracketPreview('⟨', '⟩'),
+		left: '\\langle',
+		right: '\\rangle',
+		glyphLeft: '⟨',
+		glyphRight: '⟩'
+	},
+	{
+		id: 'floor',
+		preview: bracketPreview('⌊', '⌋'),
+		left: '\\lfloor',
+		right: '\\rfloor',
+		glyphLeft: '⌊',
+		glyphRight: '⌋'
+	},
+	{
+		id: 'ceil',
+		preview: bracketPreview('⌈', '⌉'),
+		left: '\\lceil',
+		right: '\\rceil',
+		glyphLeft: '⌈',
+		glyphRight: '⌉'
+	},
+	{ id: 'bar', preview: bracketPreview('|', '|'), left: '|', right: '|', glyphLeft: '|', glyphRight: '|' },
+	{ id: 'dbar', preview: bracketPreview('‖', '‖'), left: '\\|', right: '\\|', glyphLeft: '‖', glyphRight: '‖' },
+	{ id: 'leftOpen', preview: bracketPreview('[', '['), left: '[', right: '[', glyphLeft: '[', glyphRight: '[' },
+	{ id: 'leftClose', preview: bracketPreview(']', ']'), left: ']', right: ']', glyphLeft: ']', glyphRight: ']' },
+	{ id: 'reverse', preview: bracketPreview(']', '['), left: ']', right: '[', glyphLeft: ']', glyphRight: '[' },
+	{
+		id: 'doubleBracket',
+		preview: bracketPreview('⟦', '⟧'),
+		left: '\\lbrack\\lbrack',
+		right: '\\rbrack\\rbrack',
+		glyphLeft: '⟦',
+		glyphRight: '⟧'
+	}
+]
+
+/** 生成单侧括号预览：只画一侧定界符，另一侧是虚线空框 */
+const singleBracketPreview = (glyph: string, side: 'left' | 'right') => {
+	const box = '<span class="bracket-preview__box"></span>'
+	const delim = `<span class="bracket-preview__delim">${glyph}</span>`
+	return `<span class="bracket-preview">${side === 'left' ? delim + box : box + delim}</span>`
+}
+
+/** 单侧括号：另一侧用空定界符 `.`，编辑区不显示该侧字符 */
+const singleBracket = (
+	id: BracketFormatId,
+	left: string,
+	right: string,
+	glyphLeft: string,
+	glyphRight: string
+): BracketFormat => ({
+	id,
+	preview: singleBracketPreview(glyphLeft || glyphRight, glyphLeft ? 'left' : 'right'),
+	left,
+	right,
+	glyphLeft,
+	glyphRight
+})
+
+/** 18 种单方括号模板，顺序即弹层 4 列 × 5 行的展示顺序（左、右成对相邻） */
+const singleBracketFormats: BracketFormat[] = [
+	singleBracket('singleParenOpen', '(', '.', '(', ''),
+	singleBracket('singleParenClose', '.', ')', '', ')'),
+	singleBracket('singleBracketOpen', '[', '.', '[', ''),
+	singleBracket('singleBracketClose', '.', ']', '', ']'),
+	singleBracket('singleBraceOpen', '\\{', '.', '{', ''),
+	singleBracket('singleBraceClose', '.', '\\}', '', '}'),
+	singleBracket('singleAngleOpen', '\\langle', '.', '⟨', ''),
+	singleBracket('singleAngleClose', '.', '\\rangle', '', '⟩'),
+	singleBracket('singleFloorOpen', '\\lfloor', '.', '⌊', ''),
+	singleBracket('singleFloorClose', '.', '\\rfloor', '', '⌋'),
+	singleBracket('singleCeilOpen', '\\lceil', '.', '⌈', ''),
+	singleBracket('singleCeilClose', '.', '\\rceil', '', '⌉'),
+	singleBracket('singleBarOpen', '|', '.', '|', ''),
+	singleBracket('singleBarClose', '.', '|', '', '|'),
+	singleBracket('singleDbarOpen', '\\|', '.', '‖', ''),
+	singleBracket('singleDbarClose', '.', '\\|', '', '‖'),
+	singleBracket('singleDoubleOpen', '\\lbrack\\lbrack', '.', '⟦', ''),
+	singleBracket('singleDoubleClose', '.', '\\rbrack\\rbrack', '', '⟧')
+]
+
+/** 解析反查：(left, right) → 格式 id；匹配失败时降级为普通文本 */
+const bracketFormatByDelims = new Map<string, BracketFormatId>(
+	[...bracketFormats, ...singleBracketFormats].map((item) => [`${item.left}\u0000${item.right}`, item.id])
+)
+
+const bracketFormatById = new Map<BracketFormatId, BracketFormat>(
+	[...bracketFormats, ...singleBracketFormats].map((item) => [item.id, item])
+)
+
+/** 生成带分隔符的括号预览：多个虚线空框之间加竖线 */
+const separatorBracketPreview = (format: BracketFormat, groups: number) => {
+	const boxes = Array.from({ length: groups }, () => '<span class="bracket-preview__box"></span>').join(
+		'<span class="bracket-preview__sep">|</span>'
+	)
+	return `<span class="bracket-preview"><span class="bracket-preview__delim">${format.glyphLeft}</span>${boxes}<span class="bracket-preview__delim">${format.glyphRight}</span></span>`
+}
+
+/** 4 种带分隔符的括号模板，顺序即弹层 1 行 × 4 列的展示顺序 */
+const separatorBracketFormats: SeparatorBracketFormat[] = [
+	{
+		id: 'sepParen',
+		preview: separatorBracketPreview(bracketFormatById.get('paren')!, 2),
+		format: 'paren',
+		groups: 2
+	},
+	{
+		id: 'sepBrace',
+		preview: separatorBracketPreview(bracketFormatById.get('brace')!, 2),
+		format: 'brace',
+		groups: 2
+	},
+	{
+		id: 'sepAngle2',
+		preview: separatorBracketPreview(bracketFormatById.get('angle')!, 2),
+		format: 'angle',
+		groups: 2
+	},
+	{
+		id: 'sepAngle3',
+		preview: separatorBracketPreview(bracketFormatById.get('angle')!, 3),
+		format: 'angle',
+		groups: 3
+	}
+]
 
 /** 生成 HTML 分式预览，仅用于工具栏弹窗 */
 const frac = (num: string, den: string, small = false) =>
 	`<span class="math-frac${small ? ' math-frac--small' : ''}"><span class="math-frac__num">${num}</span><span class="math-frac__den">${den}</span></span>`
+
+/** 生成堆栈预览：可选左右定界符 + 竖向排列的虚线空框 */
+const stackPreview = (rows: number, left = '', right = '') => {
+	const boxes = Array.from({ length: rows }, () => '<span class="stack-preview__box"></span>').join('')
+	const delim = (glyph: string) =>
+		glyph ? `<span class="stack-preview__delim">${glyph}</span>` : ''
+	return `<span class="stack-preview">${delim(left)}<span class="stack-preview__rows">${boxes}</span>${delim(right)}</span>`
+}
+
+/** 4 种事例与堆栈模板：前两张左侧花括号，后两张无定界符 / 圆括号 */
+const stackFormats: StackFormat[] = [
+	{ id: 'cases2', preview: stackPreview(2, '{'), style: 'cases', rows: 2, wrap: null },
+	{ id: 'cases3', preview: stackPreview(3, '{'), style: 'cases', rows: 3, wrap: null },
+	{ id: 'stack2', preview: stackPreview(2), style: 'matrix', rows: 2, wrap: null },
+	{ id: 'parenStack2', preview: stackPreview(2, '(', ')'), style: 'matrix', rows: 2, wrap: 'paren' }
+]
+
+/** 3 个常用方括号模板：分段函数 / 组合数（圆括号、尖括号） */
+const commonBracketFormulas: CommonBracketFormula[] = [
+	{
+		id: 'commonCases',
+		latex: 'f(x)=\\begin{cases}-x, x<0\\\\x, x≥0\\end{cases}',
+		preview: `f(x)=${stackPreview(2, '{')}`
+	},
+	{
+		id: 'commonBinomParen',
+		latex: '\\left(\\begin{matrix}n\\\\k\\end{matrix}\\right)',
+		preview: stackPreview(2, '(', ')')
+	},
+	{
+		id: 'commonBinomAngle',
+		latex: '\\left\\langle\\begin{matrix}n\\\\k\\end{matrix}\\right\\rangle',
+		preview: stackPreview(2, '⟨', '⟩')
+	}
+]
 
 const fractionFormats: FractionFormat[] = [
 	{
@@ -827,6 +1151,8 @@ type ParsedNode =
 			sup: ParsedNode[] | null
 			operand: ParsedNode[]
 	  }
+	| { type: 'bracket'; format: BracketFormatId; groups: ParsedNode[][] }
+	| { type: 'stack'; style: StackStyle; rows: ParsedNode[][] }
 
 const fractionCommands: { command: string; style: FractionStyle }[] = [
 	{ command: '\\tfrac', style: 'small' },
@@ -1064,6 +1390,164 @@ const readBigOp = (
 	return { sign: matched.sign, inline, sub, sup, operand: argument.content, end: argument.end }
 }
 
+/** 判断 position 处是否为独立命令（避免把 \leftarrow 误判为 \left） */
+const isCommandAt = (source: string, position: number, command: string): boolean => {
+	if (!source.startsWith(command, position)) return false
+	const next = source[position + command.length] ?? ''
+	return !/[a-zA-Z]/.test(next)
+}
+
+/** 读取定界符 token：`\` 开头读命令名，否则读单个字符；\lbrack 连写两次视为双方括号 */
+const readDelimiterToken = (source: string, start: number): { token: string; end: number } | null => {
+	if (start >= source.length) return null
+	if (source[start] === '\\') {
+		const matched = /^\\[a-zA-Z]+/.exec(source.slice(start))
+		if (!matched) {
+			// 单字符转义（如 \{ \} \|）
+			return { token: source.slice(start, start + 2), end: start + 2 }
+		}
+		let token = matched[0]
+		let end = start + token.length
+		if (token === '\\lbrack' && source.startsWith('\\lbrack', end)) {
+			token += '\\lbrack'
+			end += 7
+		} else if (token === '\\rbrack' && source.startsWith('\\rbrack', end)) {
+			token += '\\rbrack'
+			end += 7
+		}
+		return { token, end }
+	}
+	return { token: source[start], end: start + 1 }
+}
+
+/**
+ * 解析 `\begin{cases}` / `\begin{matrix}` 竖向堆栈环境：按顶层的 `\\` 切分成多行。
+ * 嵌套环境或花括号里的 `\\` 不作为行分隔；缺少 `\end` 时返回 null 交给主循环按文本处理。
+ */
+const readStack = (
+	source: string,
+	start: number
+): { style: StackStyle; rows: string[]; end: number } | null => {
+	const matched = /^\\begin\{(cases|matrix)\}/.exec(source.slice(start))
+	if (!matched) return null
+	const style = matched[1] as StackStyle
+	const endTag = `\\end{${style}}`
+	const bodyStart = start + matched[0].length
+	let envDepth = 0
+	let braceDepth = 0
+	let bodyEnd = -1
+	const breaks: { start: number; end: number }[] = []
+	let scan = bodyStart
+	while (scan < source.length) {
+		if (source[scan] === '\\') {
+			if (isCommandAt(source, scan, '\\begin')) {
+				envDepth++
+				scan += 6
+				continue
+			}
+			if (isCommandAt(source, scan, '\\end')) {
+				if (envDepth === 0) {
+					if (!source.startsWith(endTag, scan)) return null
+					bodyEnd = scan
+					break
+				}
+				envDepth--
+				scan += 4
+				continue
+			}
+			if (envDepth === 0 && braceDepth === 0 && source[scan + 1] === '\\') {
+				breaks.push({ start: scan, end: scan + 2 })
+				scan += 2
+				continue
+			}
+			scan += 2
+			continue
+		}
+		if (source[scan] === '{') braceDepth++
+		else if (source[scan] === '}') braceDepth--
+		scan++
+	}
+	if (bodyEnd === -1) return null
+
+	const rows: string[] = []
+	let rowStart = bodyStart
+	for (const item of breaks) {
+		rows.push(source.slice(rowStart, item.start))
+		rowStart = item.end
+	}
+	rows.push(source.slice(rowStart, bodyEnd))
+	return { style, rows, end: bodyEnd + endTag.length }
+}
+
+/**
+ * 解析 `\left ... \right` 括号：先按深度找到配对的 `\right`，再用 (left, right)
+ * 精确匹配 12 种模板；匹配失败返回 null，交给主循环按普通文本处理。
+ * 内容里的 `\middle|` 会把内容切成多段（带分隔符的括号），单段时按普通括号处理。
+ */
+const readBracket = (
+	source: string,
+	start: number
+): { format: BracketFormatId; groups: string[]; end: number } | null => {
+	if (!isCommandAt(source, start, '\\left')) return null
+	let cursor = start + 5
+	while (/\s/.test(source[cursor] ?? '')) cursor++
+	const leftToken = readDelimiterToken(source, cursor)
+	if (!leftToken) return null
+	cursor = leftToken.end
+
+	// 深度扫描：嵌套的 \left 需要跳过，避免把内层 \right 错当配对
+	let depth = 1
+	let scan = cursor
+	let contentEnd = -1
+	const pieces: { start: number; end: number }[] = []
+	while (scan < source.length) {
+		if (isCommandAt(source, scan, '\\left')) {
+			depth++
+			scan += 5
+			continue
+		}
+		if (isCommandAt(source, scan, '\\right')) {
+			depth--
+			if (depth === 0) {
+				contentEnd = scan
+				break
+			}
+			scan += 6
+			continue
+		}
+		if (depth === 1 && isCommandAt(source, scan, '\\middle')) {
+			let next = scan + 7
+			while (/\s/.test(source[next] ?? '')) next++
+			const sepToken = readDelimiterToken(source, next)
+			if (!sepToken) return null
+			pieces.push({ start: scan, end: sepToken.end })
+			scan = sepToken.end
+			continue
+		}
+		scan++
+	}
+	if (contentEnd === -1) return null
+
+	let rightCursor = contentEnd + 6
+	while (/\s/.test(source[rightCursor] ?? '')) rightCursor++
+	const rightToken = readDelimiterToken(source, rightCursor)
+	if (!rightToken) return null
+	const format = bracketFormatByDelims.get(`${leftToken.token}\u0000${rightToken.token}`)
+	if (!format) return null
+	const groups: string[] = []
+	let groupStart = cursor
+	for (const piece of pieces) {
+		groups.push(source.slice(groupStart, piece.start))
+		groupStart = piece.end
+	}
+	groups.push(source.slice(groupStart, contentEnd))
+	return {
+		format,
+		groups,
+		end: rightToken.end
+	}
+}
+
 /** 递归解析 \frac / \tfrac / 斜式 / 上下标 / 根式：子结构里的内容会继续结构化 */
 const parseLatex = (source: string): ParsedNode[] => {
 	const nodes: ParsedNode[] = []
@@ -1150,6 +1634,28 @@ const parseLatex = (source: string): ParsedNode[] => {
 				operand: parseLatex(bigOpNode.operand)
 			})
 			i = bigOpNode.end
+			continue
+		}
+		const bracketNode = readBracket(source, i)
+		if (bracketNode) {
+			flush()
+			nodes.push({
+				type: 'bracket',
+				format: bracketNode.format,
+				groups: bracketNode.groups.map((group) => parseLatex(group))
+			})
+			i = bracketNode.end
+			continue
+		}
+		const stackNode = readStack(source, i)
+		if (stackNode) {
+			flush()
+			nodes.push({
+				type: 'stack',
+				style: stackNode.style,
+				rows: stackNode.rows.map((row) => parseLatex(row))
+			})
+			i = stackNode.end
 			continue
 		}
 		const matched = fractionCommands.find(({ command }) => source.startsWith(command, i))
@@ -1352,6 +1858,75 @@ const createBigOpElement = (
 	return bigop
 }
 
+/** 创建括号节点：定界符不可编辑，每段内容各有一个可落光标的文本槽，段间是竖线分隔符 */
+const createBracketElement = (format: BracketFormat, groups: ParsedNode[][]): HTMLElement => {
+	const bracket = document.createElement('span')
+	bracket.className = 'me-bracket'
+	bracket.dataset.bracket = format.id
+	const open = document.createElement('span')
+	// 单侧括号的另一侧是空定界符，不占位
+	open.className = `me-bracket__open me-bracket__delim${format.glyphLeft ? '' : ' me-bracket__delim--empty'}`
+	open.textContent = format.glyphLeft
+	open.setAttribute('aria-hidden', 'true')
+	bracket.append(open)
+	groups.forEach((group, index) => {
+		if (index > 0) {
+			const sep = document.createElement('span')
+			sep.className = 'me-bracket__sep'
+			sep.textContent = '|'
+			sep.setAttribute('aria-hidden', 'true')
+			bracket.append(sep)
+		}
+		const contentEl = document.createElement('span')
+		contentEl.className = 'me-bracket__content'
+		contentEl.setAttribute('aria-label', t('formula.aria.bracketContent'))
+		appendNodes(contentEl, group)
+		bracket.append(contentEl)
+	})
+	const close = document.createElement('span')
+	close.className = `me-bracket__close me-bracket__delim${format.glyphRight ? '' : ' me-bracket__delim--empty'}`
+	close.textContent = format.glyphRight
+	close.setAttribute('aria-hidden', 'true')
+	bracket.append(close)
+	return bracket
+}
+
+/** 取括号节点下所有内容段容器（按 DOM 顺序），单段括号也只返回一个 */
+const getBracketContents = (bracket: HTMLElement): HTMLElement[] =>
+	Array.from(bracket.querySelectorAll(':scope > .me-bracket__content')) as HTMLElement[]
+
+/**
+ * 创建竖向堆栈节点：cases 带左侧花括号（虚线可编辑行），matrix 无定界符；
+ * 每一行都是独立的行容器，里面有面向用户的文本槽，可上下跨行导航。
+ */
+const createStackElement = (style: StackStyle, rows: ParsedNode[][]): HTMLElement => {
+	const stack = document.createElement('span')
+	stack.className = style === 'cases' ? 'me-stack me-stack--cases' : 'me-stack'
+	stack.dataset.stack = style
+	if (style === 'cases') {
+		const brace = document.createElement('span')
+		brace.className = 'me-stack__brace'
+		brace.textContent = '{'
+		brace.setAttribute('aria-hidden', 'true')
+		stack.append(brace)
+	}
+	const rowsEl = document.createElement('span')
+	rowsEl.className = 'me-stack__rows'
+	rows.forEach((row) => {
+		const rowEl = document.createElement('span')
+		rowEl.className = 'me-stack__row'
+		rowEl.setAttribute('aria-label', t('formula.aria.stackRow'))
+		appendNodes(rowEl, row)
+		rowsEl.append(rowEl)
+	})
+	stack.append(rowsEl)
+	return stack
+}
+
+/** 取堆栈节点下所有行容器（按 DOM 顺序） */
+const getStackRows = (stack: HTMLElement): HTMLElement[] =>
+	Array.from(stack.querySelectorAll(':scope > .me-stack__rows > .me-stack__row')) as HTMLElement[]
+
 /** 把解析结果挂到容器上；空内容补一个空文本槽，保证光标有落点 */
 const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 	if (!nodes.length) {
@@ -1369,6 +1944,11 @@ const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 			container.append(createIntegralElement(node.sign, node.sub, node.sup, node.integrand))
 		} else if (node.type === 'bigop') {
 			container.append(createBigOpElement(node.sign, node.inline, node.sub, node.sup, node.operand))
+		} else if (node.type === 'bracket') {
+			const format = bracketFormatById.get(node.format)
+			if (format) container.append(createBracketElement(format, node.groups))
+		} else if (node.type === 'stack') {
+			container.append(createStackElement(node.style, node.rows))
 		} else {
 			container.append(createTextSlot(node.value))
 		}
@@ -1443,6 +2023,24 @@ const serializeNodes = (container: HTMLElement): string => {
 			const sub = subEl !== null ? `_{${serializeNodes(subEl)}}` : ''
 			const sup = supEl !== null ? `^{${serializeNodes(supEl)}}` : ''
 			result += `${command}${nolimits}${sub}${sup}{${operandEl ? serializeNodes(operandEl) : ''}}`
+			hasContent = true
+		} else if (child.classList.contains('me-bracket')) {
+			const formatId = (child.dataset.bracket ?? 'paren') as BracketFormatId
+			const format = bracketFormatById.get(formatId) ?? bracketFormats[0]
+			const contentEls = getBracketContents(child)
+			const inner = contentEls.map((el) => serializeNodes(el)).join('\\middle|')
+			// 左定界符是命令（\langle、\lbrack）时，紧跟字母会被并成非法命令名（如 \langlex）
+			const sep = /[a-zA-Z]$/.test(format.left) && /^[a-zA-Z]/.test(inner) ? ' ' : ''
+			// 右定界符同理：\right\rangle 后紧跟字母会并成 \rangleb
+			const nextEl = child.nextElementSibling as HTMLElement | null
+			const nextText = nextEl?.classList.contains('me-text-slot') ? readSlotText(nextEl) : ''
+			const sepAfter = /[a-zA-Z]$/.test(format.right) && /^[a-zA-Z]/.test(nextText) ? ' ' : ''
+			result += `\\left${format.left}${sep}${inner}\\right${format.right}${sepAfter}`
+			hasContent = true
+		} else if (child.classList.contains('me-stack')) {
+			const style = (child.dataset.stack ?? 'matrix') as StackStyle
+			const rows = getStackRows(child).map((row) => serializeNodes(row))
+			result += `\\begin{${style}}${rows.join('\\\\')}\\end{${style}}`
 			hasContent = true
 		} else if (child.classList.contains('me-text-slot')) {
 			const value = readSlotText(child)
@@ -1534,6 +2132,8 @@ type SlotRole =
 	| 'bigopSub'
 	| 'bigopSup'
 	| 'bigopOperand'
+	| 'bracketContent'
+	| 'stackRow'
 	| 'text'
 
 type ActiveSlotInfo = {
@@ -1543,6 +2143,14 @@ type ActiveSlotInfo = {
 	rootNode: HTMLElement | null
 	integral: HTMLElement | null
 	bigop: HTMLElement | null
+	bracket: HTMLElement | null
+	/** 光标所在的内容段序号与总段数（带分隔符的括号按段切分，普通括号恒为 0 / 1） */
+	bracketGroup: number
+	bracketGroups: number
+	stack: HTMLElement | null
+	/** 光标所在的堆栈行序号与总行数 */
+	stackRow: number
+	stackRows: number
 	role: SlotRole
 	atStart: boolean
 	atEnd: boolean
@@ -1564,6 +2172,8 @@ const getSlotRole = (slot: HTMLElement): SlotRole => {
 	if (parent?.classList.contains('me-bigop__sub')) return 'bigopSub'
 	if (parent?.classList.contains('me-bigop__sup')) return 'bigopSup'
 	if (parent?.classList.contains('me-bigop__operand')) return 'bigopOperand'
+	if (parent?.classList.contains('me-bracket__content')) return 'bracketContent'
+	if (parent?.classList.contains('me-stack__row')) return 'stackRow'
 	return 'text'
 }
 
@@ -1591,6 +2201,13 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 	after.selectNodeContents(slot)
 	after.setStart(range.endContainer, range.endOffset)
 
+	const bracketEl = (slot.closest('.me-bracket') as HTMLElement | null) ?? null
+	const contents = bracketEl ? getBracketContents(bracketEl) : []
+	const groupIndex = contents.findIndex((el) => el.contains(slot))
+	const stackEl = (slot.closest('.me-stack') as HTMLElement | null) ?? null
+	const stackRows = stackEl ? getStackRows(stackEl) : []
+	const stackRowIndex = stackRows.findIndex((el) => el.contains(slot))
+
 	return {
 		slot,
 		fraction: (slot.closest('.me-frac') as HTMLElement | null) ?? null,
@@ -1598,6 +2215,12 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 		rootNode: (slot.closest('.me-root') as HTMLElement | null) ?? null,
 		integral: (slot.closest('.me-int') as HTMLElement | null) ?? null,
 		bigop: (slot.closest('.me-bigop') as HTMLElement | null) ?? null,
+		bracket: bracketEl,
+		bracketGroup: groupIndex >= 0 ? groupIndex : 0,
+		bracketGroups: contents.length,
+		stack: stackEl,
+		stackRow: stackRowIndex >= 0 ? stackRowIndex : 0,
+		stackRows: stackRows.length,
 		role: getSlotRole(slot),
 		atStart: stripPlaceholder(before.toString()).length === 0,
 		atEnd: stripPlaceholder(after.toString()).length === 0,
@@ -1652,6 +2275,16 @@ const getEdgeSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement
 			}
 			const operandEl = child.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
 			if (operandEl) return getEdgeSlot(operandEl, side)
+		}
+		if (child.classList.contains('me-bracket')) {
+			const contents = getBracketContents(child)
+			const contentEl = side === 'start' ? contents[0] : contents[contents.length - 1]
+			if (contentEl) return getEdgeSlot(contentEl, side)
+		}
+		if (child.classList.contains('me-stack')) {
+			const rows = getStackRows(child)
+			const rowEl = side === 'start' ? rows[0] : rows[rows.length - 1]
+			if (rowEl) return getEdgeSlot(rowEl, side)
 		}
 	}
 	const slot = createTextSlot('')
@@ -1726,6 +2359,24 @@ const focusBigOpSlot = (
 	return true
 }
 
+/** 聚焦括号内容槽：带分隔符时按 group 定位到对应段 */
+const focusBracketSlot = (bracket: HTMLElement, select = false, group = 0): boolean => {
+	const contents = getBracketContents(bracket)
+	const contentEl = contents[Math.min(Math.max(group, 0), contents.length - 1)]
+	if (!contentEl) return false
+	focusSlot(getEdgeSlot(contentEl, 'start'), select, 'start')
+	return true
+}
+
+/** 聚焦堆栈的某一行：按 row 定位，越界时钳制到首/末行 */
+const focusStackRow = (stack: HTMLElement, row: number, select = false): boolean => {
+	const rows = getStackRows(stack)
+	const rowEl = rows[Math.min(Math.max(row, 0), rows.length - 1)]
+	if (!rowEl) return false
+	focusSlot(getEdgeSlot(rowEl, 'start'), select, 'start')
+	return true
+}
+
 /** 取容器内同级的文本槽（不进入嵌套分式），没有就在对应边缘创建一个 */
 const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement => {
 	const children = Array.from(container.children) as HTMLElement[]
@@ -1742,7 +2393,9 @@ const isAtomElement = (element: HTMLElement): boolean =>
 	element.classList.contains('me-script') ||
 	element.classList.contains('me-root') ||
 	element.classList.contains('me-int') ||
-	element.classList.contains('me-bigop')
+	element.classList.contains('me-bigop') ||
+	element.classList.contains('me-bracket') ||
+	element.classList.contains('me-stack')
 
 /**
  * 在根级或分式的分子/分母容器内左右移动。
@@ -2167,6 +2820,37 @@ const handleArrow = (key: string): boolean => {
 		return false
 	}
 
+	if (role === 'bracketContent' && info.bracket) {
+		// 括号内容槽：←/→ 优先在相邻内容段间移动，↑ 跳出到括号左侧，↓ 跳到括号右侧
+		if (key === 'ArrowLeft' && atStart) {
+			if (info.bracketGroup > 0) return focusBracketSlot(info.bracket, false, info.bracketGroup - 1)
+			return moveSibling(info.bracket, 'left')
+		}
+		if (key === 'ArrowRight' && atEnd) {
+			if (info.bracketGroup < info.bracketGroups - 1)
+				return focusBracketSlot(info.bracket, false, info.bracketGroup + 1)
+			return moveSibling(info.bracket, 'right')
+		}
+		if (key === 'ArrowUp') return moveSibling(info.bracket, 'left')
+		if (key === 'ArrowDown') return moveSibling(info.bracket, 'right')
+		return false
+	}
+
+	if (role === 'stackRow' && info.stack) {
+		// 堆栈行：↑/↓ 在行间移动，首行 ↑ 与末行 ↓ 跳出整座堆栈
+		if (key === 'ArrowUp') {
+			if (info.stackRow > 0) return focusStackRow(info.stack, info.stackRow - 1)
+			return moveSibling(info.stack, 'left')
+		}
+		if (key === 'ArrowDown') {
+			if (info.stackRow < info.stackRows - 1) return focusStackRow(info.stack, info.stackRow + 1)
+			return moveSibling(info.stack, 'right')
+		}
+		if (key === 'ArrowLeft' && atStart) return moveSibling(info.stack, 'left')
+		if (key === 'ArrowRight' && atEnd) return moveSibling(info.stack, 'right')
+		return false
+	}
+
 	if (role === 'text') {
 		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
 		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
@@ -2201,7 +2885,8 @@ const mergeTextSlots = (left: HTMLElement, right: HTMLElement): { slot: HTMLElem
 }
 
 /** 原子节点选择器：这些节点不是编辑宿主，退格 / Delete 需要在槽位边界整块处理 */
-const ATOM_SELECTOR = '.me-frac, .me-script, .me-root, .me-int, .me-bigop'
+const ATOM_SELECTOR =
+	'.me-frac, .me-script, .me-root, .me-int, .me-bigop, .me-bracket, .me-stack'
 
 /** 在分式旁找到或创建可落光标的文本槽，返回该槽位 */
 const ensureAdjacentTextSlot = (reference: HTMLElement, side: 'before' | 'after'): HTMLElement => {
@@ -2227,7 +2912,18 @@ const removeAtomNode = (atom: HTMLElement, side: 'before' | 'after') => {
 const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	const info = getActiveSlot()
 	if (!info) return false
-	const { slot, fraction, script, rootNode, integral: integralEl, bigop: bigopEl, role, atStart, atEnd } = info
+	const {
+		slot,
+		fraction,
+		script,
+		rootNode,
+		integral: integralEl,
+		bigop: bigopEl,
+		bracket: bracketEl,
+		role,
+		atStart,
+		atEnd
+	} = info
 
 	// 插入符号后槽位内容常被整段选中，选区里只有零宽占位符时浏览器原生删除是空操作，
 	// 这里先自行处理非折叠选区，避免按一次退格没有任何反应
@@ -2303,6 +2999,35 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 		}
 		if (key === 'Delete' && atEnd && role === 'bigopOperand') {
 			removeAtomNode(bigopEl, 'after')
+			return true
+		}
+		return false
+	}
+	if (role === 'bracketContent' && bracketEl) {
+		// 内容槽开头退格 / 末尾 Delete：整块删除括号；分隔符两侧只跳到相邻段，不删整块
+		if (key === 'Backspace' && atStart) {
+			if (info.bracketGroup > 0) return focusBracketSlot(bracketEl, false, info.bracketGroup - 1)
+			removeAtomNode(bracketEl, 'before')
+			return true
+		}
+		if (key === 'Delete' && atEnd) {
+			if (info.bracketGroup < info.bracketGroups - 1)
+				return focusBracketSlot(bracketEl, false, info.bracketGroup + 1)
+			removeAtomNode(bracketEl, 'after')
+			return true
+		}
+		return false
+	}
+	if (role === 'stackRow' && info.stack) {
+		// 首行开头退格 / 末行末尾 Delete：整块删除堆栈；行内边界只跳到相邻行
+		if (key === 'Backspace' && atStart) {
+			if (info.stackRow > 0) return focusStackRow(info.stack, info.stackRow - 1)
+			removeAtomNode(info.stack, 'before')
+			return true
+		}
+		if (key === 'Delete' && atEnd) {
+			if (info.stackRow < info.stackRows - 1) return focusStackRow(info.stack, info.stackRow + 1)
+			removeAtomNode(info.stack, 'after')
 			return true
 		}
 		return false
@@ -2421,6 +3146,10 @@ const focusByPoint = (x: number) => {
 				focusIntegralSlot(child, 'integrand')
 			} else if (child.classList.contains('me-bigop')) {
 				focusBigOpSlot(child, 'operand')
+			} else if (child.classList.contains('me-bracket')) {
+				focusBracketSlotAt(child, x)
+			} else if (child.classList.contains('me-stack')) {
+				focusStackRow(child, 0)
 			} else {
 				const numerator = child.querySelector(':scope > .me-frac__num') as HTMLElement | null
 				if (numerator) focusSlot(getEdgeSlot(numerator, 'end'), false, 'end')
@@ -2441,6 +3170,40 @@ const focusByPoint = (x: number) => {
 	} else {
 		focusSlot(ensureAdjacentTextSlot(last, 'after'), false, 'start')
 	}
+}
+
+/** 按横向坐标聚焦括号内最近的段（点击定位用） */
+const focusBracketSlotAt = (bracket: HTMLElement, x: number) => {
+	const contents = getBracketContents(bracket)
+	if (!contents.length) return
+	let target = 0
+	let best = Number.POSITIVE_INFINITY
+	contents.forEach((el, index) => {
+		const rect = el.getBoundingClientRect()
+		const dist = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0
+		if (dist < best) {
+			best = dist
+			target = index
+		}
+	})
+	focusBracketSlot(bracket, false, target)
+}
+
+/** 点击堆栈留白时按纵向位置选最近的一行 */
+const focusStackRowAt = (stack: HTMLElement, y: number) => {
+	const rows = getStackRows(stack)
+	if (!rows.length) return
+	let target = 0
+	let best = Number.POSITIVE_INFINITY
+	rows.forEach((el, index) => {
+		const rect = el.getBoundingClientRect()
+		const dist = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0
+		if (dist < best) {
+			best = dist
+			target = index
+		}
+	})
+	focusStackRow(stack, target)
 }
 
 const insertTextAtCaret = (value: string) => {
@@ -2650,7 +3413,7 @@ const onEditorClick = (event: MouseEvent) => {
 	if (target.closest('[contenteditable]')) return
 	// 点在分子/分母、根指数/被开方数容器的留白上：落到该容器同级的文本槽（不进入嵌套结构）
 	const part = target.closest(
-		'.me-frac__num, .me-frac__den, .me-root__index, .me-root__radicand, .me-int__sub, .me-int__sup, .me-int__integrand, .me-bigop__sub, .me-bigop__sup, .me-bigop__operand'
+		'.me-frac__num, .me-frac__den, .me-root__index, .me-root__radicand, .me-int__sub, .me-int__sup, .me-int__integrand, .me-bigop__sub, .me-bigop__sup, .me-bigop__operand, .me-bracket__content, .me-stack__row'
 	) as HTMLElement | null
 	if (part) {
 		const rect = part.getBoundingClientRect()
@@ -2682,6 +3445,16 @@ const onEditorClick = (event: MouseEvent) => {
 	const bigopNode = target.closest('.me-bigop') as HTMLElement | null
 	if (bigopNode) {
 		focusBigOpSlot(bigopNode, 'operand')
+		return
+	}
+	const bracketNode = target.closest('.me-bracket') as HTMLElement | null
+	if (bracketNode) {
+		focusBracketSlotAt(bracketNode, event.clientX)
+		return
+	}
+	const stackNode = target.closest('.me-stack') as HTMLElement | null
+	if (stackNode) {
+		focusStackRowAt(stackNode, event.clientY)
 		return
 	}
 	if (target !== root) return
@@ -2730,6 +3503,7 @@ const onToolClick = (tool: Tool) => {
 		rootOpen.value = false
 		integralOpen.value = false
 		bigOperatorOpen.value = false
+		bracketOpen.value = false
 		return
 	}
 	if (tool.id === 'scripts') {
@@ -2738,6 +3512,7 @@ const onToolClick = (tool: Tool) => {
 		rootOpen.value = false
 		integralOpen.value = false
 		bigOperatorOpen.value = false
+		bracketOpen.value = false
 		return
 	}
 	if (tool.id === 'radical') {
@@ -2746,6 +3521,7 @@ const onToolClick = (tool: Tool) => {
 		scriptsOpen.value = false
 		integralOpen.value = false
 		bigOperatorOpen.value = false
+		bracketOpen.value = false
 		return
 	}
 	if (tool.id === 'integral') {
@@ -2754,6 +3530,7 @@ const onToolClick = (tool: Tool) => {
 		scriptsOpen.value = false
 		rootOpen.value = false
 		bigOperatorOpen.value = false
+		bracketOpen.value = false
 		return
 	}
 	if (tool.id === 'largeOperator') {
@@ -2762,6 +3539,16 @@ const onToolClick = (tool: Tool) => {
 		scriptsOpen.value = false
 		rootOpen.value = false
 		integralOpen.value = false
+		bracketOpen.value = false
+		return
+	}
+	if (tool.id === 'bracket') {
+		bracketOpen.value = !bracketOpen.value
+		fractionOpen.value = false
+		scriptsOpen.value = false
+		rootOpen.value = false
+		integralOpen.value = false
+		bigOperatorOpen.value = false
 		return
 	}
 	fractionOpen.value = false
@@ -2769,6 +3556,7 @@ const onToolClick = (tool: Tool) => {
 	rootOpen.value = false
 	integralOpen.value = false
 	bigOperatorOpen.value = false
+	bracketOpen.value = false
 }
 
 const pickFraction = (item: FractionChoice) => {
@@ -2818,6 +3606,70 @@ const pickBigOpFormat = (item: BigOpFormat) => {
 	insertBigOp(item)
 }
 
+const pickBracket = (item: BracketFormat) => {
+	bracketOpen.value = false
+	const bracket = createBracketElement(item, [[]])
+	insertNodesAtCaret([bracket])
+	syncFromEditor()
+	focusBracketSlot(bracket)
+}
+
+const pickSeparatorBracket = (item: SeparatorBracketFormat) => {
+	bracketOpen.value = false
+	const format = bracketFormatById.get(item.format)
+	if (!format) return
+	const groups = Array.from({ length: item.groups }, () => [] as ParsedNode[])
+	const bracket = createBracketElement(format, groups)
+	insertNodesAtCaret([bracket])
+	syncFromEditor()
+	focusBracketSlot(bracket)
+}
+
+/** 插入事例与堆栈模板：按 wrap 决定是否再套一层配对括号 */
+const pickStackFormat = (item: StackFormat) => {
+	bracketOpen.value = false
+	const rows = Array.from({ length: item.rows }, () => [] as ParsedNode[])
+	const stack = createStackElement(item.style, rows)
+	let inserted: HTMLElement = stack
+	if (item.wrap) {
+		const format = bracketFormatById.get(item.wrap)
+		if (format) {
+			const bracket = createBracketElement(format, [[]])
+			const content = getBracketContents(bracket)[0]
+			if (content) {
+				content.textContent = ''
+				content.append(stack)
+			}
+			inserted = bracket
+		}
+	}
+	insertNodesAtCaret([inserted])
+	syncFromEditor()
+	focusStackRow(stack, 0)
+}
+
+/** 插入常用方括号公式：解析成结构化节点，填入后聚焦首个空槽（全部预填时聚焦堆栈首行） */
+const pickCommonBracket = (item: CommonBracketFormula) => {
+	bracketOpen.value = false
+	const holder = document.createElement('span')
+	appendNodes(holder, parseLatex(item.latex))
+	const nodes = Array.from(holder.childNodes)
+	const stack = holder.querySelector('.me-stack') as HTMLElement | null
+	insertNodesAtCaret(nodes)
+	syncFromEditor()
+	for (const node of nodes) {
+		if (node.nodeType !== Node.ELEMENT_NODE) continue
+		const slots = Array.from((node as HTMLElement).querySelectorAll('[contenteditable]')) as HTMLElement[]
+		const empty = slots.find((slot) => readSlotText(slot) === '')
+		if (empty) {
+			focusSlot(empty, false, 'start')
+			return
+		}
+	}
+	if (stack) focusStackRow(stack, 0)
+	else focusFirstEditable(nodes)
+}
+
 const pickCommonBigOp = (item: CommonBigOp) => {
 	bigOperatorOpen.value = false
 	const holder = document.createElement('span')
@@ -2854,7 +3706,8 @@ const onDocumentClick = (event: MouseEvent) => {
 		!scriptsOpen.value &&
 		!rootOpen.value &&
 		!integralOpen.value &&
-		!bigOperatorOpen.value
+		!bigOperatorOpen.value &&
+		!bracketOpen.value
 	)
 		return
 	if (toolbarRef.value?.contains(event.target as Node)) return
@@ -2863,6 +3716,7 @@ const onDocumentClick = (event: MouseEvent) => {
 	rootOpen.value = false
 	integralOpen.value = false
 	bigOperatorOpen.value = false
+	bracketOpen.value = false
 }
 
 onMounted(() => {
@@ -2933,6 +3787,9 @@ watch(locale, () => {
 	})
 	root.querySelectorAll('.me-bigop__operand').forEach((el) => {
 		el.setAttribute('aria-label', t(bigOpAriaKey(bigOpSignOf(el), 'Operand')))
+	})
+	root.querySelectorAll('.me-stack__row').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.stackRow'))
 	})
 })
 
@@ -3109,6 +3966,12 @@ defineExpose({ focus, validate, clear })
 	padding: 10px 14px 12px;
 }
 
+/* 括号弹层共 4 个分区，限制高度并允许滚动 */
+.he-tool-popover__body--scroll {
+	max-height: min(520px, calc(100vh - 160px));
+	overflow-y: auto;
+}
+
 /* 积分弹层双栏：普通积分居左、围道积分居右 */
 .he-tool-popover__body--columns {
 	display: flex;
@@ -3143,6 +4006,71 @@ defineExpose({ focus, validate, clear })
 /* 求和格式一行五张卡片 */
 .he-tool-popover__grid--fifths {
 	grid-template-columns: repeat(5, 1fr);
+}
+
+/* 括号模板 4 列 × 3 行 */
+.he-tool-popover__grid--quarters {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* 括号卡片预览：虚线空框 + 两侧定界符（v-html 注入，需 :deep 才能命中） */
+.he-tool-card__preview :deep(.bracket-preview) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	line-height: 1;
+}
+
+.he-tool-card__preview :deep(.bracket-preview__delim) {
+	font-size: 1.15em;
+}
+
+.he-tool-card__preview :deep(.bracket-preview__box) {
+	display: inline-block;
+	width: 22px;
+	height: 18px;
+	border: 1px dashed currentColor;
+	border-radius: 2px;
+	opacity: 0.45;
+}
+
+/* 带分隔符的预览里空框更窄，给竖线留位置 */
+.he-tool-card__preview :deep(.bracket-preview__sep) {
+	font-size: 1.15em;
+	opacity: 0.6;
+}
+
+.he-tool-card__preview :deep(.bracket-preview__sep) + .bracket-preview__box {
+	width: 18px;
+}
+
+/* 堆栈卡片预览：竖向排列的虚线空框 + 可选左右定界符 */
+.he-tool-card__preview :deep(.stack-preview) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	line-height: 1;
+}
+
+.he-tool-card__preview :deep(.stack-preview__delim) {
+	font-size: 1.35em;
+}
+
+.he-tool-card__preview :deep(.stack-preview__rows) {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.he-tool-card__preview :deep(.stack-preview__box) {
+	display: block;
+	width: 22px;
+	height: 13px;
+	border: 1px dashed currentColor;
+	border-radius: 2px;
+	opacity: 0.45;
 }
 
 .he-tool-popover__section:first-child {
@@ -3774,6 +4702,92 @@ defineExpose({ focus, validate, clear })
 /* 求和里的嵌套结构逐层缩小 */
 .he-formula-editable :deep(.me-bigop .me-bigop) {
 	font-size: 0.82em;
+}
+
+/* 括号：定界符不可编辑，内容区可落光标 */
+.he-formula-editable :deep(.me-bracket) {
+	display: inline-flex;
+	align-items: center;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-bracket__delim) {
+	font-size: 1.15em;
+	line-height: 1;
+	user-select: none;
+	pointer-events: none;
+}
+
+/* 单侧括号的空定界符不占位 */
+.he-formula-editable :deep(.me-bracket__delim--empty) {
+	display: none;
+}
+
+.he-formula-editable :deep(.me-bracket__content) {
+	display: inline-flex;
+	align-items: center;
+	min-width: 6px;
+	padding: 0 1px;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-bracket__content:focus-within) {
+	background: #eef3ff;
+}
+
+/* 括号里的嵌套结构逐层缩小 */
+.he-formula-editable :deep(.me-bracket .me-bracket) {
+	font-size: 0.9em;
+}
+
+/* 内容段之间的竖线分隔符，与定界符一样不可编辑 */
+.he-formula-editable :deep(.me-bracket__sep) {
+	margin: 0 3px;
+	font-size: 1.15em;
+	line-height: 1;
+	user-select: none;
+	pointer-events: none;
+}
+
+/* 堆栈：竖排多行，每行可独立落光标；cases 左侧花括号随行数高度拉伸 */
+.he-formula-editable :deep(.me-stack) {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	margin: 0 2px;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-stack__brace) {
+	font-size: 2.2em;
+	line-height: 1;
+	user-select: none;
+	pointer-events: none;
+}
+
+.he-formula-editable :deep(.me-stack__rows) {
+	display: inline-flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.he-formula-editable :deep(.me-stack__row) {
+	display: flex;
+	align-items: center;
+	min-height: 1.2em;
+	min-width: 12px;
+	padding: 0 1px;
+	border-radius: 2px;
+	white-space: nowrap;
+}
+
+.he-formula-editable :deep(.me-stack__row:focus-within) {
+	background: #eef3ff;
+}
+
+/* 堆栈里嵌套的结构逐层缩小 */
+.he-formula-editable :deep(.me-stack .me-stack) {
+	font-size: 0.9em;
 }
 
 .he-formula-editor__clear {

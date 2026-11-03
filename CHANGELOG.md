@@ -103,6 +103,8 @@
 
 ### 新增
 
+- 新增可编辑竖向堆栈结构节点 `.me-stack`：支持 `\begin{cases}...\end{cases}`（左侧花括号、随行数拉伸）与 `\begin{matrix}...\end{matrix}`（无定界符）两种样式，每个 `.me-stack__row` 是独立行容器，行内可继续嵌套分式 / 上下标 / 根式 / 积分 / 括号 / 堆栈；解析时只在环境顶层按 `\\` 切行，序列化输出 `\begin{...}...\end{...}`；行间 `↑` / `↓` 上下移动，首行 `↑` / 末行 `↓` 跳出整座堆栈，首行开头 `Backspace` / 末行末尾 `Delete` 整块删除，点击留白按纵向位置聚焦最近一行。
+- 新增括号弹层第四板块「事例和堆栈」4 张卡（花括号两行事例、花括号三行事例、两行堆栈、圆括号两行堆栈）与第五板块「常用方括号」3 张宽卡（分段函数、圆括号组合数、尖括号组合数），括号按钮卡片数由 34 张增至 41 张；`HeFormulaEditor.bracket.test.ts` 同步更新卡片总数与分区断言，并新增堆栈插入、`\begin{cases}` / `\begin{matrix}` 解析往返、行间导航与整块删除用例。
 - 新增组件单元测试设施与积分弹层测试：`packages/editor` 引入 vitest 5 + @vue/test-utils + jsdom（新增 `vitest.config.ts`，根与包 `package.json` 注册 `test` 脚本）；新增 `HeFormulaEditor.integral.test.ts` 30 个用例，覆盖积分弹层 9 卡结构、五类积分插入的 DOM 结构 / 序列化 / 光标落点、`\int` / `\iint` / `\iiint` 解析（含 `\limits` 兼容与最长优先匹配）、LaTeX 序列化往返（`\limits` 规整、被积函数花括号始终保留）、限界与被积函数的方向键导航、限界开头 `Backspace` / 被积函数末尾 `Delete` 整块删除。
 - 新增自研公式输入实验页 `#/input`：直接展示 `HeFormulaEditor` UI 组件，支持键盘数字、字母与符号；`*`、`-`、`/` 在 keydown 时自动映射为 `×`、`−`、`÷`。
 - 新增 `HeFormulaEditor` UI 组件：三段展示与自研可编辑公式区、MathJax 预览、行间开关、Unicode 符号面板与校验；暴露 `focus` / `validate` / `clear`，由 `HeFormulaDialog` 与 `#/input` 共用。
