@@ -20,7 +20,7 @@
 			</div>
 
 			<div
-				v-if="fractionOpen"
+				v-if="activeTool === 'fraction'"
 				class="he-tool-popover"
 				role="dialog"
 				:aria-label="t('formula.fraction.panelTitle')"
@@ -28,37 +28,29 @@
 				<div class="he-tool-popover__header">{{ t('formula.fraction.panelTitle') }}</div>
 				<div class="he-tool-popover__body">
 					<div class="he-tool-popover__grid">
-						<button
+						<ToolCard
 							v-for="item in fractionFormats"
 							:key="item.id"
-							class="he-tool-card"
-							type="button"
 							:title="`${t('formula.fraction.' + item.id)} ${item.latex}`"
-							@mousedown.prevent
-							@click="pickFraction(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							@pick="pickFraction(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.fraction.commonTitle') }}</div>
 					<div class="he-tool-popover__grid">
-						<button
+						<ToolCard
 							v-for="item in commonFractions"
 							:key="item.label"
-							class="he-tool-card"
-							type="button"
 							:title="item.label"
-							@mousedown.prevent
-							@click="pickFraction(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							@pick="pickFraction(item)"
+						/>
 					</div>
 				</div>
 			</div>
 
 			<div
-				v-if="scriptsOpen"
+				v-if="activeTool === 'scripts'"
 				class="he-tool-popover"
 				role="dialog"
 				:aria-label="t('formula.script.panelTitle')"
@@ -66,37 +58,29 @@
 				<div class="he-tool-popover__header">{{ t('formula.script.panelTitle') }}</div>
 				<div class="he-tool-popover__body">
 					<div class="he-tool-popover__grid">
-						<button
+						<ToolCard
 							v-for="item in scriptFormats"
 							:key="item.id"
-							class="he-tool-card"
-							type="button"
 							:title="t('formula.script.' + item.id)"
-							@mousedown.prevent
-							@click="pickScriptFormat(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							@pick="pickScriptFormat(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.script.commonTitle') }}</div>
 					<div class="he-tool-popover__grid">
-						<button
+						<ToolCard
 							v-for="item in commonScripts"
 							:key="item.label"
-							class="he-tool-card"
-							type="button"
 							:title="item.label"
-							@mousedown.prevent
-							@click="pickCommonScript(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							@pick="pickCommonScript(item)"
+						/>
 					</div>
 				</div>
 			</div>
 
 			<div
-				v-if="rootOpen"
+				v-if="activeTool === 'radical'"
 				class="he-tool-popover"
 				role="dialog"
 				:aria-label="t('formula.root.panelTitle')"
@@ -104,37 +88,31 @@
 				<div class="he-tool-popover__header">{{ t('formula.root.panelTitle') }}</div>
 				<div class="he-tool-popover__body">
 					<div class="he-tool-popover__grid">
-						<button
+						<ToolCard
 							v-for="item in rootFormats"
 							:key="item.id"
-							class="he-tool-card he-tool-card--tall"
-							type="button"
 							:title="t('formula.root.' + item.id)"
-							@mousedown.prevent
-							@click="pickRootFormat(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:tall="true"
+							@pick="pickRootFormat(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.root.commonTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--half">
-						<button
+						<ToolCard
 							v-for="item in commonRoots"
 							:key="item.label"
-							class="he-tool-card he-tool-card--wide"
-							type="button"
 							:title="item.label"
-							@mousedown.prevent
-							@click="pickCommonRoot(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:wide="true"
+							@pick="pickCommonRoot(item)"
+						/>
 					</div>
 				</div>
 			</div>
 
 			<div
-				v-if="integralOpen"
+				v-if="activeTool === 'integral'"
 				class="he-tool-popover he-tool-popover--wide"
 				role="dialog"
 				:aria-label="t('formula.integral.panelTitle')"
@@ -145,55 +123,46 @@
 					<div class="he-tool-popover__col">
 						<div class="he-tool-popover__section">{{ t('formula.integral.panelTitle') }}</div>
 						<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
-							<button
+							<ToolCard
 								v-for="item in integralFormats"
 								:key="item.id"
-								class="he-tool-card he-tool-card--tall"
-								type="button"
 								:title="t('formula.integral.' + item.id)"
-								@mousedown.prevent
-								@click="pickIntegralFormat(item)"
-							>
-								<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-							</button>
+								:html="item.preview"
+								:tall="true"
+								@pick="pickIntegralFormat(item)"
+							/>
 						</div>
 					</div>
 					<div class="he-tool-popover__col">
 						<div class="he-tool-popover__section">{{ t('formula.integral.contourPanelTitle') }}</div>
 						<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
-							<button
+							<ToolCard
 								v-for="item in contourFormats"
 								:key="item.id"
-								class="he-tool-card he-tool-card--tall"
-								type="button"
 								:title="t('formula.integral.' + item.id)"
-								@mousedown.prevent
-								@click="pickIntegralFormat(item)"
-							>
-								<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-							</button>
+								:html="item.preview"
+								:tall="true"
+								@pick="pickIntegralFormat(item)"
+							/>
 						</div>
 					</div>
 				</div>
 				<div class="he-tool-popover__section">{{ t('formula.integral.differentialPanelTitle') }}</div>
 				<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
-					<button
+					<ToolCard
 						v-for="item in differentialFormats"
 						:key="item.id"
-						class="he-tool-card he-tool-card--tall"
-						type="button"
 						:title="t('formula.integral.' + item.id)"
-						@mousedown.prevent
-						@click="pickDifferentialFormat(item)"
-					>
-						<span class="he-tool-card__preview he-math-font">{{ item.latex }}</span>
-					</button>
+						:text="item.latex"
+						:tall="true"
+						@pick="pickDifferentialFormat(item)"
+					/>
 				</div>
 			</div>
 			</div>
 
 			<div
-				v-if="bigOperatorOpen"
+				v-if="activeTool === 'largeOperator'"
 				class="he-tool-popover"
 				role="dialog"
 				:aria-label="t('formula.bigOperator.panelTitle')"
@@ -202,79 +171,64 @@
 				<div class="he-tool-popover__body">
 					<div class="he-tool-popover__section">{{ t('formula.bigOperator.summationTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--fifths">
-						<button
+						<ToolCard
 							v-for="item in sumFormats"
 							:key="item.id"
-							class="he-tool-card he-tool-card--tall"
-							type="button"
 							:title="t('formula.bigOperator.' + item.id)"
-							@mousedown.prevent
-							@click="pickBigOpFormat(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:tall="true"
+							@pick="pickBigOpFormat(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.bigOperator.productCoproductTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--fifths">
-						<button
+						<ToolCard
 							v-for="item in productFormats"
 							:key="item.id"
-							class="he-tool-card he-tool-card--tall"
-							type="button"
 							:title="t('formula.bigOperator.' + item.id)"
-							@mousedown.prevent
-							@click="pickBigOpFormat(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:tall="true"
+							@pick="pickBigOpFormat(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.bigOperator.unionIntersectionTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--fifths">
-						<button
+						<ToolCard
 							v-for="item in unionFormats"
 							:key="item.id"
-							class="he-tool-card he-tool-card--tall"
-							type="button"
 							:title="t('formula.bigOperator.' + item.id)"
-							@mousedown.prevent
-							@click="pickBigOpFormat(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:tall="true"
+							@pick="pickBigOpFormat(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.bigOperator.otherTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--fifths">
-						<button
+						<ToolCard
 							v-for="item in otherFormats"
 							:key="item.id"
-							class="he-tool-card he-tool-card--tall"
-							type="button"
 							:title="t('formula.bigOperator.' + item.id)"
-							@mousedown.prevent
-							@click="pickBigOpFormat(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:tall="true"
+							@pick="pickBigOpFormat(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.bigOperator.commonTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
-						<button
+						<ToolCard
 							v-for="item in commonBigOps"
 							:key="item.id"
-							class="he-tool-card he-tool-card--wide"
-							type="button"
 							:title="t('formula.bigOperator.' + item.id)"
-							@mousedown.prevent
-							@click="pickCommonBigOp(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:wide="true"
+							@pick="pickCommonBigOp(item)"
+						/>
 					</div>
 				</div>
 			</div>
 
 			<div
-				v-if="bracketOpen"
+				v-if="activeTool === 'bracket'"
 				class="he-tool-popover"
 				role="dialog"
 				:aria-label="t('formula.bracket.panelTitle')"
@@ -282,73 +236,234 @@
 				<div class="he-tool-popover__header">{{ t('formula.bracket.panelTitle') }}</div>
 				<div class="he-tool-popover__body he-tool-popover__body--scroll">
 					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
-						<button
+						<ToolCard
 							v-for="item in bracketFormats"
 							:key="item.id"
-							class="he-tool-card"
-							type="button"
 							:title="t('formula.bracket.' + item.id)"
-							@mousedown.prevent
-							@click="pickBracket(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							@pick="pickBracket(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.bracket.separatorTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
-						<button
+						<ToolCard
 							v-for="item in separatorBracketFormats"
 							:key="item.id"
-							class="he-tool-card"
-							type="button"
 							:title="t('formula.bracket.' + item.id)"
-							@mousedown.prevent
-							@click="pickSeparatorBracket(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							@pick="pickSeparatorBracket(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.bracket.singleTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
-						<button
+						<ToolCard
 							v-for="item in singleBracketFormats"
 							:key="item.id"
-							class="he-tool-card"
-							type="button"
 							:title="t('formula.bracket.' + item.id)"
-							@mousedown.prevent
-							@click="pickBracket(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							@pick="pickBracket(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.bracket.casesTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
-						<button
+						<ToolCard
 							v-for="item in stackFormats"
 							:key="item.id"
-							class="he-tool-card he-tool-card--tall"
-							type="button"
 							:title="t('formula.bracket.' + item.id)"
-							@mousedown.prevent
-							@click="pickStackFormat(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:tall="true"
+							@pick="pickStackFormat(item)"
+						/>
 					</div>
 					<div class="he-tool-popover__section">{{ t('formula.bracket.commonTitle') }}</div>
 					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
-						<button
+						<ToolCard
 							v-for="item in commonBracketFormulas"
 							:key="item.id"
-							class="he-tool-card he-tool-card--wide"
-							type="button"
 							:title="t('formula.bracket.' + item.id)"
-							@mousedown.prevent
-							@click="pickCommonBracket(item)"
-						>
-							<span class="he-tool-card__preview he-math-font" v-html="item.preview"></span>
-						</button>
+							:html="item.preview"
+							:wide="true"
+							@pick="pickCommonBracket(item)"
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div
+				v-if="activeTool === 'function'"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.function.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.function.panelTitle') }}</div>
+				<div class="he-tool-popover__body he-tool-popover__body--scroll">
+					<div class="he-tool-popover__section">{{ t('formula.function.trigTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+						<ToolCard
+							v-for="item in functionFormats"
+							:key="item.id"
+							:title="t('formula.function.' + item.id)"
+							:html="item.preview"
+							@pick="pickFunctionFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.function.inverseTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+						<ToolCard
+							v-for="item in inverseFunctionFormats"
+							:key="item.id"
+							:title="t('formula.function.' + item.id)"
+							:html="item.preview"
+							@pick="pickFunctionFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.function.hyperbolicTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+						<ToolCard
+							v-for="item in hyperbolicFunctionFormats"
+							:key="item.id"
+							:title="t('formula.function.' + item.id)"
+							:html="item.preview"
+							@pick="pickFunctionFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.function.inverseHyperbolicTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+						<ToolCard
+							v-for="item in inverseHyperbolicFunctionFormats"
+							:key="item.id"
+							:title="t('formula.function.' + item.id)"
+							:html="item.preview"
+							@pick="pickFunctionFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.function.commonTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--half">
+						<ToolCard
+							v-for="item in commonFunctions"
+							:key="item.id"
+							:title="t('formula.function.' + item.id)"
+							:html="item.preview"
+							:wide="item.wide"
+							:span2="item.wide"
+							@pick="pickCommonFunction(item)"
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div
+				v-if="activeTool === 'derivative'"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.deriv.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.deriv.panelTitle') }}</div>
+				<div class="he-tool-popover__body he-tool-popover__body--scroll">
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<ToolCard
+							v-for="item in derivFormats"
+							:key="item.id"
+							:title="t('formula.deriv.' + item.id)"
+							:html="item.preview"
+							@pick="pickDerivFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.deriv.boxedTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<ToolCard
+							v-for="item in derivBoxedFormats"
+							:key="item.id"
+							:title="t('formula.deriv.' + item.id)"
+							:html="item.preview"
+							:span2="item.wide"
+							@pick="pickDerivFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.deriv.lineTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<ToolCard
+							v-for="item in derivLineFormats"
+							:key="item.id"
+							:title="t('formula.deriv.' + item.id)"
+							:html="item.preview"
+							@pick="pickDerivFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.deriv.objectTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<ToolCard
+							v-for="item in derivObjectFormats"
+							:key="item.id"
+							:title="t('formula.deriv.' + item.id)"
+							:html="item.preview"
+							:span2="item.wide"
+							@pick="pickDerivFormat(item)"
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div
+				v-if="activeTool === 'limitLog'"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.limitLog.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.limitLog.panelTitle') }}</div>
+				<div class="he-tool-popover__body">
+					<div class="he-tool-popover__section">{{ t('formula.limitLog.basicTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--thirds">
+						<ToolCard
+							v-for="item in limitLogFormats"
+							:key="item.id"
+							:title="t('formula.limitLog.' + item.id)"
+							:html="item.preview"
+							@pick="pickLimitLogFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.limitLog.commonTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--half">
+						<ToolCard
+							v-for="item in commonLimitLogs"
+							:key="item.id"
+							:title="t('formula.limitLog.' + item.id)"
+							:html="item.preview"
+							@pick="pickCommonLimitLog(item)"
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div
+				v-if="activeTool === 'operator'"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.operator.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.operator.panelTitle') }}</div>
+				<div class="he-tool-popover__body he-tool-popover__body--scroll">
+					<div class="he-tool-popover__section">{{ t('formula.operator.basicTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<ToolCard
+							v-for="item in operatorFormats"
+							:key="item.id"
+							:title="t('formula.operator.' + item.id)"
+							:html="item.preview"
+							@pick="pickOperatorFormat(item)"
+						/>
+					</div>
+					<div class="he-tool-popover__section">{{ t('formula.operator.structureTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<ToolCard
+							v-for="item in arrowFormats"
+							:key="item.id"
+							:title="t('formula.operator.' + item.id)"
+							:html="arrowPreview(item.kind, item.label)"
+							:math-font="false"
+							:tall="true"
+							@pick="pickArrowFormat(item)"
+						/>
 					</div>
 				</div>
 			</div>
@@ -416,6 +531,78 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import HeMathPreview from './HeMathPreview.vue'
+import ToolCard from './toolbar/ToolCard.vue'
+import type {
+	ArrowFormat,
+	BigOpFormat,
+	BracketFormat,
+	CommonBigOp,
+	CommonBracketFormula,
+	CommonFunction,
+	CommonRoot,
+	CommonScript,
+	DerivFormat,
+	DifferentialFormat,
+	FractionChoice,
+	FractionStyle,
+	FunctionFormat,
+	FunctionFormatId,
+	IntegralFormat,
+	OperatorFormat,
+	RootFormat,
+	ScriptFormat,
+	ScriptFormatId,
+	SeparatorBracketFormat,
+	StackFormat,
+	Tool,
+	ToolId
+} from './toolbar/catalog'
+import {
+	arrowFormats,
+	arrowPreview,
+	bracketFormatById,
+	bracketFormats,
+	commonBigOps,
+	commonBracketFormulas,
+	commonFractions,
+	commonFunctions,
+	commonLimitLogs,
+	commonRoots,
+	commonScripts,
+	contourFormats,
+	derivBoxedFormats,
+	derivFormats,
+	derivLineFormats,
+	derivObjectFormats,
+	differentialFormats,
+	fractionFormats,
+	functionFormats,
+	hyperbolicFunctionFormats,
+	inverseFunctionFormats,
+	inverseHyperbolicFunctionFormats,
+	integralFormats,
+	limitLogFormats,
+	operatorFormats,
+	otherFormats,
+	popoverToolIds,
+	productFormats,
+	rootFormats,
+	scriptFormats,
+	separatorBracketFormats,
+	singleBracketFormats,
+	stackFormats,
+	sumFormats,
+	symbolMap,
+	symbols,
+	tools,
+	unionFormats
+} from './toolbar/catalog'
+import { functionCommandById } from './formula/commands'
+import { bigOpAriaKey, bigOpSignOf, getBracketContents, getStackRows, readSlotText, stripPlaceholder } from './formula/dom'
+import { parseLatex } from './formula/parser'
+import { createFormulaRenderer } from './formula/renderer'
+import { serializeNodes } from './formula/serializer'
+import type { ParsedNode } from './formula/types'
 
 /**
  * HeFormulaEditor —— 公式编辑 UI 组件
@@ -459,1598 +646,32 @@ const displayMode = computed({
 	set: (value: boolean) => emit('update:display', value)
 })
 
-type ToolId =
-	| 'symbols'
-	| 'fraction'
-	| 'scripts'
-	| 'radical'
-	| 'integral'
-	| 'largeOperator'
-	| 'bracket'
-	| 'function'
-	| 'derivative'
-	| 'limitLog'
-	| 'operator'
-	| 'matrix'
-type Tool = { id: ToolId; icon: string }
-type FractionStyle = 'normal' | 'small' | 'skewed'
-type FractionChoice = {
-	latex: string
-	preview: string
-	fraction?: { num: string; den: string; style?: FractionStyle }
-}
-type FractionFormatId = 'vertical' | 'horizontal' | 'skewed' | 'small'
-type FractionFormat = FractionChoice & { id: FractionFormatId }
-type CommonFraction = FractionChoice & { label: string }
-type ScriptFormatId = 'sup' | 'sub' | 'both' | 'pre'
-type ScriptFormat = { id: ScriptFormatId; preview: string }
-type CommonScript = { label: string; latex: string; preview: string }
-type RootFormatId = 'square' | 'nth' | 'squareIndex2' | 'cube'
-type RootFormat = { id: RootFormatId; preview: string; index: string | null }
-type CommonRoot = { label: string; latex: string; preview: string }
-type CommonBigOp = { id: string; label: string; latex: string; preview: string }
-type IntegralFormatId =
-	| 'int'
-	| 'intSup'
-	| 'intSubSup'
-	| 'iint'
-	| 'iintSup'
-	| 'iintSubSup'
-	| 'iiint'
-	| 'iiintSup'
-	| 'iiintSubSup'
-	| 'oint'
-	| 'ointSup'
-	| 'ointSubSup'
-	| 'oiint'
-	| 'oiintSup'
-	| 'oiintSubSup'
-	| 'oiiint'
-	| 'oiiintSup'
-	| 'oiiintSubSup'
-type IntegralFormat = { id: IntegralFormatId; preview: string; sign: string; limits: 'none' | 'sup' | 'both' }
-/** 微分卡片：纯文本模板（dx / dy / dθ），无结构化槽位 */
-type DifferentialFormat = { id: 'dx' | 'dy' | 'dtheta'; latex: string }
-/** 大型运算符格式：limits 决定堆叠限界（none/sup/sub/both），inline 为行内上下标形式（Word 第五张卡） */
-type BigOpFormatId =
-	| 'sum'
-	| 'sumSup'
-	| 'sumSub'
-	| 'sumSubSup'
-	| 'sumInline'
-	| 'prod'
-	| 'prodSup'
-	| 'prodSub'
-	| 'prodSubSup'
-	| 'prodInline'
-	| 'coprod'
-	| 'coprodSup'
-	| 'coprodSub'
-	| 'coprodSubSup'
-	| 'coprodInline'
-	| 'union'
-	| 'unionSubSup'
-	| 'unionInline'
-	| 'unionSub'
-	| 'unionSubInline'
-	| 'intersection'
-	| 'intersectionSubSup'
-	| 'intersectionInline'
-	| 'intersectionSub'
-	| 'intersectionSubInline'
-	| 'bigvee'
-	| 'bigveeSubSup'
-	| 'bigveeInline'
-	| 'bigveeSub'
-	| 'bigveeSubInline'
-	| 'bigwedge'
-	| 'bigwedgeSubSup'
-	| 'bigwedgeInline'
-	| 'bigwedgeSub'
-	| 'bigwedgeSubInline'
-type BigOpFormat = {
-	id: BigOpFormatId
-	preview: string
-	sign: string
-	limits: 'none' | 'sup' | 'sub' | 'both'
-	inline: boolean
-}
-type BracketFormatId =
-	| 'paren'
-	| 'bracket'
-	| 'brace'
-	| 'angle'
-	| 'floor'
-	| 'ceil'
-	| 'bar'
-	| 'dbar'
-	| 'leftOpen'
-	| 'leftClose'
-	| 'reverse'
-	| 'doubleBracket'
-	| 'singleParenOpen'
-	| 'singleParenClose'
-	| 'singleBracketOpen'
-	| 'singleBracketClose'
-	| 'singleBraceOpen'
-	| 'singleBraceClose'
-	| 'singleAngleOpen'
-	| 'singleAngleClose'
-	| 'singleFloorOpen'
-	| 'singleFloorClose'
-	| 'singleCeilOpen'
-	| 'singleCeilClose'
-	| 'singleBarOpen'
-	| 'singleBarClose'
-	| 'singleDbarOpen'
-	| 'singleDbarClose'
-	| 'singleDoubleOpen'
-	| 'singleDoubleClose'
-/**
- * 括号格式：left / right 是 \left / \right 后的定界符 token，
- * glyphLeft / glyphRight 是编辑区显示的字符（如 ⟦ ⟧）。
- */
-type BracketFormat = {
-	id: BracketFormatId
-	preview: string
-	left: string
-	right: string
-	glyphLeft: string
-	glyphRight: string
-}
-
-/** 带分隔符的括号模板：groups 表示内容被竖线切成几段 */
-type SeparatorBracketFormat = {
-	id: string
-	preview: string
-	format: BracketFormatId
-	groups: number
-}
-
-/** 堆栈样式：cases 左侧花括号分段，matrix 无定界符（可在外层套括号） */
-type StackStyle = 'cases' | 'matrix'
-
-/** 事例与堆栈模板：rows 表示竖向堆叠的行数，wrap 表示外层再套一层括号 */
-type StackFormat = {
-	id: string
-	preview: string
-	style: StackStyle
-	rows: number
-	wrap: BracketFormatId | null
-}
-
-/** 常用方括号模板：整段 LaTeX，插入后仍是可继续编辑的结构化节点 */
-type CommonBracketFormula = {
-	id: string
-	latex: string
-	preview: string
-}
-
 const toolbarRef = ref<HTMLElement>()
-const fractionOpen = ref(false)
-const scriptsOpen = ref(false)
-const rootOpen = ref(false)
-const integralOpen = ref(false)
-const bigOperatorOpen = ref(false)
-const bracketOpen = ref(false)
-
-/** 生成括号预览：虚线空框两侧加定界符，仅用于工具栏弹窗 */
-const bracketPreview = (left: string, right: string) =>
-	`<span class="bracket-preview"><span class="bracket-preview__delim">${left}</span><span class="bracket-preview__box"></span><span class="bracket-preview__delim">${right}</span></span>`
-
-/** 12 种括号模板，顺序即弹层 4 列 × 3 行的展示顺序 */
-const bracketFormats: BracketFormat[] = [
-	{ id: 'paren', preview: bracketPreview('(', ')'), left: '(', right: ')', glyphLeft: '(', glyphRight: ')' },
-	{ id: 'bracket', preview: bracketPreview('[', ']'), left: '[', right: ']', glyphLeft: '[', glyphRight: ']' },
-	{ id: 'brace', preview: bracketPreview('{', '}'), left: '\\{', right: '\\}', glyphLeft: '{', glyphRight: '}' },
-	{
-		id: 'angle',
-		preview: bracketPreview('⟨', '⟩'),
-		left: '\\langle',
-		right: '\\rangle',
-		glyphLeft: '⟨',
-		glyphRight: '⟩'
-	},
-	{
-		id: 'floor',
-		preview: bracketPreview('⌊', '⌋'),
-		left: '\\lfloor',
-		right: '\\rfloor',
-		glyphLeft: '⌊',
-		glyphRight: '⌋'
-	},
-	{
-		id: 'ceil',
-		preview: bracketPreview('⌈', '⌉'),
-		left: '\\lceil',
-		right: '\\rceil',
-		glyphLeft: '⌈',
-		glyphRight: '⌉'
-	},
-	{ id: 'bar', preview: bracketPreview('|', '|'), left: '|', right: '|', glyphLeft: '|', glyphRight: '|' },
-	{ id: 'dbar', preview: bracketPreview('‖', '‖'), left: '\\|', right: '\\|', glyphLeft: '‖', glyphRight: '‖' },
-	{ id: 'leftOpen', preview: bracketPreview('[', '['), left: '[', right: '[', glyphLeft: '[', glyphRight: '[' },
-	{ id: 'leftClose', preview: bracketPreview(']', ']'), left: ']', right: ']', glyphLeft: ']', glyphRight: ']' },
-	{ id: 'reverse', preview: bracketPreview(']', '['), left: ']', right: '[', glyphLeft: ']', glyphRight: '[' },
-	{
-		id: 'doubleBracket',
-		preview: bracketPreview('⟦', '⟧'),
-		left: '\\lbrack\\lbrack',
-		right: '\\rbrack\\rbrack',
-		glyphLeft: '⟦',
-		glyphRight: '⟧'
-	}
-]
-
-/** 生成单侧括号预览：只画一侧定界符，另一侧是虚线空框 */
-const singleBracketPreview = (glyph: string, side: 'left' | 'right') => {
-	const box = '<span class="bracket-preview__box"></span>'
-	const delim = `<span class="bracket-preview__delim">${glyph}</span>`
-	return `<span class="bracket-preview">${side === 'left' ? delim + box : box + delim}</span>`
-}
-
-/** 单侧括号：另一侧用空定界符 `.`，编辑区不显示该侧字符 */
-const singleBracket = (
-	id: BracketFormatId,
-	left: string,
-	right: string,
-	glyphLeft: string,
-	glyphRight: string
-): BracketFormat => ({
-	id,
-	preview: singleBracketPreview(glyphLeft || glyphRight, glyphLeft ? 'left' : 'right'),
-	left,
-	right,
-	glyphLeft,
-	glyphRight
-})
-
-/** 18 种单方括号模板，顺序即弹层 4 列 × 5 行的展示顺序（左、右成对相邻） */
-const singleBracketFormats: BracketFormat[] = [
-	singleBracket('singleParenOpen', '(', '.', '(', ''),
-	singleBracket('singleParenClose', '.', ')', '', ')'),
-	singleBracket('singleBracketOpen', '[', '.', '[', ''),
-	singleBracket('singleBracketClose', '.', ']', '', ']'),
-	singleBracket('singleBraceOpen', '\\{', '.', '{', ''),
-	singleBracket('singleBraceClose', '.', '\\}', '', '}'),
-	singleBracket('singleAngleOpen', '\\langle', '.', '⟨', ''),
-	singleBracket('singleAngleClose', '.', '\\rangle', '', '⟩'),
-	singleBracket('singleFloorOpen', '\\lfloor', '.', '⌊', ''),
-	singleBracket('singleFloorClose', '.', '\\rfloor', '', '⌋'),
-	singleBracket('singleCeilOpen', '\\lceil', '.', '⌈', ''),
-	singleBracket('singleCeilClose', '.', '\\rceil', '', '⌉'),
-	singleBracket('singleBarOpen', '|', '.', '|', ''),
-	singleBracket('singleBarClose', '.', '|', '', '|'),
-	singleBracket('singleDbarOpen', '\\|', '.', '‖', ''),
-	singleBracket('singleDbarClose', '.', '\\|', '', '‖'),
-	singleBracket('singleDoubleOpen', '\\lbrack\\lbrack', '.', '⟦', ''),
-	singleBracket('singleDoubleClose', '.', '\\rbrack\\rbrack', '', '⟧')
-]
-
-/** 解析反查：(left, right) → 格式 id；匹配失败时降级为普通文本 */
-const bracketFormatByDelims = new Map<string, BracketFormatId>(
-	[...bracketFormats, ...singleBracketFormats].map((item) => [`${item.left}\u0000${item.right}`, item.id])
-)
-
-const bracketFormatById = new Map<BracketFormatId, BracketFormat>(
-	[...bracketFormats, ...singleBracketFormats].map((item) => [item.id, item])
-)
-
-/** 生成带分隔符的括号预览：多个虚线空框之间加竖线 */
-const separatorBracketPreview = (format: BracketFormat, groups: number) => {
-	const boxes = Array.from({ length: groups }, () => '<span class="bracket-preview__box"></span>').join(
-		'<span class="bracket-preview__sep">|</span>'
-	)
-	return `<span class="bracket-preview"><span class="bracket-preview__delim">${format.glyphLeft}</span>${boxes}<span class="bracket-preview__delim">${format.glyphRight}</span></span>`
-}
-
-/** 4 种带分隔符的括号模板，顺序即弹层 1 行 × 4 列的展示顺序 */
-const separatorBracketFormats: SeparatorBracketFormat[] = [
-	{
-		id: 'sepParen',
-		preview: separatorBracketPreview(bracketFormatById.get('paren')!, 2),
-		format: 'paren',
-		groups: 2
-	},
-	{
-		id: 'sepBrace',
-		preview: separatorBracketPreview(bracketFormatById.get('brace')!, 2),
-		format: 'brace',
-		groups: 2
-	},
-	{
-		id: 'sepAngle2',
-		preview: separatorBracketPreview(bracketFormatById.get('angle')!, 2),
-		format: 'angle',
-		groups: 2
-	},
-	{
-		id: 'sepAngle3',
-		preview: separatorBracketPreview(bracketFormatById.get('angle')!, 3),
-		format: 'angle',
-		groups: 3
-	}
-]
-
-/** 生成 HTML 分式预览，仅用于工具栏弹窗 */
-const frac = (num: string, den: string, small = false) =>
-	`<span class="math-frac${small ? ' math-frac--small' : ''}"><span class="math-frac__num">${num}</span><span class="math-frac__den">${den}</span></span>`
-
-/** 生成堆栈预览：可选左右定界符 + 竖向排列的虚线空框 */
-const stackPreview = (rows: number, left = '', right = '') => {
-	const boxes = Array.from({ length: rows }, () => '<span class="stack-preview__box"></span>').join('')
-	const delim = (glyph: string) =>
-		glyph ? `<span class="stack-preview__delim">${glyph}</span>` : ''
-	return `<span class="stack-preview">${delim(left)}<span class="stack-preview__rows">${boxes}</span>${delim(right)}</span>`
-}
-
-/** 4 种事例与堆栈模板：前两张左侧花括号，后两张无定界符 / 圆括号 */
-const stackFormats: StackFormat[] = [
-	{ id: 'cases2', preview: stackPreview(2, '{'), style: 'cases', rows: 2, wrap: null },
-	{ id: 'cases3', preview: stackPreview(3, '{'), style: 'cases', rows: 3, wrap: null },
-	{ id: 'stack2', preview: stackPreview(2), style: 'matrix', rows: 2, wrap: null },
-	{ id: 'parenStack2', preview: stackPreview(2, '(', ')'), style: 'matrix', rows: 2, wrap: 'paren' }
-]
-
-/** 3 个常用方括号模板：分段函数 / 组合数（圆括号、尖括号） */
-const commonBracketFormulas: CommonBracketFormula[] = [
-	{
-		id: 'commonCases',
-		latex: 'f(x)=\\begin{cases}-x, x<0\\\\x, x≥0\\end{cases}',
-		preview: `f(x)=${stackPreview(2, '{')}`
-	},
-	{
-		id: 'commonBinomParen',
-		latex: '\\left(\\begin{matrix}n\\\\k\\end{matrix}\\right)',
-		preview: stackPreview(2, '(', ')')
-	},
-	{
-		id: 'commonBinomAngle',
-		latex: '\\left\\langle\\begin{matrix}n\\\\k\\end{matrix}\\right\\rangle',
-		preview: stackPreview(2, '⟨', '⟩')
-	}
-]
-
-const fractionFormats: FractionFormat[] = [
-	{
-		id: 'vertical',
-		latex: '\\frac{a}{b}',
-		preview: frac('a', 'b'),
-		fraction: { num: 'a', den: 'b' }
-	},
-	{ id: 'horizontal', latex: 'a/b', preview: 'a/b' },
-	{
-		id: 'skewed',
-		latex: '{}^{a}\\!/\\!_{b}',
-		preview: 'a⁄b',
-		fraction: { num: 'a', den: 'b', style: 'skewed' }
-	},
-	{
-		id: 'small',
-		latex: '\\tfrac{a}{b}',
-		preview: frac('a', 'b', true),
-		fraction: { num: 'a', den: 'b', style: 'small' }
-	}
-]
-
-const commonFractions: CommonFraction[] = [
-	{ label: 'dy/dx', latex: '\\frac{dy}{dx}', preview: frac('dy', 'dx'), fraction: { num: 'dy', den: 'dx' } },
-	{
-		label: 'Δy/Δx',
-		latex: '\\frac{\\Delta y}{\\Delta x}',
-		preview: frac('Δy', 'Δx'),
-		fraction: { num: 'Δy', den: 'Δx' }
-	},
-	{
-		label: '∂y/∂x',
-		latex: '\\frac{\\partial y}{\\partial x}',
-		preview: frac('∂y', '∂x'),
-		fraction: { num: '∂y', den: '∂x' }
-	},
-	{
-		label: 'δy/δx',
-		latex: '\\frac{\\delta y}{\\delta x}',
-		preview: frac('δy', 'δx'),
-		fraction: { num: 'δy', den: 'δx' }
-	},
-	{ label: 'π/2', latex: '\\frac{\\pi}{2}', preview: frac('π', '2'), fraction: { num: 'π', den: '2' } }
-]
-
-/** 生成上下标格式预览，仅用于工具栏弹窗 */
-const scriptPreview = (sup: boolean, sub: boolean, pre = false) => {
-	const stack = [
-		sup ? '<span class="script-preview__slot"></span>' : '',
-		sub ? '<span class="script-preview__slot"></span>' : ''
-	].join('')
-	return `<span class="script-preview${pre ? ' script-preview--pre' : ''}"><span class="script-preview__base">x</span><span class="script-preview__stack">${stack}</span></span>`
-}
-
-const scriptFormats: ScriptFormat[] = [
-	{ id: 'sup', preview: scriptPreview(true, false) },
-	{ id: 'sub', preview: scriptPreview(false, true) },
-	{ id: 'both', preview: scriptPreview(true, true) },
-	{ id: 'pre', preview: scriptPreview(true, true, true) }
-]
-
-const commonScripts: CommonScript[] = [
-	{
-		label: 'x_{y^2}',
-		latex: 'x_{y^2}',
-		preview: '<span class="script-tpl">x<sub>y<sup>2</sup></sub></span>'
-	},
-	{
-		label: 'e^{-iωt}',
-		latex: 'e^{-iωt}',
-		preview: '<span class="script-tpl">e<sup>−iωt</sup></span>'
-	},
-	{
-		label: 'x^2',
-		latex: 'x^2',
-		preview: '<span class="script-tpl">x<sup>2</sup></span>'
-	},
-	{
-		label: '{}_{1}^{n}Y',
-		latex: '{}_{1}^{n}Y',
-		preview: '<span class="script-tpl"><span class="script-tpl__pre"><span>n</span><span>1</span></span>Y</span>'
-	}
-]
-
-/**
- * 生成根式预览，仅用于工具栏弹窗。
- * dash 为虚线空槽，表示插入后可编辑的根指数 / 被开方数。
- */
-const dashSlot = '<span class="math-dash"></span>'
-const rootPreview = (radicand: string, index = '') =>
-	`<span class="math-root">${index ? `<span class="math-root__index">${index}</span>` : ''}<span class="math-root__sign">√</span><span class="math-root__radicand">${radicand}</span></span>`
-
-const rootFormats: RootFormat[] = [
-	{ id: 'square', preview: rootPreview(dashSlot), index: null },
-	{ id: 'nth', preview: rootPreview(dashSlot, dashSlot), index: '' },
-	{ id: 'squareIndex2', preview: rootPreview(dashSlot, '2'), index: '2' },
-	{ id: 'cube', preview: rootPreview(dashSlot, '3'), index: '3' }
-]
-
-/**
- * 生成积分预览，仅用于工具栏弹窗。
- * limits: none 无限界 / sup 仅上限 / both 上下限；网格布局把限界排到积分号右上、右下。
- */
-const integralPreview = (sign: string, limits: 'none' | 'sup' | 'both') => {
-	const sub = limits === 'both' ? `<span class="math-int__sub">${dashSlot}</span>` : ''
-	const sup = limits !== 'none' ? `<span class="math-int__sup">${dashSlot}</span>` : ''
-	return `<span class="math-int"><span class="math-int__sign">${sign}</span>${sub}${sup}<span class="math-int__integrand">${dashSlot}</span></span>`
-}
-
-/**
- * 生成大型运算符预览，仅用于工具栏弹窗。
- * 堆叠式：符号居中，上下限堆叠在正上/正下（Word 模板）；
- * inline 行内式：限界排到右上/右下（同积分布局）。
- */
-const bigOpPreview = (sign: string, limits: 'none' | 'sup' | 'sub' | 'both', inline = false) => {
-	const sub = limits === 'both' || limits === 'sub' ? `<span class="math-bigop__sub">${dashSlot}</span>` : ''
-	const sup = limits === 'both' || limits === 'sup' ? `<span class="math-bigop__sup">${dashSlot}</span>` : ''
-	return `<span class="math-bigop${inline ? ' math-bigop--inline' : ''}"><span class="math-bigop__sign">${sign}</span>${sup}${sub}<span class="math-bigop__operand">${dashSlot}</span></span>`
-}
-
-/**
- * 生成常用大型运算符模板预览（含实际内容，仅用于工具栏弹窗）。
- * sub / sup 传 null 表示该模板没有对应限界。
- */
-const commonBigOpPreview = (sign: string, sub: string | null, sup: string | null, operand: string) => {
-	const subEl = sub !== null ? `<span class="math-bigop__sub">${sub}</span>` : ''
-	const supEl = sup !== null ? `<span class="math-bigop__sup">${sup}</span>` : ''
-	return `<span class="math-bigop"><span class="math-bigop__sign">${sign}</span>${supEl}${subEl}<span class="math-bigop__operand">${operand}</span></span>`
-}
-
-const integralFormats: IntegralFormat[] = [
-	{ id: 'int', sign: '∫', limits: 'none', preview: integralPreview('∫', 'none') },
-	{ id: 'intSup', sign: '∫', limits: 'sup', preview: integralPreview('∫', 'sup') },
-	{ id: 'intSubSup', sign: '∫', limits: 'both', preview: integralPreview('∫', 'both') },
-	{ id: 'iint', sign: '∬', limits: 'none', preview: integralPreview('∬', 'none') },
-	{ id: 'iintSup', sign: '∬', limits: 'sup', preview: integralPreview('∬', 'sup') },
-	{ id: 'iintSubSup', sign: '∬', limits: 'both', preview: integralPreview('∬', 'both') },
-	{ id: 'iiint', sign: '∭', limits: 'none', preview: integralPreview('∭', 'none') },
-	{ id: 'iiintSup', sign: '∭', limits: 'sup', preview: integralPreview('∭', 'sup') },
-	{ id: 'iiintSubSup', sign: '∭', limits: 'both', preview: integralPreview('∭', 'both') }
-]
-
-/**
- * 围道积分：∮ / ∯ / ∰ 三行 × 三种限界形式。
- * 复用普通积分的 me-int 结构与序列化，仅积分号不同。
- */
-const contourFormats: IntegralFormat[] = [
-	{ id: 'oint', sign: '∮', limits: 'none', preview: integralPreview('∮', 'none') },
-	{ id: 'ointSup', sign: '∮', limits: 'sup', preview: integralPreview('∮', 'sup') },
-	{ id: 'ointSubSup', sign: '∮', limits: 'both', preview: integralPreview('∮', 'both') },
-	{ id: 'oiint', sign: '∯', limits: 'none', preview: integralPreview('∯', 'none') },
-	{ id: 'oiintSup', sign: '∯', limits: 'sup', preview: integralPreview('∯', 'sup') },
-	{ id: 'oiintSubSup', sign: '∯', limits: 'both', preview: integralPreview('∯', 'both') },
-	{ id: 'oiiint', sign: '∰', limits: 'none', preview: integralPreview('∰', 'none') },
-	{ id: 'oiiintSup', sign: '∰', limits: 'sup', preview: integralPreview('∰', 'sup') },
-	{ id: 'oiiintSubSup', sign: '∰', limits: 'both', preview: integralPreview('∰', 'both') }
-]
-
-/**
- * 微分：dx / dy / dθ 三个纯文本模板，插入当前光标所在槽位。
- * 用 Unicode θ 而不是 \theta：可编辑区不解析未知命令（与常用分数的 ± 同理）。
- */
-const differentialFormats: DifferentialFormat[] = [
-	{ id: 'dx', latex: 'dx' },
-	{ id: 'dy', latex: 'dy' },
-	{ id: 'dtheta', latex: 'dθ' }
-]
-
-/** 求和 5 卡：对应 Word「大型运算符 → 求和」分区的 5 张模板 */
-const sumFormats: BigOpFormat[] = [
-	{ id: 'sum', sign: '∑', preview: bigOpPreview('∑', 'none'), limits: 'none', inline: false },
-	{ id: 'sumSup', sign: '∑', preview: bigOpPreview('∑', 'sup'), limits: 'sup', inline: false },
-	{ id: 'sumSub', sign: '∑', preview: bigOpPreview('∑', 'sub'), limits: 'sub', inline: false },
-	{ id: 'sumSubSup', sign: '∑', preview: bigOpPreview('∑', 'both'), limits: 'both', inline: false },
-	{ id: 'sumInline', sign: '∑', preview: bigOpPreview('∑', 'both', true), limits: 'both', inline: true }
-]
-
-/**
- * 乘积与副积 10 卡：第一行 ∏ 乘积、第二行 ∐ 副积，
- * 每行 5 种形式与求和一致（无界限 / 上限 / 下限 / 上下限 / 上下标）。
- */
-const productFormats: BigOpFormat[] = [
-	{ id: 'prod', sign: '∏', preview: bigOpPreview('∏', 'none'), limits: 'none', inline: false },
-	{ id: 'prodSup', sign: '∏', preview: bigOpPreview('∏', 'sup'), limits: 'sup', inline: false },
-	{ id: 'prodSub', sign: '∏', preview: bigOpPreview('∏', 'sub'), limits: 'sub', inline: false },
-	{ id: 'prodSubSup', sign: '∏', preview: bigOpPreview('∏', 'both'), limits: 'both', inline: false },
-	{ id: 'prodInline', sign: '∏', preview: bigOpPreview('∏', 'both', true), limits: 'both', inline: true },
-	{ id: 'coprod', sign: '∐', preview: bigOpPreview('∐', 'none'), limits: 'none', inline: false },
-	{ id: 'coprodSup', sign: '∐', preview: bigOpPreview('∐', 'sup'), limits: 'sup', inline: false },
-	{ id: 'coprodSub', sign: '∐', preview: bigOpPreview('∐', 'sub'), limits: 'sub', inline: false },
-	{ id: 'coprodSubSup', sign: '∐', preview: bigOpPreview('∐', 'both'), limits: 'both', inline: false },
-	{ id: 'coprodInline', sign: '∐', preview: bigOpPreview('∐', 'both', true), limits: 'both', inline: true }
-]
-
-/**
- * 并集和交集 10 卡：第一行 ⋃ 并集、第二行 ⋂ 交集，
- * 每行 5 种形式（无界限 / 带上下限 / 带上下标 / 带下限 / 带下标）。
- */
-const unionFormats: BigOpFormat[] = [
-	{ id: 'union', sign: '⋃', preview: bigOpPreview('⋃', 'none'), limits: 'none', inline: false },
-	{ id: 'unionSubSup', sign: '⋃', preview: bigOpPreview('⋃', 'both'), limits: 'both', inline: false },
-	{ id: 'unionInline', sign: '⋃', preview: bigOpPreview('⋃', 'both', true), limits: 'both', inline: true },
-	{ id: 'unionSub', sign: '⋃', preview: bigOpPreview('⋃', 'sub'), limits: 'sub', inline: false },
-	{ id: 'unionSubInline', sign: '⋃', preview: bigOpPreview('⋃', 'sub', true), limits: 'sub', inline: true },
-	{ id: 'intersection', sign: '⋂', preview: bigOpPreview('⋂', 'none'), limits: 'none', inline: false },
-	{ id: 'intersectionSubSup', sign: '⋂', preview: bigOpPreview('⋂', 'both'), limits: 'both', inline: false },
-	{ id: 'intersectionInline', sign: '⋂', preview: bigOpPreview('⋂', 'both', true), limits: 'both', inline: true },
-	{ id: 'intersectionSub', sign: '⋂', preview: bigOpPreview('⋂', 'sub'), limits: 'sub', inline: false },
-	{ id: 'intersectionSubInline', sign: '⋂', preview: bigOpPreview('⋂', 'sub', true), limits: 'sub', inline: true }
-]
-
-/**
- * 其他大型运算符 10 卡：第一行 ⋁ 或运算、第二行 ⋀ 与运算，
- * 每行 5 种形式（无界限 / 带上下限 / 带上下标 / 带下限 / 带下标）。
- */
-const otherFormats: BigOpFormat[] = [
-	{ id: 'bigvee', sign: '⋁', preview: bigOpPreview('⋁', 'none'), limits: 'none', inline: false },
-	{ id: 'bigveeSubSup', sign: '⋁', preview: bigOpPreview('⋁', 'both'), limits: 'both', inline: false },
-	{ id: 'bigveeInline', sign: '⋁', preview: bigOpPreview('⋁', 'both', true), limits: 'both', inline: true },
-	{ id: 'bigveeSub', sign: '⋁', preview: bigOpPreview('⋁', 'sub'), limits: 'sub', inline: false },
-	{ id: 'bigveeSubInline', sign: '⋁', preview: bigOpPreview('⋁', 'sub', true), limits: 'sub', inline: true },
-	{ id: 'bigwedge', sign: '⋀', preview: bigOpPreview('⋀', 'none'), limits: 'none', inline: false },
-	{ id: 'bigwedgeSubSup', sign: '⋀', preview: bigOpPreview('⋀', 'both'), limits: 'both', inline: false },
-	{ id: 'bigwedgeInline', sign: '⋀', preview: bigOpPreview('⋀', 'both', true), limits: 'both', inline: true },
-	{ id: 'bigwedgeSub', sign: '⋀', preview: bigOpPreview('⋀', 'sub'), limits: 'sub', inline: false },
-	{ id: 'bigwedgeSubInline', sign: '⋀', preview: bigOpPreview('⋀', 'sub', true), limits: 'sub', inline: true }
-]
-
-/**
- * 常用大型运算符 5 卡：预填完整内容的成品模板（Word「常用大型运算符」）。
- * 编辑区无 \binom / 多行下限结构，组合数以括号小分数近似、
- * 多条件下限折衷为单行文本；模板 2 的表达式留空（虚线槽）供用户填写。
- */
-const commonBigOps: CommonBigOp[] = [
-	{
-		id: 'commonSumBinom',
-		label: '∑_k (n k)',
-		latex: '\\sum_{k}{(\\tfrac{n}{k})}',
-		preview: commonBigOpPreview('∑', 'k', null, `(${frac('n', 'k', true)})`)
-	},
-	{
-		id: 'commonSumLimits',
-		label: '∑_{i=0}^{n} □',
-		latex: '\\sum_{i=0}^{n}{}',
-		preview: commonBigOpPreview('∑', 'i=0', 'n', dashSlot)
-	},
-	{
-		id: 'commonSumConditions',
-		label: '∑_{0≤i≤m, 0<j<n} P(i,j)',
-		latex: '\\sum_{0≤i≤m, 0<j<n}{P(i,j)}',
-		preview: commonBigOpPreview('∑', '0≤i≤m<br>0&lt;j&lt;n', null, 'P(i, j)')
-	},
-	{
-		id: 'commonProduct',
-		label: '∏_{k=1}^{n} A_k',
-		latex: '\\prod_{k=1}^{n}{A_k}',
-		preview: commonBigOpPreview('∏', 'k=1', 'n', 'A<sub>k</sub>')
-	},
-	{
-		id: 'commonUnion',
-		label: '⋃_{i=1}^{m} (X_i ∩ Y_n)',
-		latex: '\\bigcup_{i=1}^{m}{(X_i∩Y_n)}',
-		preview: commonBigOpPreview('⋃', 'i=1', 'm', '(X<sub>i</sub> ∩ Y<sub>n</sub>)')
-	}
-]
-
-const commonRoots: CommonRoot[] = [
-	{
-		label: '(-b±√(b²-4ac))/2a',
-		// 用 ± 这类 Unicode 符号而不是 \pm：可编辑区不解析未知命令，\pm 会被当成文本显示
-		latex: '\\frac{-b±\\sqrt{b^{2}-4ac}}{2a}',
-		preview: frac(`−b ± ${rootPreview('b² − 4ac')}`, '2a')
-	},
-	{
-		label: '√(a²+b²)',
-		latex: '\\sqrt{a^{2}+b^{2}}',
-		preview: rootPreview('a² + b²')
-	}
-]
-
-const symbols = [
-	{ label: 'a/b', value: 'a/b' },
-	{ label: '√x', value: '√x' },
-	{ label: 'x²', value: 'x²' },
-	{ label: 'lim', value: 'lim' },
-	{ label: '∫', value: '∫' },
-	{ label: 'Σ', value: 'Σ' },
-	{ label: 'α', value: 'α' },
-	{ label: 'π', value: 'π' },
-	{ label: '∞', value: '∞' },
-	{ label: '≤', value: '≤' },
-	{ label: '≥', value: '≥' },
-	{ label: '≠', value: '≠' }
-]
-
-/** 工具栏按钮；分数、上下标、根式、积分、大型运算符已接入弹窗，其余暂未绑定行为 */
-const tools: Tool[] = [
-	{ id: 'symbols', icon: 'Ω' },
-	{ id: 'fraction', icon: '<span class="tb-frac"><span>X</span><span>Y</span></span>' },
-	{ id: 'scripts', icon: 'e<sup>x</sup>' },
-	{ id: 'radical', icon: '√x' },
-	{ id: 'integral', icon: '∫<sup>x</sup><sub>-x</sub>' },
-	{
-		id: 'largeOperator',
-		icon: '<span class="tb-limits"><span class="tb-limits__sup">n</span><span class="tb-limits__main">∑</span><span class="tb-limits__sub">i=0</span></span>'
-	},
-	{ id: 'bracket', icon: '{()}' },
-	{ id: 'function', icon: 'sinθ' },
-	{ id: 'derivative', icon: 'f′' },
-	{
-		id: 'limitLog',
-		icon: '<span class="tb-limits"><span class="tb-limits__sup">lim</span><span class="tb-limits__sub">n→∞</span></span>'
-	},
-	{ id: 'operator', icon: '±' },
-	{
-		id: 'matrix',
-		icon: '<span class="tb-matrix"><span class="tb-matrix__bracket">[</span><span class="tb-matrix__grid"><i>1</i><i>0</i><i>0</i><i>1</i></span><span class="tb-matrix__bracket">]</span></span>'
-	}
-]
-
-const symbolMap: Record<string, string> = {
-	'*': '×',
-	'-': '−',
-	'/': '÷'
-}
-
-type ParsedNode =
-	| { type: 'text'; value: string }
-	| { type: 'fraction'; style: FractionStyle; numerator: ParsedNode[]; denominator: ParsedNode[] }
-	| { type: 'script'; pre: boolean; sup: ParsedNode[] | null; sub: ParsedNode[] | null }
-	| { type: 'root'; index: ParsedNode[] | null; radicand: ParsedNode[] }
-	| { type: 'integral'; sign: string; sub: ParsedNode[] | null; sup: ParsedNode[] | null; integrand: ParsedNode[] }
-	| {
-			type: 'bigop'
-			sign: string
-			inline: boolean
-			sub: ParsedNode[] | null
-			sup: ParsedNode[] | null
-			operand: ParsedNode[]
-	  }
-	| { type: 'bracket'; format: BracketFormatId; groups: ParsedNode[][] }
-	| { type: 'stack'; style: StackStyle; rows: ParsedNode[][] }
-
-const fractionCommands: { command: string; style: FractionStyle }[] = [
-	{ command: '\\tfrac', style: 'small' },
-	{ command: '\\frac', style: 'normal' }
-]
-
-/** 积分命令最长优先匹配，避免前缀误判（含围道积分 \oint / \oiint / \oiiint） */
-const integralCommands: { command: string; sign: string }[] = [
-	{ command: '\\oiiint', sign: '∰' },
-	{ command: '\\oiint', sign: '∯' },
-	{ command: '\\oint', sign: '∮' },
-	{ command: '\\iiint', sign: '∭' },
-	{ command: '\\iint', sign: '∬' },
-	{ command: '\\int', sign: '∫' }
-]
-
-/** 序列化反查：积分符号 → LaTeX 命令（与 integralCommands 同源） */
-const integralSignToCommand: Record<string, string> = Object.fromEntries(
-	integralCommands.map(({ command, sign }) => [sign, command])
-)
-
-/** 大型运算符命令最长优先匹配（∑ 求和 / ∏ 乘积 / ∐ 副积 / ⋃ 并集 / ⋂ 交集 / ⋁ 或运算 / ⋀ 与运算） */
-const bigOpCommands: { command: string; sign: string }[] = [
-	{ command: '\\bigwedge', sign: '⋀' },
-	{ command: '\\bigvee', sign: '⋁' },
-	{ command: '\\bigcup', sign: '⋃' },
-	{ command: '\\bigcap', sign: '⋂' },
-	{ command: '\\coprod', sign: '∐' },
-	{ command: '\\prod', sign: '∏' },
-	{ command: '\\sum', sign: '∑' }
-]
-
-/** 序列化反查：运算符符号 → LaTeX 命令（与 bigOpCommands 同源） */
-const bigOpSignToCommand: Record<string, string> = Object.fromEntries(
-	bigOpCommands.map(({ command, sign }) => [sign, command])
-)
-
-/** 大型运算符无障碍名称：按符号取对应文案前缀（∑ 求和 / ∏ 乘积 / ∐ 副积 / ⋃ 并集 / ⋂ 交集 / ⋁ 或运算 / ⋀ 与运算） */
-const bigOpAriaPrefix: Record<string, string> = {
-	'∑': 'bigop',
-	'∏': 'prod',
-	'∐': 'coprod',
-	'⋃': 'union',
-	'⋂': 'intersection',
-	'⋁': 'bigvee',
-	'⋀': 'bigwedge'
-}
-const bigOpAriaKey = (sign: string, part: 'Sub' | 'Sup' | 'Operand') =>
-	`formula.aria.${bigOpAriaPrefix[sign] ?? 'bigop'}${part}`
-
-/** 槽位所属运算符的符号，用于切换语言时按类型刷新无障碍名称 */
-const bigOpSignOf = (slot: Element): string =>
-	(slot.closest('.me-bigop') as HTMLElement | null)?.dataset.sign ?? '∑'
-
-const readGroup = (source: string, start: number): { content: string; end: number } | null => {
-	if (source[start] !== '{') return null
-	let depth = 0
-	for (let i = start; i < source.length; i++) {
-		if (source[i] === '\\') {
-			i++
-			continue
-		}
-		if (source[i] === '{') depth++
-		else if (source[i] === '}') {
-			depth--
-			if (depth === 0) return { content: source.slice(start + 1, i), end: i + 1 }
-		}
-	}
-	return null
-}
-
-/** 跳过空白与负向细空格 \!，用于兼容斜式的不同写法 */
-const skipSpacing = (source: string, start: number): number => {
-	let cursor = start
-	for (;;) {
-		while (/\s/.test(source[cursor] ?? '')) cursor++
-		if (source.startsWith('\\!', cursor)) {
-			cursor += 2
-			continue
-		}
-		return cursor
-	}
-}
-
-/**
- * 解析斜式分式 `{}^{a}\!/\!_{b}`（也兼容 `{}^{a}/_{b}`）。
- * 结构：空组 + 上标分子 + 斜杠 + 下标分母。
- */
-const readSkewedFraction = (
-	source: string,
-	start: number
-): { numerator: string; denominator: string; end: number } | null => {
-	if (!source.startsWith('{}^{', start)) return null
-	const numerator = readGroup(source, start + 3)
-	if (!numerator) return null
-	let cursor = skipSpacing(source, numerator.end)
-	if (source[cursor] !== '/') return null
-	cursor = skipSpacing(source, cursor + 1)
-	if (source[cursor] !== '_') return null
-	cursor = skipSpacing(source, cursor + 1)
-	const denominator = readGroup(source, cursor)
-	if (!denominator) return null
-	return { numerator: numerator.content, denominator: denominator.content, end: denominator.end }
-}
-
-/** 读取上下标参数：{...}、\command 或单个字符 */
-const readScriptArgument = (source: string, start: number): { content: string; end: number } | null => {
-	let cursor = start
-	while (/\s/.test(source[cursor] ?? '')) cursor++
-	if (source[cursor] === '{') return readGroup(source, cursor)
-	if (source[cursor] === '\\') {
-		const match = source.slice(cursor).match(/^\\[a-zA-Z]+/)
-		if (match) return { content: match[0], end: cursor + match[0].length }
-	}
-	if (cursor < source.length) return { content: source[cursor], end: cursor + 1 }
-	return null
-}
-
-/** 连续读取 ^{...} / _{...}，支持上下标同时存在 */
-const readScriptParts = (
-	source: string,
-	start: number
-): { sup: string | null; sub: string | null; end: number } | null => {
-	let cursor = start
-	let sup: string | null = null
-	let sub: string | null = null
-	let matched = false
-	while (cursor < source.length && (source[cursor] === '^' || source[cursor] === '_')) {
-		const marker = source[cursor]
-		const argument = readScriptArgument(source, cursor + 1)
-		if (!argument) break
-		if (marker === '^') sup = argument.content
-		else sub = argument.content
-		cursor = argument.end
-		matched = true
-	}
-	return matched ? { sup, sub, end: cursor } : null
-}
-
-/** 前置上下标：{}^{...} / {}_{...}，不消费后面的基底 */
-const readPrescript = (
-	source: string,
-	start: number
-): { sup: string | null; sub: string | null; end: number } | null => {
-	if (source[start] !== '{' || source[start + 1] !== '}') return null
-	const cursor = skipSpacing(source, start + 2)
-	if (source[cursor] !== '^' && source[cursor] !== '_') return null
-	return readScriptParts(source, cursor)
-}
-
-/**
- * 解析根式：`\sqrt{x}` / `\sqrt[n]{x}`（也兼容 `\sqrt x`、`\sqrt[n]x`）。
- * index 为 null 表示没有根指数，radicand 为被开方数。
- */
-const readRoot = (
-	source: string,
-	start: number
-): { index: string | null; radicand: string; end: number } | null => {
-	if (!source.startsWith('\\sqrt', start)) return null
-	let cursor = start + 5
-	let index: string | null = null
-	const bracketStart = skipSpacing(source, cursor)
-	if (source[bracketStart] === '[') {
-		const close = source.indexOf(']', bracketStart + 1)
-		if (close === -1) return null
-		index = source.slice(bracketStart + 1, close).trim()
-		cursor = close + 1
-	}
-	const argument = readScriptArgument(source, cursor)
-	if (!argument) return null
-	return { index, radicand: argument.content, end: argument.end }
-}
-
-/**
- * 解析积分：`\int` / `\iint` / `\iiint`（兼容 `\limits`），
- * 限界用 `_{a}^{b}` 读取，被积函数取一个参数；结尾没有内容时被积函数为空。
- */
-const readIntegral = (
-	source: string,
-	start: number
-): { sign: string; sub: string | null; sup: string | null; integrand: string; end: number } | null => {
-	const matched = integralCommands.find(({ command }) => source.startsWith(command, start))
-	if (!matched) return null
-	let cursor = start + matched.command.length
-	if (source.startsWith('\\limits', cursor)) cursor += 7
-	const parts = readScriptParts(source, cursor)
-	let sub: string | null = null
-	let sup: string | null = null
-	if (parts) {
-		sub = parts.sub
-		sup = parts.sup
-		cursor = parts.end
-	}
-	const argument = readScriptArgument(source, cursor)
-	if (!argument) return { sign: matched.sign, sub, sup, integrand: '', end: cursor }
-	return { sign: matched.sign, sub, sup, integrand: argument.content, end: argument.end }
-}
-
-/**
- * 解析大型运算符：`\sum`（兼容 `\limits` 与 `\nolimits`）。
- * \nolimits 表示行内式（限界排右上/右下，优先判断，避免被 \limits 分支误吃）；
- * 限界用 `_{a}^{b}` 读取，表达式取一个参数，结尾没有内容时为空。
- */
-const readBigOp = (
-	source: string,
-	start: number
-): {
-	sign: string
-	inline: boolean
-	sub: string | null
-	sup: string | null
-	operand: string
-	end: number
-} | null => {
-	const matched = bigOpCommands.find(({ command }) => source.startsWith(command, start))
-	if (!matched) return null
-	let cursor = start + matched.command.length
-	let inline = false
-	if (source.startsWith('\\nolimits', cursor)) {
-		inline = true
-		cursor += 9
-	} else if (source.startsWith('\\limits', cursor)) {
-		cursor += 7
-	}
-	const parts = readScriptParts(source, cursor)
-	let sub: string | null = null
-	let sup: string | null = null
-	if (parts) {
-		sub = parts.sub
-		sup = parts.sup
-		cursor = parts.end
-	}
-	const argument = readScriptArgument(source, cursor)
-	if (!argument) return { sign: matched.sign, inline, sub, sup, operand: '', end: cursor }
-	return { sign: matched.sign, inline, sub, sup, operand: argument.content, end: argument.end }
-}
-
-/** 判断 position 处是否为独立命令（避免把 \leftarrow 误判为 \left） */
-const isCommandAt = (source: string, position: number, command: string): boolean => {
-	if (!source.startsWith(command, position)) return false
-	const next = source[position + command.length] ?? ''
-	return !/[a-zA-Z]/.test(next)
-}
-
-/** 读取定界符 token：`\` 开头读命令名，否则读单个字符；\lbrack 连写两次视为双方括号 */
-const readDelimiterToken = (source: string, start: number): { token: string; end: number } | null => {
-	if (start >= source.length) return null
-	if (source[start] === '\\') {
-		const matched = /^\\[a-zA-Z]+/.exec(source.slice(start))
-		if (!matched) {
-			// 单字符转义（如 \{ \} \|）
-			return { token: source.slice(start, start + 2), end: start + 2 }
-		}
-		let token = matched[0]
-		let end = start + token.length
-		if (token === '\\lbrack' && source.startsWith('\\lbrack', end)) {
-			token += '\\lbrack'
-			end += 7
-		} else if (token === '\\rbrack' && source.startsWith('\\rbrack', end)) {
-			token += '\\rbrack'
-			end += 7
-		}
-		return { token, end }
-	}
-	return { token: source[start], end: start + 1 }
-}
-
-/**
- * 解析 `\begin{cases}` / `\begin{matrix}` 竖向堆栈环境：按顶层的 `\\` 切分成多行。
- * 嵌套环境或花括号里的 `\\` 不作为行分隔；缺少 `\end` 时返回 null 交给主循环按文本处理。
- */
-const readStack = (
-	source: string,
-	start: number
-): { style: StackStyle; rows: string[]; end: number } | null => {
-	const matched = /^\\begin\{(cases|matrix)\}/.exec(source.slice(start))
-	if (!matched) return null
-	const style = matched[1] as StackStyle
-	const endTag = `\\end{${style}}`
-	const bodyStart = start + matched[0].length
-	let envDepth = 0
-	let braceDepth = 0
-	let bodyEnd = -1
-	const breaks: { start: number; end: number }[] = []
-	let scan = bodyStart
-	while (scan < source.length) {
-		if (source[scan] === '\\') {
-			if (isCommandAt(source, scan, '\\begin')) {
-				envDepth++
-				scan += 6
-				continue
-			}
-			if (isCommandAt(source, scan, '\\end')) {
-				if (envDepth === 0) {
-					if (!source.startsWith(endTag, scan)) return null
-					bodyEnd = scan
-					break
-				}
-				envDepth--
-				scan += 4
-				continue
-			}
-			if (envDepth === 0 && braceDepth === 0 && source[scan + 1] === '\\') {
-				breaks.push({ start: scan, end: scan + 2 })
-				scan += 2
-				continue
-			}
-			scan += 2
-			continue
-		}
-		if (source[scan] === '{') braceDepth++
-		else if (source[scan] === '}') braceDepth--
-		scan++
-	}
-	if (bodyEnd === -1) return null
-
-	const rows: string[] = []
-	let rowStart = bodyStart
-	for (const item of breaks) {
-		rows.push(source.slice(rowStart, item.start))
-		rowStart = item.end
-	}
-	rows.push(source.slice(rowStart, bodyEnd))
-	return { style, rows, end: bodyEnd + endTag.length }
-}
-
-/**
- * 解析 `\left ... \right` 括号：先按深度找到配对的 `\right`，再用 (left, right)
- * 精确匹配 12 种模板；匹配失败返回 null，交给主循环按普通文本处理。
- * 内容里的 `\middle|` 会把内容切成多段（带分隔符的括号），单段时按普通括号处理。
- */
-const readBracket = (
-	source: string,
-	start: number
-): { format: BracketFormatId; groups: string[]; end: number } | null => {
-	if (!isCommandAt(source, start, '\\left')) return null
-	let cursor = start + 5
-	while (/\s/.test(source[cursor] ?? '')) cursor++
-	const leftToken = readDelimiterToken(source, cursor)
-	if (!leftToken) return null
-	cursor = leftToken.end
-
-	// 深度扫描：嵌套的 \left 需要跳过，避免把内层 \right 错当配对
-	let depth = 1
-	let scan = cursor
-	let contentEnd = -1
-	const pieces: { start: number; end: number }[] = []
-	while (scan < source.length) {
-		if (isCommandAt(source, scan, '\\left')) {
-			depth++
-			scan += 5
-			continue
-		}
-		if (isCommandAt(source, scan, '\\right')) {
-			depth--
-			if (depth === 0) {
-				contentEnd = scan
-				break
-			}
-			scan += 6
-			continue
-		}
-		if (depth === 1 && isCommandAt(source, scan, '\\middle')) {
-			let next = scan + 7
-			while (/\s/.test(source[next] ?? '')) next++
-			const sepToken = readDelimiterToken(source, next)
-			if (!sepToken) return null
-			pieces.push({ start: scan, end: sepToken.end })
-			scan = sepToken.end
-			continue
-		}
-		scan++
-	}
-	if (contentEnd === -1) return null
-
-	let rightCursor = contentEnd + 6
-	while (/\s/.test(source[rightCursor] ?? '')) rightCursor++
-	const rightToken = readDelimiterToken(source, rightCursor)
-	if (!rightToken) return null
-	const format = bracketFormatByDelims.get(`${leftToken.token}\u0000${rightToken.token}`)
-	if (!format) return null
-	const groups: string[] = []
-	let groupStart = cursor
-	for (const piece of pieces) {
-		groups.push(source.slice(groupStart, piece.start))
-		groupStart = piece.end
-	}
-	groups.push(source.slice(groupStart, contentEnd))
-	return {
-		format,
-		groups,
-		end: rightToken.end
-	}
-}
-
-/** 递归解析 \frac / \tfrac / 斜式 / 上下标 / 根式：子结构里的内容会继续结构化 */
-const parseLatex = (source: string): ParsedNode[] => {
-	const nodes: ParsedNode[] = []
-	let buffer = ''
-	let i = 0
-	const flush = () => {
-		if (buffer) {
-			nodes.push({ type: 'text', value: buffer })
-			buffer = ''
-		}
-	}
-	while (i < source.length) {
-		const skewed = readSkewedFraction(source, i)
-		if (skewed) {
-			flush()
-			nodes.push({
-				type: 'fraction',
-				style: 'skewed',
-				numerator: parseLatex(skewed.numerator),
-				denominator: parseLatex(skewed.denominator)
-			})
-			i = skewed.end
-			continue
-		}
-		const prescript = readPrescript(source, i)
-		if (prescript) {
-			flush()
-			nodes.push({
-				type: 'script',
-				pre: true,
-				sup: prescript.sup !== null ? parseLatex(prescript.sup) : null,
-				sub: prescript.sub !== null ? parseLatex(prescript.sub) : null
-			})
-			i = prescript.end
-			continue
-		}
-		if (source[i] === '^' || source[i] === '_') {
-			const postscript = readScriptParts(source, i)
-			if (postscript) {
-				flush()
-				nodes.push({
-					type: 'script',
-					pre: false,
-					sup: postscript.sup !== null ? parseLatex(postscript.sup) : null,
-					sub: postscript.sub !== null ? parseLatex(postscript.sub) : null
-				})
-				i = postscript.end
-				continue
-			}
-		}
-		const rootNode = readRoot(source, i)
-		if (rootNode) {
-			flush()
-			nodes.push({
-				type: 'root',
-				index: rootNode.index !== null ? parseLatex(rootNode.index) : null,
-				radicand: parseLatex(rootNode.radicand)
-			})
-			i = rootNode.end
-			continue
-		}
-		const integralNode = readIntegral(source, i)
-		if (integralNode) {
-			flush()
-			nodes.push({
-				type: 'integral',
-				sign: integralNode.sign,
-				sub: integralNode.sub !== null ? parseLatex(integralNode.sub) : null,
-				sup: integralNode.sup !== null ? parseLatex(integralNode.sup) : null,
-				integrand: parseLatex(integralNode.integrand)
-			})
-			i = integralNode.end
-			continue
-		}
-		const bigOpNode = readBigOp(source, i)
-		if (bigOpNode) {
-			flush()
-			nodes.push({
-				type: 'bigop',
-				sign: bigOpNode.sign,
-				inline: bigOpNode.inline,
-				sub: bigOpNode.sub !== null ? parseLatex(bigOpNode.sub) : null,
-				sup: bigOpNode.sup !== null ? parseLatex(bigOpNode.sup) : null,
-				operand: parseLatex(bigOpNode.operand)
-			})
-			i = bigOpNode.end
-			continue
-		}
-		const bracketNode = readBracket(source, i)
-		if (bracketNode) {
-			flush()
-			nodes.push({
-				type: 'bracket',
-				format: bracketNode.format,
-				groups: bracketNode.groups.map((group) => parseLatex(group))
-			})
-			i = bracketNode.end
-			continue
-		}
-		const stackNode = readStack(source, i)
-		if (stackNode) {
-			flush()
-			nodes.push({
-				type: 'stack',
-				style: stackNode.style,
-				rows: stackNode.rows.map((row) => parseLatex(row))
-			})
-			i = stackNode.end
-			continue
-		}
-		const matched = fractionCommands.find(({ command }) => source.startsWith(command, i))
-		if (matched) {
-			let cursor = i + matched.command.length
-			while (/\s/.test(source[cursor] ?? '')) cursor++
-			const numerator = readGroup(source, cursor)
-			if (numerator) {
-				cursor = numerator.end
-				while (/\s/.test(source[cursor] ?? '')) cursor++
-				const denominator = readGroup(source, cursor)
-				if (denominator) {
-					flush()
-					nodes.push({
-						type: 'fraction',
-						style: matched.style,
-						numerator: parseLatex(numerator.content),
-						denominator: parseLatex(denominator.content)
-					})
-					i = denominator.end
-					continue
-				}
-			}
-		}
-		buffer += source[i]
-		i++
-	}
-	flush()
-	return nodes
-}
-
-const createTextSlot = (value: string): HTMLElement => {
-	const slot = document.createElement('span')
-	slot.className = 'me-text-slot'
-	// 用 attribute 而不是 contentEditable property：浏览器中两者等价，jsdom 只认 attribute（单元测试依赖 [contenteditable] 选择器）
-	slot.setAttribute('contenteditable', 'true')
-	slot.spellcheck = false
-	slot.dataset.role = 'text'
-	slot.setAttribute('role', 'textbox')
-	slot.setAttribute('aria-label', t('formula.aria.text'))
-	// 空槽放零宽空格：光标按文本基线定位，而不是落在元素边界上
-	slot.textContent = value || '\u200b'
-	return slot
-}
-
-const createFractionElement = (
-	numerator: ParsedNode[],
-	denominator: ParsedNode[],
-	style: FractionStyle = 'normal'
-): HTMLElement => {
-	const fraction = document.createElement('span')
-	fraction.className = style === 'normal' ? 'me-frac' : `me-frac me-frac--${style}`
-	const num = document.createElement('span')
-	num.className = 'me-frac__num'
-	num.setAttribute('aria-label', t('formula.aria.numerator'))
-	appendNodes(num, numerator)
-	const den = document.createElement('span')
-	den.className = 'me-frac__den'
-	den.setAttribute('aria-label', t('formula.aria.denominator'))
-	appendNodes(den, denominator)
-	if (style === 'skewed') {
-		const slash = document.createElement('span')
-		slash.className = 'me-frac__slash'
-		slash.textContent = '/'
-		slash.setAttribute('aria-hidden', 'true')
-		fraction.append(num, slash, den)
-	} else {
-		fraction.append(num, den)
-	}
-	return fraction
-}
-
-/** 创建上下标节点；pre 为前置上下标，sup / sub 为 null 表示该方向不存在 */
-const createScriptElement = (
-	pre: boolean,
-	sup: ParsedNode[] | null,
-	sub: ParsedNode[] | null
-): HTMLElement => {
-	const script = document.createElement('span')
-	const classes = ['me-script']
-	if (pre) classes.push('me-script--pre')
-	if (sup && sub) classes.push('me-script--both')
-	else if (sup) classes.push('me-script--sup')
-	else classes.push('me-script--sub')
-	script.className = classes.join(' ')
-	if (sup) {
-		const supEl = document.createElement('span')
-		supEl.className = 'me-script__sup'
-		supEl.setAttribute('aria-label', t('formula.aria.sup'))
-		appendNodes(supEl, sup)
-		script.append(supEl)
-	}
-	if (sub) {
-		const subEl = document.createElement('span')
-		subEl.className = 'me-script__sub'
-		subEl.setAttribute('aria-label', t('formula.aria.sub'))
-		appendNodes(subEl, sub)
-		script.append(subEl)
-	}
-	return script
-}
-
-/** 创建根式节点；index 为 null 表示没有根指数 */
-const createRootElement = (index: ParsedNode[] | null, radicand: ParsedNode[]): HTMLElement => {
-	const rootNode = document.createElement('span')
-	rootNode.className = 'me-root'
-	if (index) {
-		rootNode.classList.add('me-root--indexed')
-		const indexEl = document.createElement('span')
-		indexEl.className = 'me-root__index'
-		indexEl.setAttribute('aria-label', t('formula.aria.rootIndex'))
-		appendNodes(indexEl, index)
-		rootNode.append(indexEl)
-	}
-	const sign = document.createElement('span')
-	sign.className = 'me-root__sign'
-	sign.textContent = '√'
-	sign.setAttribute('aria-hidden', 'true')
-	const radicandEl = document.createElement('span')
-	radicandEl.className = 'me-root__radicand'
-	radicandEl.setAttribute('aria-label', t('formula.aria.radicand'))
-	appendNodes(radicandEl, radicand)
-	rootNode.append(sign, radicandEl)
-	return rootNode
-}
-
-/** 创建积分节点；sub / sup 为 null 表示没有对应限界，sign 存到 dataset 供序列化 */
-const createIntegralElement = (
-	sign: string,
-	sub: ParsedNode[] | null,
-	sup: ParsedNode[] | null,
-	integrand: ParsedNode[]
-): HTMLElement => {
-	const integral = document.createElement('span')
-	integral.className = 'me-int'
-	integral.dataset.sign = sign
-	if (sub) {
-		const subEl = document.createElement('span')
-		subEl.className = 'me-int__sub'
-		subEl.setAttribute('aria-label', t('formula.aria.integralSub'))
-		appendNodes(subEl, sub)
-		integral.append(subEl)
-	}
-	if (sup) {
-		const supEl = document.createElement('span')
-		supEl.className = 'me-int__sup'
-		supEl.setAttribute('aria-label', t('formula.aria.integralSup'))
-		appendNodes(supEl, sup)
-		integral.append(supEl)
-	}
-	const signEl = document.createElement('span')
-	signEl.className = 'me-int__sign'
-	signEl.textContent = sign
-	signEl.setAttribute('aria-hidden', 'true')
-	const integrandEl = document.createElement('span')
-	integrandEl.className = 'me-int__integrand'
-	integrandEl.setAttribute('aria-label', t('formula.aria.integrand'))
-	appendNodes(integrandEl, integrand)
-	integral.append(signEl, integrandEl)
-	return integral
-}
-
-/**
- * 创建大型运算符节点；inline 行内式限界排右上/右下（同积分），
- * 堆叠式限界居中于符号正上/正下（Word 求和 / 乘积模板），sign 存到 dataset 供序列化。
- */
-const createBigOpElement = (
-	sign: string,
-	inline: boolean,
-	sub: ParsedNode[] | null,
-	sup: ParsedNode[] | null,
-	operand: ParsedNode[]
-): HTMLElement => {
-	const bigop = document.createElement('span')
-	bigop.className = inline ? 'me-bigop me-bigop--inline' : 'me-bigop'
-	bigop.dataset.sign = sign
-	if (sub) {
-		const subEl = document.createElement('span')
-		subEl.className = 'me-bigop__sub'
-		subEl.setAttribute('aria-label', t(bigOpAriaKey(sign, 'Sub')))
-		appendNodes(subEl, sub)
-		bigop.append(subEl)
-	}
-	if (sup) {
-		const supEl = document.createElement('span')
-		supEl.className = 'me-bigop__sup'
-		supEl.setAttribute('aria-label', t(bigOpAriaKey(sign, 'Sup')))
-		appendNodes(supEl, sup)
-		bigop.append(supEl)
-	}
-	const signEl = document.createElement('span')
-	signEl.className = 'me-bigop__sign'
-	signEl.textContent = sign
-	signEl.setAttribute('aria-hidden', 'true')
-	const operandEl = document.createElement('span')
-	operandEl.className = 'me-bigop__operand'
-	operandEl.setAttribute('aria-label', t(bigOpAriaKey(sign, 'Operand')))
-	appendNodes(operandEl, operand)
-	bigop.append(signEl, operandEl)
-	return bigop
-}
-
-/** 创建括号节点：定界符不可编辑，每段内容各有一个可落光标的文本槽，段间是竖线分隔符 */
-const createBracketElement = (format: BracketFormat, groups: ParsedNode[][]): HTMLElement => {
-	const bracket = document.createElement('span')
-	bracket.className = 'me-bracket'
-	bracket.dataset.bracket = format.id
-	const open = document.createElement('span')
-	// 单侧括号的另一侧是空定界符，不占位
-	open.className = `me-bracket__open me-bracket__delim${format.glyphLeft ? '' : ' me-bracket__delim--empty'}`
-	open.textContent = format.glyphLeft
-	open.setAttribute('aria-hidden', 'true')
-	bracket.append(open)
-	groups.forEach((group, index) => {
-		if (index > 0) {
-			const sep = document.createElement('span')
-			sep.className = 'me-bracket__sep'
-			sep.textContent = '|'
-			sep.setAttribute('aria-hidden', 'true')
-			bracket.append(sep)
-		}
-		const contentEl = document.createElement('span')
-		contentEl.className = 'me-bracket__content'
-		contentEl.setAttribute('aria-label', t('formula.aria.bracketContent'))
-		appendNodes(contentEl, group)
-		bracket.append(contentEl)
-	})
-	const close = document.createElement('span')
-	close.className = `me-bracket__close me-bracket__delim${format.glyphRight ? '' : ' me-bracket__delim--empty'}`
-	close.textContent = format.glyphRight
-	close.setAttribute('aria-hidden', 'true')
-	bracket.append(close)
-	return bracket
-}
-
-/** 取括号节点下所有内容段容器（按 DOM 顺序），单段括号也只返回一个 */
-const getBracketContents = (bracket: HTMLElement): HTMLElement[] =>
-	Array.from(bracket.querySelectorAll(':scope > .me-bracket__content')) as HTMLElement[]
-
-/**
- * 创建竖向堆栈节点：cases 带左侧花括号（虚线可编辑行），matrix 无定界符；
- * 每一行都是独立的行容器，里面有面向用户的文本槽，可上下跨行导航。
- */
-const createStackElement = (style: StackStyle, rows: ParsedNode[][]): HTMLElement => {
-	const stack = document.createElement('span')
-	stack.className = style === 'cases' ? 'me-stack me-stack--cases' : 'me-stack'
-	stack.dataset.stack = style
-	if (style === 'cases') {
-		const brace = document.createElement('span')
-		brace.className = 'me-stack__brace'
-		brace.textContent = '{'
-		brace.setAttribute('aria-hidden', 'true')
-		stack.append(brace)
-	}
-	const rowsEl = document.createElement('span')
-	rowsEl.className = 'me-stack__rows'
-	rows.forEach((row) => {
-		const rowEl = document.createElement('span')
-		rowEl.className = 'me-stack__row'
-		rowEl.setAttribute('aria-label', t('formula.aria.stackRow'))
-		appendNodes(rowEl, row)
-		rowsEl.append(rowEl)
-	})
-	stack.append(rowsEl)
-	return stack
-}
-
-/** 取堆栈节点下所有行容器（按 DOM 顺序） */
-const getStackRows = (stack: HTMLElement): HTMLElement[] =>
-	Array.from(stack.querySelectorAll(':scope > .me-stack__rows > .me-stack__row')) as HTMLElement[]
-
-/** 把解析结果挂到容器上；空内容补一个空文本槽，保证光标有落点 */
-const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
-	if (!nodes.length) {
-		container.append(createTextSlot(''))
-		return
-	}
-	for (const node of nodes) {
-		if (node.type === 'fraction') {
-			container.append(createFractionElement(node.numerator, node.denominator, node.style))
-		} else if (node.type === 'script') {
-			container.append(createScriptElement(node.pre, node.sup, node.sub))
-		} else if (node.type === 'root') {
-			container.append(createRootElement(node.index, node.radicand))
-		} else if (node.type === 'integral') {
-			container.append(createIntegralElement(node.sign, node.sub, node.sup, node.integrand))
-		} else if (node.type === 'bigop') {
-			container.append(createBigOpElement(node.sign, node.inline, node.sub, node.sup, node.operand))
-		} else if (node.type === 'bracket') {
-			const format = bracketFormatById.get(node.format)
-			if (format) container.append(createBracketElement(format, node.groups))
-		} else if (node.type === 'stack') {
-			container.append(createStackElement(node.style, node.rows))
-		} else {
-			container.append(createTextSlot(node.value))
-		}
-	}
-}
+const activeTool = ref<ToolId | null>(null)
+
+const {
+	createTextSlot,
+	createFractionElement,
+	createScriptElement,
+	createRootElement,
+	createIntegralElement,
+	createBigOpElement,
+	createFunctionElement,
+	createDerivElement,
+	createOpElement,
+	createArrowElement,
+	createBracketElement,
+	createStackElement,
+	appendNodes,
+	renderInto
+} = createFormulaRenderer((key) => t(key))
 
 const renderEditor = (source: string) => {
 	const root = editorRef.value
 	if (!root) return
 	root.replaceChildren()
-	appendNodes(root, parseLatex(source))
+	renderInto(root, source)
 	lastSerialized = source
-}
-
-/** 过滤空槽占位用的零宽空格 */
-const stripPlaceholder = (value: string): string => value.replace(/\u200b/g, '')
-
-/** 读取槽位文本，过滤空槽占位用的零宽空格 */
-const readSlotText = (slot: HTMLElement): string => stripPlaceholder(slot.textContent ?? '')
-
-const serializeNodes = (container: HTMLElement): string => {
-	let result = ''
-	let hasContent = false
-	for (const child of Array.from(container.children) as HTMLElement[]) {
-		if (child.classList.contains('me-script')) {
-			const sup = child.querySelector(':scope > .me-script__sup') as HTMLElement | null
-			const sub = child.querySelector(':scope > .me-script__sub') as HTMLElement | null
-			const parts = `${sub ? `_{${serializeNodes(sub)}}` : ''}${sup ? `^{${serializeNodes(sup)}}` : ''}`
-			const isPre = child.classList.contains('me-script--pre')
-			// 后置上下标在容器开头时需要空基底，保证 LaTeX 合法
-			result += `${isPre || !hasContent ? '{}' : ''}${parts}`
-			hasContent = true
-		} else if (child.classList.contains('me-frac')) {
-			const num = child.querySelector(':scope > .me-frac__num') as HTMLElement | null
-			const den = child.querySelector(':scope > .me-frac__den') as HTMLElement | null
-			const numerator = num ? serializeNodes(num) : ''
-			const denominator = den ? serializeNodes(den) : ''
-			if (child.classList.contains('me-frac--skewed')) {
-				result += `{}^{${numerator}}\\!/\\!_{${denominator}}`
-			} else {
-				const command = child.classList.contains('me-frac--small') ? '\\tfrac' : '\\frac'
-				result += `${command}{${numerator}}{${denominator}}`
-			}
-			hasContent = true
-		} else if (child.classList.contains('me-root')) {
-			const indexEl = child.querySelector(':scope > .me-root__index') as HTMLElement | null
-			const radicandEl = child.querySelector(':scope > .me-root__radicand') as HTMLElement | null
-			const index = indexEl ? serializeNodes(indexEl) : ''
-			const radicand = radicandEl ? serializeNodes(radicandEl) : ''
-			result += index ? `\\sqrt[${index}]{${radicand}}` : `\\sqrt{${radicand}}`
-			hasContent = true
-		} else if (child.classList.contains('me-int')) {
-			const sign = child.dataset.sign ?? '∫'
-			const subEl = child.querySelector(':scope > .me-int__sub') as HTMLElement | null
-			const supEl = child.querySelector(':scope > .me-int__sup') as HTMLElement | null
-			const integrandEl = child.querySelector(':scope > .me-int__integrand') as HTMLElement | null
-			const command = integralSignToCommand[sign] ?? '\\int'
-			// 被积函数始终带花括号：空被积函数若省略花括号，后接文本会被解析吞掉（如 \intdx）
-			const sub = subEl !== null ? `_{${serializeNodes(subEl)}}` : ''
-			const sup = supEl !== null ? `^{${serializeNodes(supEl)}}` : ''
-			result += `${command}${sub}${sup}{${integrandEl ? serializeNodes(integrandEl) : ''}}`
-			hasContent = true
-		} else if (child.classList.contains('me-bigop')) {
-			const sign = child.dataset.sign ?? '∑'
-			const subEl = child.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
-			const supEl = child.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
-			const operandEl = child.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
-			const command = bigOpSignToCommand[sign] ?? '\\sum'
-			// 行内式补 \nolimits，渲染时限界排右上/右下而不是上下堆叠
-			const nolimits = child.classList.contains('me-bigop--inline') ? '\\nolimits' : ''
-			// 表达式始终带花括号：空表达式若省略花括号，后接文本会被解析吞掉（如 \sumdx）
-			const sub = subEl !== null ? `_{${serializeNodes(subEl)}}` : ''
-			const sup = supEl !== null ? `^{${serializeNodes(supEl)}}` : ''
-			result += `${command}${nolimits}${sub}${sup}{${operandEl ? serializeNodes(operandEl) : ''}}`
-			hasContent = true
-		} else if (child.classList.contains('me-bracket')) {
-			const formatId = (child.dataset.bracket ?? 'paren') as BracketFormatId
-			const format = bracketFormatById.get(formatId) ?? bracketFormats[0]
-			const contentEls = getBracketContents(child)
-			const inner = contentEls.map((el) => serializeNodes(el)).join('\\middle|')
-			// 左定界符是命令（\langle、\lbrack）时，紧跟字母会被并成非法命令名（如 \langlex）
-			const sep = /[a-zA-Z]$/.test(format.left) && /^[a-zA-Z]/.test(inner) ? ' ' : ''
-			// 右定界符同理：\right\rangle 后紧跟字母会并成 \rangleb
-			const nextEl = child.nextElementSibling as HTMLElement | null
-			const nextText = nextEl?.classList.contains('me-text-slot') ? readSlotText(nextEl) : ''
-			const sepAfter = /[a-zA-Z]$/.test(format.right) && /^[a-zA-Z]/.test(nextText) ? ' ' : ''
-			result += `\\left${format.left}${sep}${inner}\\right${format.right}${sepAfter}`
-			hasContent = true
-		} else if (child.classList.contains('me-stack')) {
-			const style = (child.dataset.stack ?? 'matrix') as StackStyle
-			const rows = getStackRows(child).map((row) => serializeNodes(row))
-			result += `\\begin{${style}}${rows.join('\\\\')}\\end{${style}}`
-			hasContent = true
-		} else if (child.classList.contains('me-text-slot')) {
-			const value = readSlotText(child)
-			if (value) {
-				result += value
-				hasContent = true
-			}
-		}
-	}
-	return result
 }
 
 const serializeEditor = (): string => {
@@ -2134,6 +755,13 @@ type SlotRole =
 	| 'bigopOperand'
 	| 'bracketContent'
 	| 'stackRow'
+	| 'funcSub'
+	| 'funcArg'
+	| 'derivArg'
+	| 'derivLabel'
+	| 'opTop'
+	| 'arrowAbove'
+	| 'arrowBelow'
 	| 'text'
 
 type ActiveSlotInfo = {
@@ -2151,29 +779,49 @@ type ActiveSlotInfo = {
 	/** 光标所在的堆栈行序号与总行数 */
 	stackRow: number
 	stackRows: number
+	func: HTMLElement | null
+	deriv: HTMLElement | null
+	op: HTMLElement | null
+	arrow: HTMLElement | null
 	role: SlotRole
 	atStart: boolean
 	atEnd: boolean
 	collapsed: boolean
 }
 
+/** 文本槽父容器类名 → 槽位角色：渲染、导航与删除共用同一份声明 */
+const SLOT_ROLE_BY_CLASS: Record<string, SlotRole> = {
+	'me-frac__num': 'num',
+	'me-frac__den': 'den',
+	'me-script__sup': 'sup',
+	'me-script__sub': 'sub',
+	'me-root__index': 'rootIndex',
+	'me-root__radicand': 'radicand',
+	'me-int__sub': 'integralSub',
+	'me-int__sup': 'integralSup',
+	'me-int__integrand': 'integrand',
+	'me-bigop__sub': 'bigopSub',
+	'me-bigop__sup': 'bigopSup',
+	'me-bigop__operand': 'bigopOperand',
+	'me-bracket__content': 'bracketContent',
+	'me-stack__row': 'stackRow',
+	'me-func__sub': 'funcSub',
+	'me-func__arg': 'funcArg',
+	'me-deriv__arg': 'derivArg',
+	'me-deriv__label': 'derivLabel',
+	'me-op__top': 'opTop',
+	'me-arrow__above': 'arrowAbove',
+	'me-arrow__below': 'arrowBelow'
+}
+
 /** 根据文本槽的父容器判断它属于分子、分母、上标、下标、根指数、被开方数、积分限界/被积函数还是根级文本 */
 const getSlotRole = (slot: HTMLElement): SlotRole => {
 	const parent = slot.parentElement
-	if (parent?.classList.contains('me-frac__num')) return 'num'
-	if (parent?.classList.contains('me-frac__den')) return 'den'
-	if (parent?.classList.contains('me-script__sup')) return 'sup'
-	if (parent?.classList.contains('me-script__sub')) return 'sub'
-	if (parent?.classList.contains('me-root__index')) return 'rootIndex'
-	if (parent?.classList.contains('me-root__radicand')) return 'radicand'
-	if (parent?.classList.contains('me-int__sub')) return 'integralSub'
-	if (parent?.classList.contains('me-int__sup')) return 'integralSup'
-	if (parent?.classList.contains('me-int__integrand')) return 'integrand'
-	if (parent?.classList.contains('me-bigop__sub')) return 'bigopSub'
-	if (parent?.classList.contains('me-bigop__sup')) return 'bigopSup'
-	if (parent?.classList.contains('me-bigop__operand')) return 'bigopOperand'
-	if (parent?.classList.contains('me-bracket__content')) return 'bracketContent'
-	if (parent?.classList.contains('me-stack__row')) return 'stackRow'
+	if (!parent) return 'text'
+	for (const className of Array.from(parent.classList)) {
+		const role = SLOT_ROLE_BY_CLASS[className]
+		if (role) return role
+	}
 	return 'text'
 }
 
@@ -2221,11 +869,104 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 		stack: stackEl,
 		stackRow: stackRowIndex >= 0 ? stackRowIndex : 0,
 		stackRows: stackRows.length,
+		func: (slot.closest('.me-func') as HTMLElement | null) ?? null,
+		deriv: (slot.closest('.me-deriv') as HTMLElement | null) ?? null,
+		op: (slot.closest('.me-op') as HTMLElement | null) ?? null,
+		arrow: (slot.closest('.me-arrow') as HTMLElement | null) ?? null,
 		role: getSlotRole(slot),
 		atStart: stripPlaceholder(before.toString()).length === 0,
 		atEnd: stripPlaceholder(after.toString()).length === 0,
 		collapsed: selection.isCollapsed
 	}
+}
+
+/** 结构化节点顶层类名：外部左右键与退格 / Delete 都按整块处理 */
+const ATOM_CLASSES = [
+	'me-frac',
+	'me-script',
+	'me-root',
+	'me-int',
+	'me-bigop',
+	'me-bracket',
+	'me-stack',
+	'me-func',
+	'me-deriv',
+	'me-op',
+	'me-arrow'
+]
+
+const ATOM_SELECTOR = ATOM_CLASSES.map((name) => '.' + name).join(', ')
+
+/** 边缘槽查询：`first` 按优先级取第一个存在的子容器，`list` 按 DOM 顺序取首 / 末段 */
+type EdgeQuery =
+	| { kind: 'first'; selectors: string[] }
+	| { kind: 'list'; selector: string }
+
+const firstEdge = (...selectors: string[]): EdgeQuery => ({ kind: 'first', selectors })
+const listEdge = (selector: string): EdgeQuery => ({ kind: 'list', selector })
+
+/** 各结构化节点在最左 / 最右边缘优先进入的子容器 */
+const EDGE_PARTS: Record<string, { start: EdgeQuery; end: EdgeQuery }> = {
+	'me-frac': {
+		start: firstEdge('.me-frac__num'),
+		end: firstEdge('.me-frac__den')
+	},
+	'me-script': {
+		start: firstEdge('.me-script__sup', '.me-script__sub'),
+		end: firstEdge('.me-script__sub', '.me-script__sup')
+	},
+	'me-root': {
+		start: firstEdge('.me-root__index', '.me-root__radicand'),
+		end: firstEdge('.me-root__radicand')
+	},
+	'me-int': {
+		start: firstEdge('.me-int__sub', '.me-int__sup', '.me-int__integrand'),
+		end: firstEdge('.me-int__integrand')
+	},
+	'me-bigop': {
+		start: firstEdge('.me-bigop__sub', '.me-bigop__sup', '.me-bigop__operand'),
+		end: firstEdge('.me-bigop__operand')
+	},
+	'me-bracket': {
+		start: listEdge(':scope > .me-bracket__content'),
+		end: listEdge(':scope > .me-bracket__content')
+	},
+	'me-stack': {
+		start: listEdge(':scope > .me-stack__rows > .me-stack__row'),
+		end: listEdge(':scope > .me-stack__rows > .me-stack__row')
+	},
+	'me-func': {
+		start: firstEdge('.me-func__sub', '.me-func__arg'),
+		end: firstEdge('.me-func__arg')
+	},
+	'me-deriv': {
+		start: listEdge(':scope > .me-deriv__arg, :scope > .me-deriv__label'),
+		end: listEdge(':scope > .me-deriv__arg, :scope > .me-deriv__label')
+	},
+	'me-op': {
+		start: firstEdge('.me-op__top'),
+		end: firstEdge('.me-op__top')
+	},
+	'me-arrow': {
+		start: firstEdge('.me-arrow__above', '.me-arrow__below'),
+		end: firstEdge('.me-arrow__below', '.me-arrow__above')
+	}
+}
+
+const resolveEdgePart = (
+	atom: HTMLElement,
+	query: EdgeQuery,
+	side: 'start' | 'end'
+): HTMLElement | null => {
+	if (query.kind === 'first') {
+		for (const selector of query.selectors) {
+			const part = atom.querySelector(`:scope > ${selector}`) as HTMLElement | null
+			if (part) return part
+		}
+		return null
+	}
+	const parts = Array.from(atom.querySelectorAll(query.selector)) as HTMLElement[]
+	return (side === 'start' ? parts[0] : parts[parts.length - 1]) ?? null
 }
 
 /** 取容器内最左/最右的可编辑槽位，分式/上下标会递归进入对应子容器 */
@@ -2234,58 +975,12 @@ const getEdgeSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement
 	const ordered = side === 'start' ? children : [...children].reverse()
 	for (const child of ordered) {
 		if (child.classList.contains('me-text-slot')) return child
-		if (child.classList.contains('me-frac')) {
-			const part = child.querySelector(
-				side === 'start' ? ':scope > .me-frac__num' : ':scope > .me-frac__den'
-			) as HTMLElement | null
-			if (part) return getEdgeSlot(part, side)
-		}
-		if (child.classList.contains('me-script')) {
-			const part = child.querySelector(
-				side === 'start' ? ':scope > .me-script__sup' : ':scope > .me-script__sub'
-			) as HTMLElement | null
-			if (part) return getEdgeSlot(part, side)
-			const fallback = child.querySelector(
-				':scope > .me-script__sup, :scope > .me-script__sub'
-			) as HTMLElement | null
-			if (fallback) return getEdgeSlot(fallback, side)
-		}
-		if (child.classList.contains('me-root')) {
-			const indexEl = child.querySelector(':scope > .me-root__index') as HTMLElement | null
-			if (side === 'start' && indexEl) return getEdgeSlot(indexEl, side)
-			const radicandEl = child.querySelector(':scope > .me-root__radicand') as HTMLElement | null
-			if (radicandEl) return getEdgeSlot(radicandEl, side)
-		}
-		if (child.classList.contains('me-int')) {
-			if (side === 'start') {
-				const subEl = child.querySelector(':scope > .me-int__sub') as HTMLElement | null
-				const supEl = child.querySelector(':scope > .me-int__sup') as HTMLElement | null
-				const part = subEl ?? supEl
-				if (part) return getEdgeSlot(part, side)
-			}
-			const integrandEl = child.querySelector(':scope > .me-int__integrand') as HTMLElement | null
-			if (integrandEl) return getEdgeSlot(integrandEl, side)
-		}
-		if (child.classList.contains('me-bigop')) {
-			if (side === 'start') {
-				const subEl = child.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
-				const supEl = child.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
-				const part = subEl ?? supEl
-				if (part) return getEdgeSlot(part, side)
-			}
-			const operandEl = child.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
-			if (operandEl) return getEdgeSlot(operandEl, side)
-		}
-		if (child.classList.contains('me-bracket')) {
-			const contents = getBracketContents(child)
-			const contentEl = side === 'start' ? contents[0] : contents[contents.length - 1]
-			if (contentEl) return getEdgeSlot(contentEl, side)
-		}
-		if (child.classList.contains('me-stack')) {
-			const rows = getStackRows(child)
-			const rowEl = side === 'start' ? rows[0] : rows[rows.length - 1]
-			if (rowEl) return getEdgeSlot(rowEl, side)
-		}
+		const atomClass = ATOM_CLASSES.find((name) => child.classList.contains(name))
+		if (!atomClass) continue
+		const parts = EDGE_PARTS[atomClass]
+		if (!parts) continue
+		const part = resolveEdgePart(child, parts[side], side)
+		if (part) return getEdgeSlot(part, side)
 	}
 	const slot = createTextSlot('')
 	if (side === 'start') container.prepend(slot)
@@ -2293,71 +988,78 @@ const getEdgeSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement
 	return slot
 }
 
-/** 聚焦上下标节点内的槽位：优先上标，其次下标 */
-const focusScriptSlot = (script: HTMLElement, prefer: 'sup' | 'sub' = 'sup', select = false): boolean => {
-	const sup = script.querySelector(':scope > .me-script__sup') as HTMLElement | null
-	const sub = script.querySelector(':scope > .me-script__sub') as HTMLElement | null
-	const target = prefer === 'sub' ? (sub ?? sup) : (sup ?? sub)
-	if (!target) return false
-	focusSlot(getEdgeSlot(target, 'start'), select, 'start')
-	return true
+/** 聚焦节点内第一个存在的子容器（按 selectors 优先级），并把光标落到指定边缘 */
+const focusPart = (
+	atom: HTMLElement,
+	selectors: string[],
+	side: 'start' | 'end' = 'start',
+	select = false
+): boolean => {
+	for (const selector of selectors) {
+		const part = atom.querySelector(`:scope > ${selector}`) as HTMLElement | null
+		if (part) {
+			focusSlot(getEdgeSlot(part, side), select, side)
+			return true
+		}
+	}
+	return false
 }
+
+/** 聚焦上下标节点内的槽位：优先上标，其次下标 */
+const focusScriptSlot = (script: HTMLElement, prefer: 'sup' | 'sub' = 'sup', select = false): boolean =>
+	focusPart(
+		script,
+		prefer === 'sub' ? ['.me-script__sub', '.me-script__sup'] : ['.me-script__sup', '.me-script__sub'],
+		'start',
+		select
+	)
 
 /** 聚焦根式节点内的槽位：优先根指数，其次被开方数 */
 const focusRootSlot = (
 	rootNode: HTMLElement,
 	prefer: 'index' | 'radicand' = 'radicand',
 	select = false
-): boolean => {
-	const indexEl = rootNode.querySelector(':scope > .me-root__index') as HTMLElement | null
-	const radicandEl = rootNode.querySelector(':scope > .me-root__radicand') as HTMLElement | null
-	const target = prefer === 'index' ? (indexEl ?? radicandEl) : (radicandEl ?? indexEl)
-	if (!target) return false
-	focusSlot(getEdgeSlot(target, 'start'), select, 'start')
-	return true
-}
+): boolean =>
+	focusPart(
+		rootNode,
+		prefer === 'index' ? ['.me-root__index', '.me-root__radicand'] : ['.me-root__radicand', '.me-root__index'],
+		'start',
+		select
+	)
 
 /** 聚焦积分节点内的槽位：按 prefer 优先级选 sub / sup / integrand */
 const focusIntegralSlot = (
 	integral: HTMLElement,
 	prefer: 'sub' | 'sup' | 'integrand' = 'integrand',
 	select = false
-): boolean => {
-	const subEl = integral.querySelector(':scope > .me-int__sub') as HTMLElement | null
-	const supEl = integral.querySelector(':scope > .me-int__sup') as HTMLElement | null
-	const integrandEl = integral.querySelector(':scope > .me-int__integrand') as HTMLElement | null
-	const pool: (HTMLElement | null)[] =
+): boolean =>
+	focusPart(
+		integral,
 		prefer === 'sub'
-			? [subEl, supEl, integrandEl]
+			? ['.me-int__sub', '.me-int__sup', '.me-int__integrand']
 			: prefer === 'sup'
-				? [supEl, subEl, integrandEl]
-				: [integrandEl, supEl, subEl]
-	const target = pool.find(Boolean) ?? null
-	if (!target) return false
-	focusSlot(getEdgeSlot(target, 'start'), select, 'start')
-	return true
-}
+				? ['.me-int__sup', '.me-int__sub', '.me-int__integrand']
+				: ['.me-int__integrand', '.me-int__sup', '.me-int__sub'],
+		'start',
+		select
+	)
 
 /** 聚焦求和节点内的槽位：按 prefer 优先级选 sub / sup / operand */
 const focusBigOpSlot = (
 	bigop: HTMLElement,
 	prefer: 'sub' | 'sup' | 'operand' = 'operand',
 	select = false
-): boolean => {
-	const subEl = bigop.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
-	const supEl = bigop.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
-	const operandEl = bigop.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
-	const pool: (HTMLElement | null)[] =
+): boolean =>
+	focusPart(
+		bigop,
 		prefer === 'sub'
-			? [subEl, supEl, operandEl]
+			? ['.me-bigop__sub', '.me-bigop__sup', '.me-bigop__operand']
 			: prefer === 'sup'
-				? [supEl, subEl, operandEl]
-				: [operandEl, supEl, subEl]
-	const target = pool.find(Boolean) ?? null
-	if (!target) return false
-	focusSlot(getEdgeSlot(target, 'start'), select, 'start')
-	return true
-}
+				? ['.me-bigop__sup', '.me-bigop__sub', '.me-bigop__operand']
+				: ['.me-bigop__operand', '.me-bigop__sup', '.me-bigop__sub'],
+		'start',
+		select
+	)
 
 /** 聚焦括号内容槽：带分隔符时按 group 定位到对应段 */
 const focusBracketSlot = (bracket: HTMLElement, select = false, group = 0): boolean => {
@@ -2377,6 +1079,56 @@ const focusStackRow = (stack: HTMLElement, row: number, select = false): boolean
 	return true
 }
 
+/** 聚焦函数的下标槽（底数 / 极限条件） */
+const focusFunctionSub = (
+	func: HTMLElement,
+	side: 'start' | 'end' = 'start',
+	select = false
+): boolean => focusPart(func, ['.me-func__sub'], side, select)
+
+/** 聚焦函数的槽位：prefer 决定优先落在下标（底数 / 极限条件）还是参数；没下标时回退到参数 */
+const focusFunctionSlot = (
+	func: HTMLElement,
+	prefer: 'arg' | 'sub' = 'arg',
+	select = false
+): boolean =>
+	focusPart(
+		func,
+		prefer === 'sub' ? ['.me-func__sub', '.me-func__arg'] : ['.me-func__arg', '.me-func__sub'],
+		'start',
+		select
+	)
+
+/** 聚焦导数节点的参数槽 */
+const focusDerivSlot = (
+	deriv: HTMLElement,
+	select = false,
+	side: 'start' | 'end' = 'start'
+): boolean => focusPart(deriv, ['.me-deriv__arg'], side, select)
+
+/** 聚焦带标记花括号的标签槽 */
+const focusDerivLabel = (
+	deriv: HTMLElement,
+	side: 'start' | 'end' = 'start',
+	select = false
+): boolean => focusPart(deriv, ['.me-deriv__label'], side, select)
+
+/** 聚焦上置叠等号节点的记号槽 */
+const focusOpSlot = (op: HTMLElement, side: 'start' | 'end' = 'start'): boolean =>
+	focusPart(op, ['.me-op__top'], side)
+
+/** 聚焦箭头标注节点的槽位：优先标注槽本身，否则退到唯一槽（上方 / 下方） */
+const focusArrowSlot = (
+	arrow: HTMLElement,
+	slot: 'above' | 'below' = 'above',
+	side: 'start' | 'end' = 'start'
+): boolean =>
+	focusPart(
+		arrow,
+		slot === 'above' ? ['.me-arrow__above', '.me-arrow__below'] : ['.me-arrow__below', '.me-arrow__above'],
+		side
+	)
+
 /** 取容器内同级的文本槽（不进入嵌套分式），没有就在对应边缘创建一个 */
 const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HTMLElement => {
 	const children = Array.from(container.children) as HTMLElement[]
@@ -2388,17 +1140,18 @@ const ensureDirectTextSlot = (container: HTMLElement, side: 'start' | 'end'): HT
 	return slot
 }
 
-const isAtomElement = (element: HTMLElement): boolean =>
-	element.classList.contains('me-frac') ||
-	element.classList.contains('me-script') ||
-	element.classList.contains('me-root') ||
-	element.classList.contains('me-int') ||
-	element.classList.contains('me-bigop') ||
-	element.classList.contains('me-bracket') ||
-	element.classList.contains('me-stack')
+/** 结构化节点内部承载内容的槽位容器：嵌套节点向外移动时先停在容器这一层 */
+const SLOT_CONTAINER_SELECTOR = Object.keys(SLOT_ROLE_BY_CLASS)
+	.map((name) => '.' + name)
+	.join(', ')
+
+const isSlotContainer = (element: HTMLElement): boolean =>
+	element.matches(SLOT_CONTAINER_SELECTOR)
+
+const isAtomElement = (element: HTMLElement): boolean => element.matches(ATOM_SELECTOR)
 
 /**
- * 在根级或分式的分子/分母容器内左右移动。
+ * 在同级节点之间左右移动，嵌套结构按槽位容器逐层进出。
  * 公式在外部视为整体：从公式外按左右键会跨过整座公式，只有从公式内部向外移动时才落在它紧邻的位置。
  */
 const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boolean => {
@@ -2407,51 +1160,46 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 	const parent = node.parentElement
 	if (!parent) return false
 	const isAtom = isAtomElement(node)
+	const owner = parent.parentElement
 
-	const focusNumeratorEnd = (fraction: HTMLElement): boolean => {
-		const numerator = fraction.querySelector(':scope > .me-frac__num') as HTMLElement | null
-		if (!numerator) return false
-		focusSlot(getEdgeSlot(numerator, 'end'), false, 'end')
-		return true
-	}
-
-	const focusDenominatorStart = (fraction: HTMLElement): boolean => {
-		const denominator = fraction.querySelector(':scope > .me-frac__den') as HTMLElement | null
-		if (!denominator) return false
-		focusSlot(getEdgeSlot(denominator, 'start'), false, 'start')
-		return true
-	}
-
-	const focusRootIndexEnd = (rootNode: HTMLElement): boolean => {
-		const indexEl = rootNode.querySelector(':scope > .me-root__index') as HTMLElement | null
-		if (!indexEl) return false
-		focusSlot(getEdgeSlot(indexEl, 'end'), false, 'end')
-		return true
-	}
-
-	const focusRootRadicandStart = (rootNode: HTMLElement): boolean => {
-		const radicandEl = rootNode.querySelector(':scope > .me-root__radicand') as HTMLElement | null
-		if (!radicandEl) return false
-		focusSlot(getEdgeSlot(radicandEl, 'start'), false, 'start')
-		return true
-	}
-
-	const focusIntegralLimitsEnd = (integral: HTMLElement): boolean => {
-		const supEl = integral.querySelector(':scope > .me-int__sup') as HTMLElement | null
-		const subEl = integral.querySelector(':scope > .me-int__sub') as HTMLElement | null
-		const target = supEl ?? subEl
-		if (!target) return false
-		focusSlot(getEdgeSlot(target, 'end'), false, 'end')
-		return true
-	}
-
-	const focusBigOpLimitsEnd = (bigop: HTMLElement): boolean => {
-		const supEl = bigop.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
-		const subEl = bigop.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
-		const target = supEl ?? subEl
-		if (!target) return false
-		focusSlot(getEdgeSlot(target, 'end'), false, 'end')
-		return true
+	/** 嵌套节点向左退出槽位容器：先回到外层节点的前一个槽位，再整块跳出 */
+	const exitLeft = (nestedSlot: boolean, directSlot: boolean): boolean => {
+		if (
+			directSlot &&
+			(parent.classList.contains('me-frac__num') || parent.classList.contains('me-root__index'))
+		) {
+			focusSlot(ensureDirectTextSlot(parent, 'start'), false, 'end')
+			return true
+		}
+		if (parent.classList.contains('me-frac__den')) {
+			return owner ? focusPart(owner, ['.me-frac__num'], 'end') : false
+		}
+		if (parent.classList.contains('me-root__radicand')) {
+			return (
+				(owner ? focusPart(owner, ['.me-root__index'], 'end') : false) ||
+				(owner ? moveSibling(owner, 'left') : false)
+			)
+		}
+		if (parent.classList.contains('me-int__integrand')) {
+			return (
+				(owner ? focusPart(owner, ['.me-int__sup', '.me-int__sub'], 'end') : false) ||
+				(owner ? moveSibling(owner, 'left') : false)
+			)
+		}
+		if (parent.classList.contains('me-bigop__operand')) {
+			return (
+				(owner ? focusPart(owner, ['.me-bigop__sup', '.me-bigop__sub'], 'end') : false) ||
+				(owner ? moveSibling(owner, 'left') : false)
+			)
+		}
+		// 嵌套节点先退到所在槽位容器这一层，再按一次才离开外层节点
+		if (nestedSlot && isSlotContainer(parent)) {
+			const slot = createTextSlot('')
+			node.before(slot)
+			focusSlot(slot, false, 'end')
+			return true
+		}
+		return owner ? moveSibling(owner, 'left') : false
 	}
 
 	if (direction === 'left') {
@@ -2469,26 +1217,7 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 				focusSlot(slot, false, 'end')
 				return true
 			}
-			if (parent.classList.contains('me-frac__num') || parent.classList.contains('me-root__index')) {
-				focusSlot(ensureDirectTextSlot(parent, 'start'), false, 'end')
-				return true
-			}
-			if (parent.classList.contains('me-frac__den')) {
-				return focusNumeratorEnd(parent.parentElement as HTMLElement)
-			}
-			if (parent.classList.contains('me-root__radicand')) {
-				const rootNode = parent.parentElement as HTMLElement
-				return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
-			}
-			if (parent.classList.contains('me-int__integrand')) {
-				const integral = parent.parentElement as HTMLElement
-				return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
-			}
-			if (parent.classList.contains('me-bigop__operand')) {
-				const bigop = parent.parentElement as HTMLElement
-				return focusBigOpLimitsEnd(bigop) || moveSibling(bigop, 'left')
-			}
-			return moveSibling(parent.parentElement as HTMLElement, 'left')
+			return exitLeft(true, true)
 		}
 
 		// 已在公式外部：跨过相邻的整座公式，落到更左侧的文本槽
@@ -2510,47 +1239,13 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 				focusSlot(slot, false, 'end')
 				return true
 			}
-			if (parent.classList.contains('me-frac__num') || parent.classList.contains('me-root__index')) {
-				focusSlot(ensureDirectTextSlot(parent, 'start'), false, 'end')
-				return true
-			}
-			if (parent.classList.contains('me-frac__den')) {
-				return focusNumeratorEnd(parent.parentElement as HTMLElement)
-			}
-			if (parent.classList.contains('me-root__radicand')) {
-				const rootNode = parent.parentElement as HTMLElement
-				return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
-			}
-			if (parent.classList.contains('me-int__integrand')) {
-				const integral = parent.parentElement as HTMLElement
-				return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
-			}
-			if (parent.classList.contains('me-bigop__operand')) {
-				const bigop = parent.parentElement as HTMLElement
-				return focusBigOpLimitsEnd(bigop) || moveSibling(bigop, 'left')
-			}
-			return moveSibling(parent.parentElement as HTMLElement, 'left')
+			return exitLeft(false, true)
 		}
 
-	// 左侧没有节点
-	if (parent === root) return false
-	if (parent.classList.contains('me-frac__den')) {
-		return focusNumeratorEnd(parent.parentElement as HTMLElement)
+		// 左侧没有节点
+		if (parent === root) return false
+		return exitLeft(false, false)
 	}
-	if (parent.classList.contains('me-root__radicand')) {
-		const rootNode = parent.parentElement as HTMLElement
-		return focusRootIndexEnd(rootNode) || moveSibling(rootNode, 'left')
-	}
-	if (parent.classList.contains('me-int__integrand')) {
-		const integral = parent.parentElement as HTMLElement
-		return focusIntegralLimitsEnd(integral) || moveSibling(integral, 'left')
-	}
-	if (parent.classList.contains('me-bigop__operand')) {
-		const bigop = parent.parentElement as HTMLElement
-		return focusBigOpLimitsEnd(bigop) || moveSibling(bigop, 'left')
-	}
-	return moveSibling(parent.parentElement as HTMLElement, 'left')
-}
 
 	const next = node.nextElementSibling as HTMLElement | null
 
@@ -2570,7 +1265,14 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 			focusSlot(ensureDirectTextSlot(parent, 'end'), false, 'start')
 			return true
 		}
-		return moveSibling(parent.parentElement as HTMLElement, 'right')
+		// 嵌套节点先退到所在槽位容器这一层，再按一次才离开外层节点
+		if (isSlotContainer(parent)) {
+			const slot = createTextSlot('')
+			node.after(slot)
+			focusSlot(slot, false, 'start')
+			return true
+		}
+		return owner ? moveSibling(owner, 'right') : false
 	}
 
 	// 已在公式外部：跨过相邻的整座公式，落到更右侧的文本槽
@@ -2596,264 +1298,360 @@ const moveSibling = (node: HTMLElement | null, direction: 'left' | 'right'): boo
 			focusSlot(ensureDirectTextSlot(parent, 'end'), false, 'start')
 			return true
 		}
-		return moveSibling(parent.parentElement as HTMLElement, 'right')
+		return owner ? moveSibling(owner, 'right') : false
 	}
 
 	// 右侧没有节点
 	if (parent === root) return false
 	if (parent.classList.contains('me-frac__num')) {
-		return focusDenominatorStart(parent.parentElement as HTMLElement)
+		return owner ? focusPart(owner, ['.me-frac__den'], 'start') : false
 	}
 	if (parent.classList.contains('me-root__index')) {
-		return focusRootRadicandStart(parent.parentElement as HTMLElement)
+		return owner ? focusPart(owner, ['.me-root__radicand'], 'start') : false
 	}
-	return moveSibling(parent.parentElement as HTMLElement, 'right')
+	return owner ? moveSibling(owner, 'right') : false
+}
+
+type ArrowKey = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight'
+type NavEdge = 'start' | 'end'
+type NavOwner =
+	| 'fraction'
+	| 'script'
+	| 'rootNode'
+	| 'integral'
+	| 'bigop'
+	| 'bracket'
+	| 'stack'
+	| 'func'
+	| 'deriv'
+	| 'op'
+	| 'arrow'
+type NavCondition = (info: ActiveSlotInfo) => boolean
+type NavTarget =
+	| { kind: 'slot'; selector: string; edge: NavEdge }
+	| { kind: 'atom'; direction: 'left' | 'right' }
+	| { kind: 'sibling'; direction: 'left' | 'right' }
+	| { kind: 'bracketGroup'; delta: number }
+	| { kind: 'stackRow'; delta: number }
+type ArrowRule = { key: ArrowKey; when?: NavCondition; targets: NavTarget[] }
+type ArrowSpec = { owner?: NavOwner; rules: ArrowRule[] }
+
+const atStart: NavCondition = (info) => info.atStart
+const atEnd: NavCondition = (info) => info.atEnd
+const derivUnder: NavCondition = (info) => Boolean(info.deriv?.classList.contains('me-deriv--under'))
+const derivLabeled: NavCondition = (info) => Boolean(info.deriv?.classList.contains('me-deriv--labeled'))
+
+const slotTo = (selector: string, edge: NavEdge = 'start'): NavTarget => ({
+	kind: 'slot',
+	selector,
+	edge
+})
+const atomTo = (direction: 'left' | 'right'): NavTarget => ({ kind: 'atom', direction })
+const siblingTo = (direction: 'left' | 'right'): NavTarget => ({ kind: 'sibling', direction })
+const bracketGroupTo = (delta: number): NavTarget => ({ kind: 'bracketGroup', delta })
+const stackRowTo = (delta: number): NavTarget => ({ kind: 'stackRow', delta })
+
+const focusNavTarget = (
+	info: ActiveSlotInfo,
+	owner: HTMLElement | null,
+	target: NavTarget
+): boolean => {
+	switch (target.kind) {
+		case 'slot': {
+			const part = owner?.querySelector(`:scope > ${target.selector}`) as HTMLElement | null
+			if (!part) return false
+			focusSlot(getEdgeSlot(part, target.edge), false, target.edge)
+			return true
+		}
+		case 'atom':
+			return owner ? moveSibling(owner, target.direction) : false
+		case 'sibling':
+			return moveSibling(info.slot, target.direction)
+		case 'bracketGroup': {
+			const group = info.bracketGroup + target.delta
+			if (!info.bracket || group < 0 || group >= info.bracketGroups) return false
+			return focusBracketSlot(info.bracket, false, group)
+		}
+		case 'stackRow': {
+			const row = info.stackRow + target.delta
+			if (!info.stack || row < 0 || row >= info.stackRows) return false
+			return focusStackRow(info.stack, row)
+		}
+	}
+}
+
+/** 方向键导航表：每个槽位角色声明「键 → 目标序列」，首个可用目标胜出 */
+const ARROW_NAV: Partial<Record<SlotRole, ArrowSpec>> = {
+	num: {
+		owner: 'fraction',
+		rules: [
+			{ key: 'ArrowDown', targets: [slotTo('.me-frac__den')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] },
+			{ key: 'ArrowUp', targets: [atomTo('left')] }
+		]
+	},
+	den: {
+		owner: 'fraction',
+		rules: [
+			{ key: 'ArrowUp', targets: [slotTo('.me-frac__num', 'end')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] },
+			{ key: 'ArrowDown', targets: [atomTo('right')] }
+		]
+	},
+	rootIndex: {
+		owner: 'rootNode',
+		rules: [
+			{ key: 'ArrowDown', targets: [slotTo('.me-root__radicand')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [slotTo('.me-root__radicand')] },
+			{ key: 'ArrowUp', targets: [atomTo('left')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] }
+		]
+	},
+	radicand: {
+		owner: 'rootNode',
+		rules: [
+			{ key: 'ArrowUp', targets: [slotTo('.me-root__index', 'end'), atomTo('left')] },
+			{
+				key: 'ArrowLeft',
+				when: atStart,
+				targets: [slotTo('.me-root__index', 'end'), atomTo('left')]
+			},
+			{ key: 'ArrowDown', targets: [atomTo('right')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] }
+		]
+	},
+	sup: {
+		owner: 'script',
+		rules: [
+			{ key: 'ArrowDown', targets: [slotTo('.me-script__sub')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] }
+		]
+	},
+	sub: {
+		owner: 'script',
+		rules: [
+			{ key: 'ArrowUp', targets: [slotTo('.me-script__sup', 'end')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] }
+		]
+	},
+	integralSub: {
+		owner: 'integral',
+		rules: [
+			{ key: 'ArrowUp', targets: [slotTo('.me-int__sup', 'end')] },
+			{
+				key: 'ArrowRight',
+				when: atEnd,
+				targets: [slotTo('.me-int__sup'), siblingTo('right')]
+			},
+			{ key: 'ArrowDown', targets: [slotTo('.me-int__integrand')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] }
+		]
+	},
+	integralSup: {
+		owner: 'integral',
+		rules: [
+			{ key: 'ArrowDown', targets: [slotTo('.me-int__sub'), slotTo('.me-int__integrand')] },
+			{
+				key: 'ArrowLeft',
+				when: atStart,
+				targets: [slotTo('.me-int__sub', 'end'), siblingTo('left')]
+			},
+			{ key: 'ArrowRight', when: atEnd, targets: [slotTo('.me-int__integrand')] },
+			{ key: 'ArrowUp', targets: [atomTo('left')] }
+		]
+	},
+	integrand: {
+		owner: 'integral',
+		rules: [
+			{
+				key: 'ArrowUp',
+				targets: [slotTo('.me-int__sup', 'end'), slotTo('.me-int__sub', 'end'), atomTo('left')]
+			},
+			{
+				key: 'ArrowLeft',
+				when: atStart,
+				targets: [slotTo('.me-int__sup', 'end'), slotTo('.me-int__sub', 'end'), atomTo('left')]
+			},
+			{ key: 'ArrowDown', targets: [atomTo('right')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] }
+		]
+	},
+	bigopSub: {
+		owner: 'bigop',
+		rules: [
+			{ key: 'ArrowUp', targets: [slotTo('.me-bigop__sup', 'end')] },
+			{
+				key: 'ArrowRight',
+				when: atEnd,
+				targets: [slotTo('.me-bigop__sup'), slotTo('.me-bigop__operand'), siblingTo('right')]
+			},
+			{ key: 'ArrowDown', targets: [slotTo('.me-bigop__operand')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] }
+		]
+	},
+	bigopSup: {
+		owner: 'bigop',
+		rules: [
+			{
+				key: 'ArrowDown',
+				targets: [slotTo('.me-bigop__sub'), slotTo('.me-bigop__operand')]
+			},
+			{
+				key: 'ArrowLeft',
+				when: atStart,
+				targets: [slotTo('.me-bigop__sub', 'end'), siblingTo('left')]
+			},
+			{ key: 'ArrowRight', when: atEnd, targets: [slotTo('.me-bigop__operand')] },
+			{ key: 'ArrowUp', targets: [atomTo('left')] }
+		]
+	},
+	bigopOperand: {
+		owner: 'bigop',
+		rules: [
+			{
+				key: 'ArrowUp',
+				targets: [
+					slotTo('.me-bigop__sup', 'end'),
+					slotTo('.me-bigop__sub', 'end'),
+					atomTo('left')
+				]
+			},
+			{
+				key: 'ArrowLeft',
+				when: atStart,
+				targets: [
+					slotTo('.me-bigop__sup', 'end'),
+					slotTo('.me-bigop__sub', 'end'),
+					atomTo('left')
+				]
+			},
+			{ key: 'ArrowDown', targets: [atomTo('right')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] }
+		]
+	},
+	bracketContent: {
+		owner: 'bracket',
+		rules: [
+			{
+				key: 'ArrowLeft',
+				when: atStart,
+				targets: [bracketGroupTo(-1), atomTo('left')]
+			},
+			{ key: 'ArrowRight', when: atEnd, targets: [bracketGroupTo(1), atomTo('right')] },
+			{ key: 'ArrowUp', targets: [atomTo('left')] },
+			{ key: 'ArrowDown', targets: [atomTo('right')] }
+		]
+	},
+	stackRow: {
+		owner: 'stack',
+		rules: [
+			{ key: 'ArrowUp', targets: [stackRowTo(-1), atomTo('left')] },
+			{ key: 'ArrowDown', targets: [stackRowTo(1), atomTo('right')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] }
+		]
+	},
+	funcSub: {
+		owner: 'func',
+		rules: [
+			{ key: 'ArrowRight', when: atEnd, targets: [slotTo('.me-func__arg'), slotTo('.me-func__sub')] },
+			{ key: 'ArrowDown', when: atEnd, targets: [slotTo('.me-func__arg'), slotTo('.me-func__sub')] },
+			{ key: 'ArrowUp', targets: [atomTo('left')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [atomTo('left')] }
+		]
+	},
+	funcArg: {
+		owner: 'func',
+		rules: [
+			{ key: 'ArrowUp', targets: [slotTo('.me-func__sub', 'end'), atomTo('left')] },
+			{
+				key: 'ArrowLeft',
+				when: atStart,
+				targets: [slotTo('.me-func__sub', 'end'), atomTo('left')]
+			},
+			{ key: 'ArrowDown', targets: [atomTo('right')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [atomTo('right')] }
+		]
+	},
+	derivArg: {
+		owner: 'deriv',
+		rules: [
+			{
+				key: 'ArrowUp',
+				when: (info) => derivLabeled(info) && !derivUnder(info),
+				targets: [slotTo('.me-deriv__label', 'end')]
+			},
+			{
+				key: 'ArrowDown',
+				when: (info) => derivLabeled(info) && derivUnder(info) && info.atEnd,
+				targets: [slotTo('.me-deriv__label')]
+			},
+			{ key: 'ArrowUp', targets: [atomTo('left')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [atomTo('left')] },
+			{ key: 'ArrowDown', targets: [atomTo('right')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [atomTo('right')] }
+		]
+	},
+	derivLabel: {
+		owner: 'deriv',
+		rules: [
+			{ key: 'ArrowDown', when: (info) => !derivUnder(info), targets: [slotTo('.me-deriv__arg')] },
+			{ key: 'ArrowUp', when: derivUnder, targets: [slotTo('.me-deriv__arg', 'end')] },
+			{ key: 'ArrowUp', targets: [atomTo('left')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [atomTo('left')] },
+			{ key: 'ArrowDown', targets: [atomTo('right')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [atomTo('right')] }
+		]
+	},
+	opTop: {
+		owner: 'op',
+		rules: [
+			{ key: 'ArrowUp', targets: [atomTo('left')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [atomTo('left')] },
+			{ key: 'ArrowDown', targets: [atomTo('right')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [atomTo('right')] }
+		]
+	},
+	arrowAbove: {
+		owner: 'arrow',
+		rules: [
+			{ key: 'ArrowDown', targets: [slotTo('.me-arrow__below'), atomTo('right')] },
+			{ key: 'ArrowUp', targets: [atomTo('left')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [atomTo('left')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [atomTo('right')] }
+		]
+	},
+	arrowBelow: {
+		owner: 'arrow',
+		rules: [
+			{ key: 'ArrowUp', targets: [slotTo('.me-arrow__above', 'end'), atomTo('left')] },
+			{ key: 'ArrowDown', targets: [atomTo('right')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [atomTo('left')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [atomTo('right')] }
+		]
+	},
+	text: {
+		rules: [
+			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] }
+		]
+	}
 }
 
 const handleArrow = (key: string): boolean => {
 	const info = getActiveSlot()
 	if (!info || !info.collapsed) return false
-	const { slot, fraction, role, atStart, atEnd } = info
-
-	if (role === 'num' && fraction) {
-		if (key === 'ArrowDown') {
-			const denominator = fraction.querySelector(':scope > .me-frac__den') as HTMLElement | null
-			focusSlot(denominator ? getEdgeSlot(denominator, 'start') : null, false, 'start')
-			return Boolean(denominator)
-		}
-		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
-		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
-		if (key === 'ArrowUp') return moveSibling(fraction, 'left')
-		return false
-	}
-
-	if (role === 'den' && fraction) {
-		if (key === 'ArrowUp') {
-			const numerator = fraction.querySelector(':scope > .me-frac__num') as HTMLElement | null
-			focusSlot(numerator ? getEdgeSlot(numerator, 'end') : null, false, 'end')
-			return Boolean(numerator)
-		}
-		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
-		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
-		if (key === 'ArrowDown') return moveSibling(fraction, 'right')
-		return false
-	}
-
-	if ((role === 'rootIndex' || role === 'radicand') && info.rootNode) {
-		if (role === 'rootIndex') {
-			if (key === 'ArrowDown' || (key === 'ArrowRight' && atEnd)) {
-				const radicandEl = info.rootNode.querySelector(
-					':scope > .me-root__radicand'
-				) as HTMLElement | null
-				if (radicandEl) {
-					focusSlot(getEdgeSlot(radicandEl, 'start'), false, 'start')
-					return true
-				}
-			}
-			if (key === 'ArrowUp') return moveSibling(info.rootNode, 'left')
-			if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
-			return false
-		}
-		if (key === 'ArrowUp' || (key === 'ArrowLeft' && atStart)) {
-			const indexEl = info.rootNode.querySelector(':scope > .me-root__index') as HTMLElement | null
-			if (indexEl) {
-				focusSlot(getEdgeSlot(indexEl, 'end'), false, 'end')
-				return true
-			}
-			return moveSibling(info.rootNode, 'left')
-		}
-		if (key === 'ArrowDown') return moveSibling(info.rootNode, 'right')
-		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
-		return false
-	}
-
-	if ((role === 'sup' || role === 'sub') && info.script) {
-		if (role === 'sup' && key === 'ArrowDown') {
-			const sub = info.script.querySelector(':scope > .me-script__sub') as HTMLElement | null
-			if (sub) {
-				focusSlot(getEdgeSlot(sub, 'start'), false, 'start')
-				return true
-			}
-		}
-		if (role === 'sub' && key === 'ArrowUp') {
-			const sup = info.script.querySelector(':scope > .me-script__sup') as HTMLElement | null
-			if (sup) {
-				focusSlot(getEdgeSlot(sup, 'end'), false, 'end')
-				return true
-			}
-		}
-		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
-		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
-		return false
-	}
-
-	if ((role === 'integralSub' || role === 'integralSup' || role === 'integrand') && info.integral) {
-		const integral = info.integral
-		const subEl = integral.querySelector(':scope > .me-int__sub') as HTMLElement | null
-		const supEl = integral.querySelector(':scope > .me-int__sup') as HTMLElement | null
-		const integrandEl = integral.querySelector(':scope > .me-int__integrand') as HTMLElement | null
-		if (role === 'integralSub') {
-			if (key === 'ArrowUp' && supEl) {
-				focusSlot(getEdgeSlot(supEl, 'end'), false, 'end')
-				return true
-			}
-			if (key === 'ArrowRight' && atEnd) {
-				if (supEl) {
-					focusSlot(getEdgeSlot(supEl, 'start'), false, 'start')
-					return true
-				}
-				return moveSibling(slot, 'right')
-			}
-			if (key === 'ArrowDown' && integrandEl) {
-				focusSlot(getEdgeSlot(integrandEl, 'start'), false, 'start')
-				return true
-			}
-			if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
-			return false
-		}
-		if (role === 'integralSup') {
-			if (key === 'ArrowDown') {
-				if (subEl) {
-					focusSlot(getEdgeSlot(subEl, 'start'), false, 'start')
-					return true
-				}
-				if (integrandEl) {
-					focusSlot(getEdgeSlot(integrandEl, 'start'), false, 'start')
-					return true
-				}
-				return false
-			}
-			if (key === 'ArrowLeft' && atStart) {
-				if (subEl) {
-					focusSlot(getEdgeSlot(subEl, 'end'), false, 'end')
-					return true
-				}
-				return moveSibling(slot, 'left')
-			}
-			if (key === 'ArrowRight' && atEnd && integrandEl) {
-				focusSlot(getEdgeSlot(integrandEl, 'start'), false, 'start')
-				return true
-			}
-			if (key === 'ArrowUp') return moveSibling(integral, 'left')
-			return false
-		}
-		// 被积函数：↑/←开头回限界（优先上限），↓/→末尾跳出
-		if (key === 'ArrowUp' || (key === 'ArrowLeft' && atStart)) {
-			const target = supEl ?? subEl
-			if (target) {
-				focusSlot(getEdgeSlot(target, 'end'), false, 'end')
-				return true
-			}
-			return moveSibling(integral, 'left')
-		}
-		if (key === 'ArrowDown') return moveSibling(integral, 'right')
-		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
-		return false
-	}
-
-	if ((role === 'bigopSub' || role === 'bigopSup' || role === 'bigopOperand') && info.bigop) {
-		const bigop = info.bigop
-		const subEl = bigop.querySelector(':scope > .me-bigop__sub') as HTMLElement | null
-		const supEl = bigop.querySelector(':scope > .me-bigop__sup') as HTMLElement | null
-		const operandEl = bigop.querySelector(':scope > .me-bigop__operand') as HTMLElement | null
-		if (role === 'bigopSub') {
-			if (key === 'ArrowUp' && supEl) {
-				focusSlot(getEdgeSlot(supEl, 'end'), false, 'end')
-				return true
-			}
-			if (key === 'ArrowRight' && atEnd) {
-				if (supEl) {
-					focusSlot(getEdgeSlot(supEl, 'start'), false, 'start')
-					return true
-				}
-				// 无上限（如带下标的并集）：下标末尾直接进入表达式
-				if (operandEl) {
-					focusSlot(getEdgeSlot(operandEl, 'start'), false, 'start')
-					return true
-				}
-				return moveSibling(slot, 'right')
-			}
-			if (key === 'ArrowDown' && operandEl) {
-				focusSlot(getEdgeSlot(operandEl, 'start'), false, 'start')
-				return true
-			}
-			if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
-			return false
-		}
-		if (role === 'bigopSup') {
-			if (key === 'ArrowDown') {
-				if (subEl) {
-					focusSlot(getEdgeSlot(subEl, 'start'), false, 'start')
-					return true
-				}
-				if (operandEl) {
-					focusSlot(getEdgeSlot(operandEl, 'start'), false, 'start')
-					return true
-				}
-				return false
-			}
-			if (key === 'ArrowLeft' && atStart) {
-				if (subEl) {
-					focusSlot(getEdgeSlot(subEl, 'end'), false, 'end')
-					return true
-				}
-				return moveSibling(slot, 'left')
-			}
-			if (key === 'ArrowRight' && atEnd && operandEl) {
-				focusSlot(getEdgeSlot(operandEl, 'start'), false, 'start')
-				return true
-			}
-			if (key === 'ArrowUp') return moveSibling(bigop, 'left')
-			return false
-		}
-		// 求和表达式：↑/←开头回限界（优先上限），↓/→末尾跳出
-		if (key === 'ArrowUp' || (key === 'ArrowLeft' && atStart)) {
-			const target = supEl ?? subEl
-			if (target) {
-				focusSlot(getEdgeSlot(target, 'end'), false, 'end')
-				return true
-			}
-			return moveSibling(bigop, 'left')
-		}
-		if (key === 'ArrowDown') return moveSibling(bigop, 'right')
-		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
-		return false
-	}
-
-	if (role === 'bracketContent' && info.bracket) {
-		// 括号内容槽：←/→ 优先在相邻内容段间移动，↑ 跳出到括号左侧，↓ 跳到括号右侧
-		if (key === 'ArrowLeft' && atStart) {
-			if (info.bracketGroup > 0) return focusBracketSlot(info.bracket, false, info.bracketGroup - 1)
-			return moveSibling(info.bracket, 'left')
-		}
-		if (key === 'ArrowRight' && atEnd) {
-			if (info.bracketGroup < info.bracketGroups - 1)
-				return focusBracketSlot(info.bracket, false, info.bracketGroup + 1)
-			return moveSibling(info.bracket, 'right')
-		}
-		if (key === 'ArrowUp') return moveSibling(info.bracket, 'left')
-		if (key === 'ArrowDown') return moveSibling(info.bracket, 'right')
-		return false
-	}
-
-	if (role === 'stackRow' && info.stack) {
-		// 堆栈行：↑/↓ 在行间移动，首行 ↑ 与末行 ↓ 跳出整座堆栈
-		if (key === 'ArrowUp') {
-			if (info.stackRow > 0) return focusStackRow(info.stack, info.stackRow - 1)
-			return moveSibling(info.stack, 'left')
-		}
-		if (key === 'ArrowDown') {
-			if (info.stackRow < info.stackRows - 1) return focusStackRow(info.stack, info.stackRow + 1)
-			return moveSibling(info.stack, 'right')
-		}
-		if (key === 'ArrowLeft' && atStart) return moveSibling(info.stack, 'left')
-		if (key === 'ArrowRight' && atEnd) return moveSibling(info.stack, 'right')
-		return false
-	}
-
-	if (role === 'text') {
-		if (key === 'ArrowLeft' && atStart) return moveSibling(slot, 'left')
-		if (key === 'ArrowRight' && atEnd) return moveSibling(slot, 'right')
+	const spec = ARROW_NAV[info.role]
+	if (!spec) return false
+	const owner = spec.owner ? info[spec.owner] : null
+	for (const rule of spec.rules) {
+		if (rule.key !== key) continue
+		if (rule.when && !rule.when(info)) continue
+		return rule.targets.some((target) => focusNavTarget(info, owner, target))
 	}
 	return false
 }
@@ -2884,10 +1682,6 @@ const mergeTextSlots = (left: HTMLElement, right: HTMLElement): { slot: HTMLElem
 	return { slot: left, offset: leftText.length }
 }
 
-/** 原子节点选择器：这些节点不是编辑宿主，退格 / Delete 需要在槽位边界整块处理 */
-const ATOM_SELECTOR =
-	'.me-frac, .me-script, .me-root, .me-int, .me-bigop, .me-bracket, .me-stack'
-
 /** 在分式旁找到或创建可落光标的文本槽，返回该槽位 */
 const ensureAdjacentTextSlot = (reference: HTMLElement, side: 'before' | 'after'): HTMLElement => {
 	const sibling = (
@@ -2908,22 +1702,184 @@ const removeAtomNode = (atom: HTMLElement, side: 'before' | 'after') => {
 	syncFromEditor()
 }
 
+type DeleteKey = 'Backspace' | 'Delete'
+type DeleteAction =
+	| { kind: 'remove'; side: 'before' | 'after' }
+	| { kind: 'focus'; targets: NavTarget[] }
+	| { kind: 'focusOrRemove'; targets: NavTarget[]; side: 'before' | 'after' }
+type DeleteRule = { key: DeleteKey; when?: NavCondition; action: DeleteAction }
+type DeleteSpec = { owner?: NavOwner; rules: DeleteRule[] }
+
+const hasChild = (owner: HTMLElement | null, selector: string): boolean =>
+	Boolean(owner?.querySelector(`:scope > ${selector}`))
+
+const rootHasIndex: NavCondition = (info) => hasChild(info.rootNode, '.me-root__index')
+const integralHasLimits: NavCondition = (info) =>
+	hasChild(info.integral, '.me-int__sub') || hasChild(info.integral, '.me-int__sup')
+const bigopHasLimits: NavCondition = (info) =>
+	hasChild(info.bigop, '.me-bigop__sub') || hasChild(info.bigop, '.me-bigop__sup')
+
+const removeBefore: DeleteAction = { kind: 'remove', side: 'before' }
+const removeAfter: DeleteAction = { kind: 'remove', side: 'after' }
+const focusTo = (...targets: NavTarget[]): DeleteAction => ({ kind: 'focus', targets })
+const focusOrRemove = (side: 'before' | 'after', ...targets: NavTarget[]): DeleteAction => ({
+	kind: 'focusOrRemove',
+	targets,
+	side
+})
+
+const runDeleteAction = (
+	info: ActiveSlotInfo,
+	owner: HTMLElement | null,
+	action: DeleteAction
+): boolean => {
+	if (action.kind === 'remove') {
+		if (!owner) return false
+		removeAtomNode(owner, action.side)
+		return true
+	}
+	if (action.targets.some((target) => focusNavTarget(info, owner, target))) return true
+	if (action.kind === 'focus') return false
+	if (!owner) return false
+	removeAtomNode(owner, action.side)
+	return true
+}
+
+/** 退格 / Delete 表：每个槽位角色声明「键 + 条件 → 跳槽或整块删除」 */
+const DELETE_NAV: Partial<Record<SlotRole, DeleteSpec>> = {
+	num: {
+		owner: 'fraction',
+		rules: [{ key: 'Backspace', when: atStart, action: removeBefore }]
+	},
+	den: {
+		owner: 'fraction',
+		rules: [{ key: 'Delete', when: atEnd, action: removeAfter }]
+	},
+	rootIndex: {
+		owner: 'rootNode',
+		rules: [{ key: 'Backspace', when: atStart, action: removeBefore }]
+	},
+	radicand: {
+		owner: 'rootNode',
+		rules: [
+			{ key: 'Backspace', when: (info) => info.atStart && !rootHasIndex(info), action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	integralSub: {
+		owner: 'integral',
+		rules: [{ key: 'Backspace', when: atStart, action: removeBefore }]
+	},
+	integralSup: {
+		owner: 'integral',
+		rules: [{ key: 'Backspace', when: atStart, action: removeBefore }]
+	},
+	integrand: {
+		owner: 'integral',
+		rules: [
+			{ key: 'Backspace', when: (info) => info.atStart && !integralHasLimits(info), action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	bigopSub: {
+		owner: 'bigop',
+		rules: [{ key: 'Backspace', when: atStart, action: removeBefore }]
+	},
+	bigopSup: {
+		owner: 'bigop',
+		rules: [{ key: 'Backspace', when: atStart, action: removeBefore }]
+	},
+	bigopOperand: {
+		owner: 'bigop',
+		rules: [
+			{ key: 'Backspace', when: (info) => info.atStart && !bigopHasLimits(info), action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	bracketContent: {
+		owner: 'bracket',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: focusOrRemove('before', bracketGroupTo(-1)) },
+			{ key: 'Delete', when: atEnd, action: focusOrRemove('after', bracketGroupTo(1)) }
+		]
+	},
+	stackRow: {
+		owner: 'stack',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: focusOrRemove('before', stackRowTo(-1)) },
+			{ key: 'Delete', when: atEnd, action: focusOrRemove('after', stackRowTo(1)) }
+		]
+	},
+	funcSub: {
+		owner: 'func',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: focusTo(slotTo('.me-func__arg'), slotTo('.me-func__sub')) }
+		]
+	},
+	funcArg: {
+		owner: 'func',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: focusOrRemove('before', slotTo('.me-func__sub', 'end')) },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	derivArg: {
+		owner: 'deriv',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	derivLabel: {
+		owner: 'deriv',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	opTop: {
+		owner: 'op',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	arrowAbove: {
+		owner: 'arrow',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: focusOrRemove('before', slotTo('.me-arrow__below', 'end')) },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	arrowBelow: {
+		owner: 'arrow',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: focusOrRemove('after', slotTo('.me-arrow__above')) }
+		]
+	},
+	sup: {
+		owner: 'script',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	},
+	sub: {
+		owner: 'script',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: removeBefore },
+			{ key: 'Delete', when: atEnd, action: removeAfter }
+		]
+	}
+}
+
 /** 分式 / 上下标 / 根式本身不是 contenteditable，需要在槽位边界用退格 / Delete 整块删除 */
 const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 	const info = getActiveSlot()
 	if (!info) return false
-	const {
-		slot,
-		fraction,
-		script,
-		rootNode,
-		integral: integralEl,
-		bigop: bigopEl,
-		bracket: bracketEl,
-		role,
-		atStart,
-		atEnd
-	} = info
+	const { slot, role, atStart, atEnd } = info
 
 	// 插入符号后槽位内容常被整段选中，选区里只有零宽占位符时浏览器原生删除是空操作，
 	// 这里先自行处理非折叠选区，避免按一次退格没有任何反应
@@ -2944,102 +1900,13 @@ const handleDelete = (key: 'Backspace' | 'Delete'): boolean => {
 		focusSlot(slot, false, key === 'Backspace' ? 'start' : 'end')
 	}
 
-	if (role === 'num' && fraction && key === 'Backspace' && atStart) {
-		removeAtomNode(fraction, 'before')
-		return true
-	}
-	if (role === 'den' && fraction && key === 'Delete' && atEnd) {
-		removeAtomNode(fraction, 'after')
-		return true
-	}
-	if ((role === 'rootIndex' || role === 'radicand') && rootNode) {
-		const hasIndex = Boolean(rootNode.querySelector(':scope > .me-root__index'))
-		// 根指数开头或（无根指数时）被开方数开头按退格：整块删除
-		if (key === 'Backspace' && atStart && (role === 'rootIndex' || !hasIndex)) {
-			removeAtomNode(rootNode, 'before')
-			return true
-		}
-		if (key === 'Delete' && atEnd && role === 'radicand') {
-			removeAtomNode(rootNode, 'after')
-			return true
-		}
-		return false
-	}
-	if ((role === 'integralSub' || role === 'integralSup' || role === 'integrand') && integralEl) {
-		const hasLimits = Boolean(
-			integralEl.querySelector(':scope > .me-int__sub, :scope > .me-int__sup')
-		)
-		// 限界开头退格整块删除；被积函数开头退格仅无限界时整块删除；被积函数末尾 Delete 整块删除
-		if (
-			key === 'Backspace' &&
-			atStart &&
-			((role === 'integralSub' || role === 'integralSup') || !hasLimits)
-		) {
-			removeAtomNode(integralEl, 'before')
-			return true
-		}
-		if (key === 'Delete' && atEnd && role === 'integrand') {
-			removeAtomNode(integralEl, 'after')
-			return true
-		}
-		return false
-	}
-	if ((role === 'bigopSub' || role === 'bigopSup' || role === 'bigopOperand') && bigopEl) {
-		const hasLimits = Boolean(
-			bigopEl.querySelector(':scope > .me-bigop__sub, :scope > .me-bigop__sup')
-		)
-		// 限界开头退格整块删除；表达式开头退格仅无限界时整块删除；表达式末尾 Delete 整块删除
-		if (
-			key === 'Backspace' &&
-			atStart &&
-			((role === 'bigopSub' || role === 'bigopSup') || !hasLimits)
-		) {
-			removeAtomNode(bigopEl, 'before')
-			return true
-		}
-		if (key === 'Delete' && atEnd && role === 'bigopOperand') {
-			removeAtomNode(bigopEl, 'after')
-			return true
-		}
-		return false
-	}
-	if (role === 'bracketContent' && bracketEl) {
-		// 内容槽开头退格 / 末尾 Delete：整块删除括号；分隔符两侧只跳到相邻段，不删整块
-		if (key === 'Backspace' && atStart) {
-			if (info.bracketGroup > 0) return focusBracketSlot(bracketEl, false, info.bracketGroup - 1)
-			removeAtomNode(bracketEl, 'before')
-			return true
-		}
-		if (key === 'Delete' && atEnd) {
-			if (info.bracketGroup < info.bracketGroups - 1)
-				return focusBracketSlot(bracketEl, false, info.bracketGroup + 1)
-			removeAtomNode(bracketEl, 'after')
-			return true
-		}
-		return false
-	}
-	if (role === 'stackRow' && info.stack) {
-		// 首行开头退格 / 末行末尾 Delete：整块删除堆栈；行内边界只跳到相邻行
-		if (key === 'Backspace' && atStart) {
-			if (info.stackRow > 0) return focusStackRow(info.stack, info.stackRow - 1)
-			removeAtomNode(info.stack, 'before')
-			return true
-		}
-		if (key === 'Delete' && atEnd) {
-			if (info.stackRow < info.stackRows - 1) return focusStackRow(info.stack, info.stackRow + 1)
-			removeAtomNode(info.stack, 'after')
-			return true
-		}
-		return false
-	}
-	if ((role === 'sup' || role === 'sub') && script) {
-		if (key === 'Backspace' && atStart) {
-			removeAtomNode(script, 'before')
-			return true
-		}
-		if (key === 'Delete' && atEnd) {
-			removeAtomNode(script, 'after')
-			return true
+	const spec = DELETE_NAV[role]
+	if (spec) {
+		const owner = spec.owner ? info[spec.owner] : null
+		for (const rule of spec.rules) {
+			if (rule.key !== key) continue
+			if (rule.when && !rule.when(info)) continue
+			return runDeleteAction(info, owner, rule.action)
 		}
 		return false
 	}
@@ -3150,6 +2017,10 @@ const focusByPoint = (x: number) => {
 				focusBracketSlotAt(child, x)
 			} else if (child.classList.contains('me-stack')) {
 				focusStackRow(child, 0)
+			} else if (child.classList.contains('me-func')) {
+				focusFunctionSlot(child)
+			} else if (child.classList.contains('me-deriv')) {
+				focusDerivSlot(child)
 			} else {
 				const numerator = child.querySelector(':scope > .me-frac__num') as HTMLElement | null
 				if (numerator) focusSlot(getEdgeSlot(numerator, 'end'), false, 'end')
@@ -3361,6 +2232,41 @@ const insertBigOp = (format: BigOpFormat) => {
 	focusBigOpSlot(bigop, format.limits === 'none' ? 'operand' : 'sub')
 }
 
+/** 插入函数：函数名固定，参数占一个空槽位；带下标的卡片（log 底数 / lim / min / max）先聚焦下标 */
+const insertFunction = (format: FunctionFormat) => {
+	// 反函数卡 id 就是节点名（arcsin 等），只有 logBase 这类卡片 id 需要回退到函数名
+	const name = functionCommandById.has(format.id as FunctionFormatId)
+		? (format.id as FunctionFormatId)
+		: (format.name ?? (format.id as FunctionFormatId))
+	const sub = format.sub === undefined ? null : format.sub ? parseLatex(format.sub) : []
+	const func = createFunctionElement(name, [], sub)
+	insertNodesAtCaret([func])
+	syncFromEditor()
+	focusFunctionSlot(func, sub && sub.length === 0 ? 'sub' : 'arg')
+}
+
+/** 插入导数符号：记号固定，参数占一个空槽位；带标记的花括号再带一个标签槽，双横线卡片插入两层嵌套的 \bar */
+const insertDeriv = (format: DerivFormat) => {
+	const argument = format.latex ? parseLatex(format.latex) : []
+	const deriv = createDerivElement(format.node, argument, format.labeled ? [] : null)
+	if (format.nested) {
+		const argEl = deriv.querySelector(':scope > .me-deriv__arg') as HTMLElement | null
+		if (argEl) {
+			argEl.replaceChildren(createDerivElement(format.node, []))
+		}
+	}
+	insertNodesAtCaret([deriv])
+	syncFromEditor()
+	if (format.latex) {
+		// 预填内容末尾可能是上下标等原子节点，直接在参数顶层补文本槽，避免光标钻进去
+		const argEl = deriv.querySelector(':scope > .me-deriv__arg') as HTMLElement | null
+		if (argEl) focusSlot(ensureDirectTextSlot(argEl, 'end'), false, 'end')
+		else focusDerivSlot(deriv)
+	} else {
+		focusDerivSlot(deriv)
+	}
+}
+
 /** 聚焦插入节点中的第一个可编辑槽位（用于常用模板） */
 const focusFirstEditable = (nodes: Node[]): boolean => {
 	for (const node of nodes) {
@@ -3412,9 +2318,7 @@ const onEditorClick = (event: MouseEvent) => {
 	// 槽位自身负责光标定位
 	if (target.closest('[contenteditable]')) return
 	// 点在分子/分母、根指数/被开方数容器的留白上：落到该容器同级的文本槽（不进入嵌套结构）
-	const part = target.closest(
-		'.me-frac__num, .me-frac__den, .me-root__index, .me-root__radicand, .me-int__sub, .me-int__sup, .me-int__integrand, .me-bigop__sub, .me-bigop__sup, .me-bigop__operand, .me-bracket__content, .me-stack__row'
-	) as HTMLElement | null
+	const part = target.closest(SLOT_CONTAINER_SELECTOR) as HTMLElement | null
 	if (part) {
 		const rect = part.getBoundingClientRect()
 		const side = event.clientX < rect.left + rect.width / 2 ? 'start' : 'end'
@@ -3457,6 +2361,26 @@ const onEditorClick = (event: MouseEvent) => {
 		focusStackRowAt(stackNode, event.clientY)
 		return
 	}
+	const funcNode = target.closest('.me-func') as HTMLElement | null
+	if (funcNode) {
+		focusFunctionSlot(funcNode)
+		return
+	}
+	const derivNode = target.closest('.me-deriv') as HTMLElement | null
+	if (derivNode) {
+		focusDerivSlot(derivNode)
+		return
+	}
+	const opNode = target.closest('.me-op') as HTMLElement | null
+	if (opNode) {
+		focusOpSlot(opNode)
+		return
+	}
+	const arrowNode = target.closest('.me-arrow') as HTMLElement | null
+	if (arrowNode) {
+		focusArrowSlot(arrowNode)
+		return
+	}
 	if (target !== root) return
 	focusByPoint(event.clientX)
 }
@@ -3497,70 +2421,15 @@ const clear = () => {
 }
 
 const onToolClick = (tool: Tool) => {
-	if (tool.id === 'fraction') {
-		fractionOpen.value = !fractionOpen.value
-		scriptsOpen.value = false
-		rootOpen.value = false
-		integralOpen.value = false
-		bigOperatorOpen.value = false
-		bracketOpen.value = false
+	if (!popoverToolIds.has(tool.id)) {
+		activeTool.value = null
 		return
 	}
-	if (tool.id === 'scripts') {
-		scriptsOpen.value = !scriptsOpen.value
-		fractionOpen.value = false
-		rootOpen.value = false
-		integralOpen.value = false
-		bigOperatorOpen.value = false
-		bracketOpen.value = false
-		return
-	}
-	if (tool.id === 'radical') {
-		rootOpen.value = !rootOpen.value
-		fractionOpen.value = false
-		scriptsOpen.value = false
-		integralOpen.value = false
-		bigOperatorOpen.value = false
-		bracketOpen.value = false
-		return
-	}
-	if (tool.id === 'integral') {
-		integralOpen.value = !integralOpen.value
-		fractionOpen.value = false
-		scriptsOpen.value = false
-		rootOpen.value = false
-		bigOperatorOpen.value = false
-		bracketOpen.value = false
-		return
-	}
-	if (tool.id === 'largeOperator') {
-		bigOperatorOpen.value = !bigOperatorOpen.value
-		fractionOpen.value = false
-		scriptsOpen.value = false
-		rootOpen.value = false
-		integralOpen.value = false
-		bracketOpen.value = false
-		return
-	}
-	if (tool.id === 'bracket') {
-		bracketOpen.value = !bracketOpen.value
-		fractionOpen.value = false
-		scriptsOpen.value = false
-		rootOpen.value = false
-		integralOpen.value = false
-		bigOperatorOpen.value = false
-		return
-	}
-	fractionOpen.value = false
-	scriptsOpen.value = false
-	rootOpen.value = false
-	integralOpen.value = false
-	bigOperatorOpen.value = false
-	bracketOpen.value = false
+	activeTool.value = activeTool.value === tool.id ? null : tool.id
 }
 
 const pickFraction = (item: FractionChoice) => {
-	fractionOpen.value = false
+	activeTool.value = null
 	if (item.fraction) {
 		insertFraction(item.fraction.num, item.fraction.den, item.fraction.style)
 	} else {
@@ -3569,12 +2438,12 @@ const pickFraction = (item: FractionChoice) => {
 }
 
 const pickScriptFormat = (item: ScriptFormat) => {
-	scriptsOpen.value = false
+	activeTool.value = null
 	insertScript(item.id)
 }
 
 const pickCommonScript = (item: CommonScript) => {
-	scriptsOpen.value = false
+	activeTool.value = null
 	const holder = document.createElement('span')
 	appendNodes(holder, parseLatex(item.latex))
 	const nodes = Array.from(holder.childNodes)
@@ -3587,27 +2456,103 @@ const pickCommonScript = (item: CommonScript) => {
 }
 
 const pickRootFormat = (item: RootFormat) => {
-	rootOpen.value = false
+	activeTool.value = null
 	insertRoot(item)
 }
 
 const pickIntegralFormat = (item: IntegralFormat) => {
-	integralOpen.value = false
+	activeTool.value = null
 	insertIntegral(item)
 }
 
 const pickDifferentialFormat = (item: DifferentialFormat) => {
-	integralOpen.value = false
+	activeTool.value = null
 	insertTextAtCaret(item.latex)
 }
 
+/** 基本运算符：纯文本插入当前光标所在槽位 */
+/** 插入上置叠等号：记号槽预填内容，插入后聚焦记号槽 */
+const insertOp = (format: { variant: 'stackrel' | 'triangleq'; top: string }) => {
+	const op = createOpElement(format.variant, parseLatex(format.top))
+	insertNodesAtCaret([op])
+	syncFromEditor()
+	focusOpSlot(op)
+}
+
+/** 插入箭头标注：标注槽按卡片位置创建（上方 / 下方），插入后聚焦标注槽 */
+const insertArrow = (format: ArrowFormat) => {
+	const arrow = createArrowElement(
+		format.kind,
+		format.label === 'above' ? parseLatex('') : null,
+		format.label === 'below' ? parseLatex('') : null
+	)
+	insertNodesAtCaret([arrow])
+	syncFromEditor()
+	focusArrowSlot(arrow, format.label)
+}
+
+const pickArrowFormat = (item: ArrowFormat) => {
+	activeTool.value = null
+	insertArrow(item)
+}
+
+const pickOperatorFormat = (item: OperatorFormat) => {
+	activeTool.value = null
+	if ('latex' in item) {
+		insertTextAtCaret(item.latex)
+	} else {
+		insertOp(item)
+	}
+}
+
 const pickBigOpFormat = (item: BigOpFormat) => {
-	bigOperatorOpen.value = false
+	activeTool.value = null
 	insertBigOp(item)
 }
 
+const pickFunctionFormat = (item: FunctionFormat) => {
+	activeTool.value = null
+	insertFunction(item)
+}
+
+const pickCommonFunction = (item: CommonFunction) => {
+	activeTool.value = null
+	const holder = document.createElement('span')
+	appendNodes(holder, parseLatex(item.latex))
+	const nodes = Array.from(holder.childNodes)
+	insertNodesAtCaret(nodes)
+	syncFromEditor()
+	// 常用模板全部预填，聚焦首个可编辑槽
+	focusFirstEditable(nodes)
+}
+
+const pickDerivFormat = (item: DerivFormat) => {
+	activeTool.value = null
+	insertDeriv(item)
+}
+
+const pickLimitLogFormat = (item: FunctionFormat) => {
+	activeTool.value = null
+	insertFunction(item)
+}
+
+/** 插入常用极限模板：解析成结构化函数节点，聚焦参数槽（预填内容） */
+const pickCommonLimitLog = (item: CommonFunction) => {
+	activeTool.value = null
+	const holder = document.createElement('span')
+	appendNodes(holder, parseLatex(item.latex))
+	const nodes = Array.from(holder.childNodes)
+	insertNodesAtCaret(nodes)
+	syncFromEditor()
+	const func = nodes.find(
+		(node) => node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('me-func')
+	) as HTMLElement | undefined
+	if (func && focusFunctionSlot(func)) return
+	focusFirstEditable(nodes)
+}
+
 const pickBracket = (item: BracketFormat) => {
-	bracketOpen.value = false
+	activeTool.value = null
 	const bracket = createBracketElement(item, [[]])
 	insertNodesAtCaret([bracket])
 	syncFromEditor()
@@ -3615,7 +2560,7 @@ const pickBracket = (item: BracketFormat) => {
 }
 
 const pickSeparatorBracket = (item: SeparatorBracketFormat) => {
-	bracketOpen.value = false
+	activeTool.value = null
 	const format = bracketFormatById.get(item.format)
 	if (!format) return
 	const groups = Array.from({ length: item.groups }, () => [] as ParsedNode[])
@@ -3627,7 +2572,7 @@ const pickSeparatorBracket = (item: SeparatorBracketFormat) => {
 
 /** 插入事例与堆栈模板：按 wrap 决定是否再套一层配对括号 */
 const pickStackFormat = (item: StackFormat) => {
-	bracketOpen.value = false
+	activeTool.value = null
 	const rows = Array.from({ length: item.rows }, () => [] as ParsedNode[])
 	const stack = createStackElement(item.style, rows)
 	let inserted: HTMLElement = stack
@@ -3650,7 +2595,7 @@ const pickStackFormat = (item: StackFormat) => {
 
 /** 插入常用方括号公式：解析成结构化节点，填入后聚焦首个空槽（全部预填时聚焦堆栈首行） */
 const pickCommonBracket = (item: CommonBracketFormula) => {
-	bracketOpen.value = false
+	activeTool.value = null
 	const holder = document.createElement('span')
 	appendNodes(holder, parseLatex(item.latex))
 	const nodes = Array.from(holder.childNodes)
@@ -3671,7 +2616,7 @@ const pickCommonBracket = (item: CommonBracketFormula) => {
 }
 
 const pickCommonBigOp = (item: CommonBigOp) => {
-	bigOperatorOpen.value = false
+	activeTool.value = null
 	const holder = document.createElement('span')
 	appendNodes(holder, parseLatex(item.latex))
 	const nodes = Array.from(holder.childNodes)
@@ -3691,7 +2636,7 @@ const pickCommonBigOp = (item: CommonBigOp) => {
 }
 
 const pickCommonRoot = (item: CommonRoot) => {
-	rootOpen.value = false
+	activeTool.value = null
 	const holder = document.createElement('span')
 	appendNodes(holder, parseLatex(item.latex))
 	const nodes = Array.from(holder.childNodes)
@@ -3701,22 +2646,9 @@ const pickCommonRoot = (item: CommonRoot) => {
 }
 
 const onDocumentClick = (event: MouseEvent) => {
-	if (
-		!fractionOpen.value &&
-		!scriptsOpen.value &&
-		!rootOpen.value &&
-		!integralOpen.value &&
-		!bigOperatorOpen.value &&
-		!bracketOpen.value
-	)
-		return
+	if (activeTool.value === null) return
 	if (toolbarRef.value?.contains(event.target as Node)) return
-	fractionOpen.value = false
-	scriptsOpen.value = false
-	rootOpen.value = false
-	integralOpen.value = false
-	bigOperatorOpen.value = false
-	bracketOpen.value = false
+	activeTool.value = null
 }
 
 onMounted(() => {
@@ -3790,6 +2722,27 @@ watch(locale, () => {
 	})
 	root.querySelectorAll('.me-stack__row').forEach((el) => {
 		el.setAttribute('aria-label', t('formula.aria.stackRow'))
+	})
+	root.querySelectorAll('.me-func__sub').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.funcSub'))
+	})
+	root.querySelectorAll('.me-func__arg').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.funcArg'))
+	})
+	root.querySelectorAll('.me-deriv__arg').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.derivArg'))
+	})
+	root.querySelectorAll('.me-deriv__label').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.derivLabel'))
+	})
+	root.querySelectorAll('.me-op__top').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.opTop'))
+	})
+	root.querySelectorAll('.me-arrow__above').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.arrowAbove'))
+	})
+	root.querySelectorAll('.me-arrow__below').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.arrowBelow'))
 	})
 })
 
@@ -4013,65 +2966,6 @@ defineExpose({ focus, validate, clear })
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-/* 括号卡片预览：虚线空框 + 两侧定界符（v-html 注入，需 :deep 才能命中） */
-.he-tool-card__preview :deep(.bracket-preview) {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 2px;
-	line-height: 1;
-}
-
-.he-tool-card__preview :deep(.bracket-preview__delim) {
-	font-size: 1.15em;
-}
-
-.he-tool-card__preview :deep(.bracket-preview__box) {
-	display: inline-block;
-	width: 22px;
-	height: 18px;
-	border: 1px dashed currentColor;
-	border-radius: 2px;
-	opacity: 0.45;
-}
-
-/* 带分隔符的预览里空框更窄，给竖线留位置 */
-.he-tool-card__preview :deep(.bracket-preview__sep) {
-	font-size: 1.15em;
-	opacity: 0.6;
-}
-
-.he-tool-card__preview :deep(.bracket-preview__sep) + .bracket-preview__box {
-	width: 18px;
-}
-
-/* 堆栈卡片预览：竖向排列的虚线空框 + 可选左右定界符 */
-.he-tool-card__preview :deep(.stack-preview) {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 2px;
-	line-height: 1;
-}
-
-.he-tool-card__preview :deep(.stack-preview__delim) {
-	font-size: 1.35em;
-}
-
-.he-tool-card__preview :deep(.stack-preview__rows) {
-	display: inline-flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.he-tool-card__preview :deep(.stack-preview__box) {
-	display: block;
-	width: 22px;
-	height: 13px;
-	border: 1px dashed currentColor;
-	border-radius: 2px;
-	opacity: 0.45;
-}
 
 .he-tool-popover__section:first-child {
 	margin-top: 0;
@@ -4083,248 +2977,6 @@ defineExpose({ focus, validate, clear })
 	color: #666;
 }
 
-.he-tool-card {
-	height: 68px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 2px;
-	border: 1px solid #d9dde3;
-	border-radius: 4px;
-	background: #fff;
-	color: #333;
-	cursor: pointer;
-	transition: border-color 0.15s, background 0.15s;
-}
-
-.he-tool-card:hover {
-	border-color: #3b6ef5;
-	background: #f7f9ff;
-}
-
-/* 根式格式卡片更高，留出根号与空槽的展示空间 */
-.he-tool-card--tall {
-	height: 104px;
-}
-
-.he-tool-card--wide {
-	height: 84px;
-}
-
-.he-tool-card__preview {
-	font-size: 17px;
-	line-height: 1.1;
-}
-
-.he-tool-card__preview :deep(.math-frac) {
-	display: inline-flex;
-	flex-direction: column;
-	align-items: center;
-	line-height: 1.1;
-}
-
-.he-tool-card__preview :deep(.math-frac__num) {
-	padding: 0 4px 2px;
-	border-bottom: 1px solid currentColor;
-}
-
-.he-tool-card__preview :deep(.math-frac__den) {
-	padding-top: 2px;
-}
-
-.he-tool-card__preview :deep(.math-frac--small) {
-	font-size: 0.7em;
-}
-
-/* 根式预览：根号 + 上方横线 + 可选的根指数 */
-.he-tool-card__preview :deep(.math-root) {
-	display: inline-flex;
-	align-items: stretch;
-	line-height: 1.1;
-}
-
-.he-tool-card__preview :deep(.math-root__index) {
-	align-self: flex-start;
-	margin-right: -0.2em;
-	padding-top: 2px;
-	font-size: 0.55em;
-	line-height: 1;
-}
-
-.he-tool-card__preview :deep(.math-root__sign) {
-	align-self: stretch;
-	display: inline-flex;
-	align-items: flex-end;
-	font-size: 1.25em;
-	line-height: 0.9;
-}
-
-.he-tool-card__preview :deep(.math-root__radicand) {
-	display: inline-flex;
-	align-items: center;
-	min-width: 18px;
-	padding: 0 2px;
-	border-top: 1px solid currentColor;
-}
-
-/* 虚线空槽：表示插入后可编辑的位置 */
-.he-tool-card__preview :deep(.math-dash) {
-	flex: none;
-	width: 14px;
-	height: 12px;
-	border: 1px dashed #b9c0cc;
-	border-radius: 2px;
-}
-
-/* 积分预览：积分号 + 右上上限/右下下限 + 被积函数空槽，网格区域布局 */
-.he-tool-card__preview :deep(.math-int) {
-	display: inline-grid;
-	grid-template-areas:
-		'sign sup integrand'
-		'sign sub integrand';
-	align-items: center;
-	column-gap: 3px;
-	line-height: 1.1;
-}
-
-.he-tool-card__preview :deep(.math-int__sign) {
-	grid-area: sign;
-	font-size: 1.6em;
-	line-height: 0.9;
-}
-
-.he-tool-card__preview :deep(.math-int__sup) {
-	grid-area: sup;
-	align-self: end;
-	padding-bottom: 1px;
-	font-size: 0.55em;
-	line-height: 1;
-}
-
-.he-tool-card__preview :deep(.math-int__sub) {
-	grid-area: sub;
-	align-self: start;
-	padding-top: 1px;
-	font-size: 0.55em;
-	line-height: 1;
-}
-
-.he-tool-card__preview :deep(.math-int__integrand) {
-	grid-area: integrand;
-	display: inline-flex;
-	align-items: center;
-}
-
-/* 大型运算符预览：堆叠式限界位于符号正上/正下，行内式排右上/右下 */
-.he-tool-card__preview :deep(.math-bigop) {
-	display: inline-grid;
-	grid-template-areas:
-		'sup operand'
-		'sign operand'
-		'sub operand';
-	/* 缺省上限或下限时仍保留该行高度，保证符号恒在垂直中轴 */
-	grid-template-rows: minmax(0.62em, auto) auto minmax(0.62em, auto);
-	align-items: center;
-	line-height: 1.1;
-	vertical-align: middle;
-}
-
-.he-tool-card__preview :deep(.math-bigop__sign) {
-	grid-area: sign;
-	font-size: 1.6em;
-	line-height: 0.9;
-}
-
-.he-tool-card__preview :deep(.math-bigop__sup),
-.he-tool-card__preview :deep(.math-bigop__sub) {
-	font-size: 0.55em;
-	line-height: 1;
-	justify-self: center;
-}
-
-.he-tool-card__preview :deep(.math-bigop__sup) {
-	grid-area: sup;
-	padding-bottom: 1px;
-}
-
-.he-tool-card__preview :deep(.math-bigop__sub) {
-	grid-area: sub;
-	padding-top: 1px;
-}
-
-.he-tool-card__preview :deep(.math-bigop__operand) {
-	grid-area: operand;
-	display: inline-flex;
-	align-items: center;
-}
-
-.he-tool-card__preview :deep(.math-bigop--inline) {
-	grid-template-areas:
-		'sign sup operand'
-		'sign sub operand';
-	grid-template-rows: auto auto;
-	column-gap: 3px;
-}
-
-.he-tool-card__preview :deep(.math-bigop--inline .math-bigop__sup) {
-	justify-self: start;
-	align-self: end;
-}
-
-.he-tool-card__preview :deep(.math-bigop--inline .math-bigop__sub) {
-	justify-self: start;
-	align-self: start;
-}
-
-/* 上下标格式卡片：空白框表示待输入的上标 / 下标 */
-.he-tool-card__preview :deep(.script-preview) {
-	display: inline-flex;
-	align-items: center;
-	line-height: 1;
-}
-
-.he-tool-card__preview :deep(.script-preview--pre) {
-	flex-direction: row-reverse;
-}
-
-.he-tool-card__preview :deep(.script-preview__stack) {
-	display: inline-flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 3px;
-	margin-left: 3px;
-	font-size: 0.62em;
-}
-
-.he-tool-card__preview :deep(.script-preview--pre .script-preview__stack) {
-	margin-left: 0;
-	margin-right: 3px;
-}
-
-.he-tool-card__preview :deep(.script-preview__slot) {
-	width: 13px;
-	height: 10px;
-	border: 1px dashed #b9c0cc;
-	border-radius: 2px;
-}
-
-/* 常用上下标模板预览 */
-.he-tool-card__preview :deep(.script-tpl sup),
-.he-tool-card__preview :deep(.script-tpl sub) {
-	font-size: 0.62em;
-	line-height: 0;
-}
-
-.he-tool-card__preview :deep(.script-tpl__pre) {
-	display: inline-flex;
-	flex-direction: column;
-	align-items: flex-start;
-	margin-right: 1px;
-	font-size: 0.62em;
-	line-height: 1.1;
-	vertical-align: middle;
-}
 
 .he-field-label {
 	font-size: 12px;
@@ -4392,6 +3044,22 @@ defineExpose({ focus, validate, clear })
 	box-shadow: 0 0 0 3px rgba(59, 110, 245, 0.12);
 }
 
+/* 选中文本的高亮：浏览器默认的淡蓝在浅色底上几乎看不出 */
+.he-formula-editable :deep(::selection) {
+	background: rgba(59, 110, 245, 0.38);
+	color: inherit;
+}
+
+.he-formula-editable :deep(::-moz-selection) {
+	background: rgba(59, 110, 245, 0.38);
+	color: inherit;
+}
+
+/* flex 项不收缩：文本槽不换行，被压缩时文字会溢出画到相邻节点上造成错位 */
+.he-formula-editable :deep(> *) {
+	flex: 0 0 auto;
+}
+
 .he-formula-editable.is-empty::before {
 	content: attr(data-placeholder);
 	font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -4402,6 +3070,7 @@ defineExpose({ focus, validate, clear })
 
 .he-formula-editable :deep(.me-text-slot) {
 	display: inline-block;
+	flex-shrink: 0;
 	min-width: 4px;
 	outline: none;
 	white-space: pre;
@@ -4484,7 +3153,7 @@ defineExpose({ focus, validate, clear })
 
 .he-formula-editable :deep(.me-frac__num:focus-within),
 .he-formula-editable :deep(.me-frac__den:focus-within) {
-	background: #eef3ff;
+	background: #d9e6ff;
 }
 
 .he-formula-editable :deep(.me-script) {
@@ -4516,7 +3185,7 @@ defineExpose({ focus, validate, clear })
 
 .he-formula-editable :deep(.me-script__sup:focus-within),
 .he-formula-editable :deep(.me-script__sub:focus-within) {
-	background: #eef3ff;
+	background: #d9e6ff;
 }
 
 /* 上下标里的嵌套上下标逐层缩小 */
@@ -4563,7 +3232,7 @@ defineExpose({ focus, validate, clear })
 
 .he-formula-editable :deep(.me-root__index:focus-within),
 .he-formula-editable :deep(.me-root__radicand:focus-within) {
-	background: #eef3ff;
+	background: #d9e6ff;
 }
 
 /* 根式里的嵌套结构逐层缩小 */
@@ -4621,7 +3290,7 @@ defineExpose({ focus, validate, clear })
 .he-formula-editable :deep(.me-int__sup:focus-within),
 .he-formula-editable :deep(.me-int__sub:focus-within),
 .he-formula-editable :deep(.me-int__integrand:focus-within) {
-	background: #eef3ff;
+	background: #d9e6ff;
 }
 
 /* 积分里的嵌套结构逐层缩小 */
@@ -4683,7 +3352,7 @@ defineExpose({ focus, validate, clear })
 .he-formula-editable :deep(.me-bigop__sub:focus-within),
 .he-formula-editable :deep(.me-bigop__sup:focus-within),
 .he-formula-editable :deep(.me-bigop__operand:focus-within) {
-	background: #eef3ff;
+	background: #d9e6ff;
 }
 
 .he-formula-editable :deep(.me-bigop--inline) {
@@ -4732,7 +3401,7 @@ defineExpose({ focus, validate, clear })
 }
 
 .he-formula-editable :deep(.me-bracket__content:focus-within) {
-	background: #eef3ff;
+	background: #d9e6ff;
 }
 
 /* 括号里的嵌套结构逐层缩小 */
@@ -4782,13 +3451,220 @@ defineExpose({ focus, validate, clear })
 }
 
 .he-formula-editable :deep(.me-stack__row:focus-within) {
-	background: #eef3ff;
+	background: #d9e6ff;
 }
 
 /* 堆栈里嵌套的结构逐层缩小 */
 .he-formula-editable :deep(.me-stack .me-stack) {
 	font-size: 0.9em;
 }
+
+/* 函数：函数名直立且不可编辑，参数槽可落光标 */
+.he-formula-editable :deep(.me-func) {
+	display: inline-flex;
+	align-items: baseline;
+	margin: 0 1px;
+	vertical-align: baseline;
+}
+
+.he-formula-editable :deep(.me-func__name) {
+	font-family: 'KaTeX_Main', 'Times New Roman', 'PingFang SC', 'Microsoft YaHei', serif;
+	font-style: normal;
+	line-height: 1;
+	user-select: none;
+}
+
+/* 反函数的 −1 上标 */
+.he-formula-editable :deep(.me-func__sup) {
+	font-size: 0.68em;
+	line-height: 0;
+	margin-left: 1px;
+}
+
+/* 函数下标：log 底数排在函数名右下；lim / min / max 的条件排在函数名正下方（网格两行，参数横跨右侧） */
+.he-formula-editable :deep(.me-func__sub) {
+	display: inline-flex;
+	align-items: center;
+	min-width: 10px;
+	padding: 0 1px;
+	font-size: 0.72em;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-func__sub:focus-within) {
+	background: #d9e6ff;
+}
+
+.he-formula-editable :deep(.me-func--with-sub:not(.me-func--sub-under)) {
+	align-items: baseline;
+}
+
+.he-formula-editable :deep(.me-func--with-sub:not(.me-func--sub-under) .me-func__sub) {
+	align-self: flex-end;
+	margin-bottom: 1px;
+}
+
+.he-formula-editable :deep(.me-func--sub-under) {
+	display: inline-grid;
+	grid-template-columns: auto auto;
+	grid-template-rows: auto auto;
+	align-items: center;
+	column-gap: 2px;
+}
+
+.he-formula-editable :deep(.me-func--sub-under .me-func__name) {
+	grid-column: 1;
+	grid-row: 1;
+	justify-self: center;
+}
+
+.he-formula-editable :deep(.me-func--sub-under .me-func__sub) {
+	grid-column: 1;
+	grid-row: 2;
+	justify-self: center;
+}
+
+.he-formula-editable :deep(.me-func--sub-under .me-func__arg) {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+	align-self: center;
+}
+
+.he-formula-editable :deep(.me-func__arg) {
+	display: inline-flex;
+	align-items: center;
+	min-width: 10px;
+	margin-left: 2px;
+	padding: 0 1px;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-func__arg:focus-within) {
+	background: #d9e6ff;
+}
+
+/* 导数符号：记号在参数上方或下方，标记不可编辑 */
+.he-formula-editable :deep(.me-deriv) {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	margin: 0 1px;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-deriv__mark) {
+	font-family: 'Cambria Math', 'KaTeX_Main', 'Times New Roman', 'PingFang SC', 'Microsoft YaHei', serif;
+	font-size: 0.75em;
+	font-style: normal;
+	line-height: 0.8;
+	user-select: none;
+}
+
+/* 带标记花括号的标签槽：在记号外侧，字号略小 */
+.he-formula-editable :deep(.me-deriv__label) {
+	display: inline-flex;
+	align-items: center;
+	min-width: 10px;
+	padding: 0 1px;
+	border-radius: 2px;
+	font-size: 0.8em;
+}
+
+.he-formula-editable :deep(.me-deriv__label:focus-within) {
+	background: #d9e6ff;
+}
+
+.he-formula-editable :deep(.me-deriv__arg) {
+	display: inline-flex;
+	align-items: center;
+	min-width: 10px;
+	padding: 0 1px;
+	border-radius: 2px;
+}
+
+.he-formula-editable :deep(.me-deriv__arg:focus-within) {
+	background: #d9e6ff;
+}
+
+/* 带框公式：参数外包一圈边框，没有记号 */
+.he-formula-editable :deep(.me-deriv--boxed) {
+	padding: 0 5px;
+	border: 1px solid currentColor;
+	border-radius: 2px;
+}
+
+/* 顶线 / 底线：横线随参数宽度拉伸 */
+.he-formula-editable :deep(.me-deriv__mark--rule) {
+	display: block;
+	align-self: stretch;
+	width: 100%;
+	height: 0;
+	border-top: 1px solid currentColor;
+	line-height: 0;
+}
+
+/* 上置叠等号：记号在上方居中，等号底座固定不可编辑 */
+.he-formula-editable :deep(.me-op) {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	line-height: 1.1;
+	margin: 0 1px;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-op__top) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 12px;
+	padding: 0 1px;
+	border-radius: 2px;
+	font-size: 0.6em;
+	line-height: 1.2;
+}
+
+.he-formula-editable :deep(.me-op__top:focus-within) {
+	background: #d9e6ff;
+}
+
+.he-formula-editable :deep(.me-op__base) {
+	line-height: 1;
+	user-select: none;
+}
+
+/* 箭头标注：上 / 下方标注槽居中，箭头符号底座固定不可编辑 */
+.he-formula-editable :deep(.me-arrow) {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	line-height: 1.1;
+	margin: 0 1px;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-arrow__above),
+.he-formula-editable :deep(.me-arrow__below) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 14px;
+	padding: 0 1px;
+	border-radius: 2px;
+	font-size: 0.6em;
+	line-height: 1.2;
+}
+
+.he-formula-editable :deep(.me-arrow__above:focus-within),
+.he-formula-editable :deep(.me-arrow__below:focus-within) {
+	background: #d9e6ff;
+}
+
+.he-formula-editable :deep(.me-arrow__sign) {
+	line-height: 1;
+	user-select: none;
+}
+
 
 .he-formula-editor__clear {
 	flex: none;

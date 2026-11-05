@@ -14,7 +14,18 @@
 
 预计版本：`0.2.0`
 
+### 新增
+
+- 公式工具栏新增「运算符」弹层：基本运算符板块 7 张卡（四列网格 4 + 3）：`:=`、`==`、`+=`、`−=`（Unicode 减号）4 张纯文本卡与 def / m / △ 上置叠等号 3 张结构化卡。前 4 张点击后在当前光标槽位插入符号字面量；后 3 张无可解析 Unicode，插入结构化叠等号节点 `.me-op[data-op]`：上方记号是 contenteditable 槽位（预填 def / m / △，插入后光标落在记号槽），底座等号固定不可编辑（`aria-hidden`），弹层与既有弹层互斥、点击外部关闭。中英文案同步（`formula.operator.*`、`formula.aria.opTop`）。
+- 可编辑区支持结构化叠等号：解析 `\stackrel{top}{=}`（仅识别等号底座，其他底座按原文保留；记号外层 `\mathrm` 会被剥掉，槽内只显示内部文本）与 `\triangleq`（→ △ 上置叠等号）；记号槽 `←` / `→` / `↑` / `↓` 在边界跳出整座节点，开头 `Backspace` / 末尾 `Delete` 整块删除，点击节点聚焦记号槽。序列化：△ 未被改动时保持 `\triangleq` 缩写（被改写后降级 `\stackrel{\mathrm{x}}{=}`，渲染不变），空记号输出 `\stackrel{}{=}`，纯文本记号外包 `\mathrm{}` 保证 MathJax 预览直立（`\stackrel{abc}{=}` 归一为 `\stackrel{\mathrm{abc}}{=}`），记号含命令（嵌套结构）时不包 `\mathrm`。
+- 新增运算符弹层单元测试 `HeFormulaEditor.operator.test.ts`（33 例）：弹层结构与 7 卡标题、纯文本卡 / 结构化卡插入（DOM、序列化、光标落点）、`\stackrel` / `\triangleq` 解析往返（`\mathrm` 剥壳与归一、空记号、后续文本共存、非等号底座保留、记号编辑回写）、记号槽方向键跳出与整块删除、与极限和对数弹层互斥。
+- 公式工具栏运算符弹层新增「运算符结构」板块 12 张卡（四列网格三行）：第一行 ← / → 下方标注与上方标注，第二行 ⇐ / ⇒（双线左 / 右箭头）下方标注与上方标注，第三行 ↔ 下方与上方、⇔（双线左右箭头）下方与上方；点击插入结构化箭头节点 `.me-arrow[data-arrow]`，按卡片位置创建上方或下方一个空标注槽（contenteditable，插入后光标落入），箭头符号固定不可编辑（`aria-hidden`），卡面预览为虚线空标注框 + 箭头。中英文案同步（`formula.operator.structureTitle` 与 12 张卡标题、`formula.aria.arrowAbove` / `arrowBelow`）。
+- 可编辑区支持结构化箭头标注：左 / 右箭头解析 amsmath `\xleftarrow[下]{上}` / `\xrightarrow{上}`（本地 MathJax 原生支持可拉伸箭头）；双线箭头（`\Leftarrow` / `\Rightarrow`）与左右箭头（`\leftrightarrow` / `\Leftrightarrow`）底座不可伸展，且 `\xLeftarrow`、`\xLeftrightarrow`、`\xleftrightarrow`、`\xRightarrow` 等 extpfeil 宏不在本地 MathJax 构建内（仅登记 autoload 依赖、离线不可用），改用 `\overset{上}{底座}` / `\underset{下}{底座}` / `\overset{上}{\underset{下}{底座}}` 组合；解析仅识别已知底座组合（含 `\underset` 内层嵌套），其余 `\overset{a}{b}` 按原文保留。上方标注槽 `↓` 落到下方槽、下方槽 `↑` 回到上方槽，槽位边界左右键跳出整座节点；槽位边界 `Backspace` / `Delete` 整块删除，双槽节点按上方 → 下方 / 下方 → 上方分级退格；点击节点聚焦标注槽。
+- 新增运算符结构单元测试 `HeFormulaEditor.arrow.test.ts`（40 例）：12 卡板块结构（标题、符号、标注框位置）、12 张卡插入（DOM、data-arrow、空标注槽、序列化、光标落点）、`\xleftarrow` / `\xrightarrow` 与 `\overset` / `\underset` 组合解析往返（含双槽、空下方、双槽嵌套归一、后续文本共存、非已知底座保留、标注编辑回写）、标注槽方向键互跳与边界跳出、单槽整块删除与双槽分级退格、点击聚焦。
+
 ### 变更
+
+- 提高可编辑公式区选中态的可见度：文本选中改用明显的蓝色高亮（`::selection` / `::-moz-selection`，`rgba(59, 110, 245, 0.38)`），槽位聚焦背景由几乎看不见的 `#eef3ff` 加深为 `#d9e6ff`（分式、上下标、根式、积分、大型运算符、括号、堆栈、函数与导数参数等全部槽位）；工具栏与符号面板的 hover 底色保持不变。
 
 - ⚠️ **迁移为 pnpm monorepo（Breaking）**：
   - 新增 `packages/editor`（npm 包 `he-math-editor`，version 0.1.0）：独立库包，含 `vite.lib.config.ts` 库构建（双入口 `index` / `full`，`vite-plugin-dts` 生成类型声明，单一 `style.css` 样式产物，`vue` / `vue-i18n` 为 peerDependencies，codemirror / markdown-it / mathlive / highlight.js 保持外部引用）；`package.json` 注册 `exports`：`.` / `./full` / `./style.css`。
@@ -54,11 +65,16 @@
 - 可编辑区支持结构化积分：解析 `\int` / `\iint` / `\iiint`（最长优先匹配，兼容 `\limits` 修饰符），渲染为 `.me-int`（`.me-int__sub` / `.me-int__sup` / `.me-int__sign` / `.me-int__integrand`，CSS grid 命名区域排版）。下限按 `↑` 到上限、上限按 `↓` 回下限、限界按 `↓` 进被积函数；限界开头 `Backspace` / 被积函数末尾 `Delete` 整块删除，外部左右键将积分视为整体跨越；限界与被积函数内可继续嵌套分式、根式与上下标。序列化输出 `\int_{下}^{上}{被积函数}`，被积函数花括号始终保留（省略会在源码往返时吞掉后续文本）。
 - 积分弹层扩展为左右双栏，新增「围道积分」栏：∮（`\oint`）/ ∯（`\oiint`）/ ∰（`\oiiint`）× 无限界 / 仅上限 / 上下限共 9 种格式，弹层加宽至 560px。围道积分复用普通积分的 `me-int` 结构，解析最长优先匹配 `\oiiint` > `\oiint` > `\oint`，序列化按积分号反查命令；键盘互跳、整块删除与嵌套行为与普通积分一致。`\oiint` / `\oiiint` 预览经 MathJax 自定义宏（◯ 叠加）渲染。
 - 积分弹层新增底部「微分」通栏：dx / dy / dθ 三张纯文本模板卡，点击后在当前光标所在槽位按普通文本插入（不生成结构化槽位）并关闭弹层；θ 用 Unicode 而非 `\theta`（可编辑区不解析未知命令，与常用根式的 `±` 约定一致）。弹层结构调整：外层 `__body` 统一包裹双栏与底部通栏，全部复用既有卡片样式，无新增 CSS；积分单元测试同步覆盖微分（共 41 个用例）。
-- 当前 `\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^`、`_` / 根式 `\sqrt` / 积分 `\int`、`\iint`、`\iiint` 与围道积分 `\oint`、`\oiint`、`\oiiint` 已结构化；`\cfrac` / `\dfrac` 等命令在可编辑区仍显示为文本，实时预览会正确渲染。
+- 新增公式工具栏「极限和对数」弹层：第一板块 6 张基础卡（带底数的 log `\log_{}{}`、log `\log{}`、lim `\lim_{}{}`、min `\min_{}{}`、max `\max_{}{}`、ln `\ln{}`），第二板块 2 张常用函数宽卡（重要极限 `\lim_{n→∞}{\left(1+\frac{1}{n}\right)^{n}}`、最大值 `\max_{0≤x≤1}{xe^{-x^{2}}}`）；复用 `.me-func` 节点并扩展可选下标槽 `.me-func__sub`（节点带 `.me-func--with-sub`，lim / min / max 另有 `.me-func--sub-under` 网格布局把条件排在函数名正下方），插入时带下标卡聚焦下标、log / ln 聚焦参数。
+- 函数节点支持下标槽导航与分级删除：下标末尾 `→` / `↓` 进入参数，参数 `↑` 或开头 `←` 回到下标；参数开头 `Backspace`、下标末尾 `Delete` 先回另一槽位，下标开头 `Backspace` / 参数末尾 `Delete` 才整块删除；`getEdgeSlot`、槽位容器、`aria-label` 与中英文文案同步补充 `funcSub`。
+- 可编辑区解析新增 `\log` / `\ln` / `\lim` / `\min` / `\max`，命令后可选 `_{...}` 下标再跟参数，序列化为 `\log_{底数}{参数}` / `\lim_{条件}{参数}`，下标与参数花括号始终保留（空槽为 `\log_{}{}`）；`\lim` 与 `\ln` 按命令边界匹配，互不误判。
+- 当前 `\frac` / `\tfrac` / 斜式 `{}^{a}\!/\!_{b}` / 上下标 `^`、`_` / 根式 `\sqrt` / 积分 `\int`、`\iint`、`\iiint` 与围道积分 `\oint`、`\oiint`、`\oiiint` / 三角函数 `\sin`、`\cos`、`\tan`、`\csc`、`\sec`、`\cot` / 反函数 `\sin^{-1}` 等 / 双曲函数 `\sinh`、`\cosh`、`\tanh`、`\csch`、`\sech`、`\coth` / 反双曲函数 `\sinh^{-1}` 等 / 对数与极限 `\log`、`\ln`、`\lim`、`\min`、`\max`（可选 `_{...}` 下标）/ 导数符号 `\dot`、`\ddot`、`\dddot`、`\hat`、`\check`、`\acute`、`\grave`、`\tilde`、`\breve`、`\bar`、`\overbrace`、`\underbrace`（含带标签的 `\overbrace{...}^{...}` / `\underbrace{...}_{...}`）、`\overline`、`\underline`、`\boxed`、`\overleftarrow`、`\overrightarrow`、`\overleftrightarrow`、`\overleftharpoon`、`\overrightharpoon` 与双层横线 `\bar{\bar{...}}` 已结构化；`\cfrac` / `\dfrac` 等命令在可编辑区仍显示为文本，实时预览会正确渲染。
 - `HeMathInput`（MathLive）仅保留在 EditorPage 的内嵌示例中，不再用于公式弹窗。
 
 ### 修复
 
+- 修复运算符弹层「运算符结构」12 张卡预览缺少虚线占位框的问题：预览由 `v-html` 注入，而 `.arrow-preview__*` 规则写在 scoped 样式块里未加 `:deep()`，编译后的属性选择器匹配不到注入节点，空标注框 `span` 宽高为 0、卡片上只剩箭头。改为 `.he-tool-card__preview :deep(...)`，占位框按参考图改为 16×16 方形（虚线 `currentColor`、0.45 透明度、2px 圆角），与三角函数卡参数框观感一致。
+- 修复可编辑公式内容超出一行宽度时文字与结构化节点重叠错位的问题：`.he-formula-editable` 是 flex 容器而文本槽为 `white-space: pre`，默认 `flex-shrink: 1` 会把它压缩，超出的文字直接画到相邻节点上（如长串数字压住 `\max` 节点）；改为 flex 项 `flex: 0 0 auto`、文本槽 `flex-shrink: 0`，超宽时由容器横向滚动，节点与文字不再互相覆盖。
 - 修复 monorepo 迁移后 `pnpm build`（demo 侧 `vue-tsc --noEmit`）报 `Property 'env' does not exist on type 'ImportMeta'` 的问题：demo 通过 `paths` 直连库源码检查时缺少 Vite 类型声明，新增 `apps/demo/src/vite-env.d.ts`（`/// <reference types="vite/client" />`）。
 
 - 修复行间公式 `$$\n...\n$$` 无法识别的问题：`$$` 后允许换行与首尾空白，LaTeX 首尾空白会被裁剪；行内公式规则保持不变。
@@ -72,8 +88,16 @@
 - 修复竖式分式的分子/分母无法与整数等文本混排的问题：新增 `ensureDirectTextSlot`，点击分子/分母容器留白时聚焦或创建同级文本槽，不再强制进入嵌套分式；分子内在嵌套分式边界按 `←` / `→` 也会创建同级文本槽，支持 `\frac{2\frac{a}{b}}{b}` 这类混排。
 - 修复嵌套插入分式时选中内容残留空文本槽、编辑区上方出现多余空白块的问题：插入时先删除选区再切分文本；空槽用零宽空格占位以校正光标位置，槽位被删空后自动补回，并在失焦时清理分子/分母中的空槽；粘贴时移除换行。
 
+- 修复函数弹层「常用函数」正切恒等式宽卡预览中 `tan θ`、`=` 与分式未纵向居中的问题：预览整体包进 `.func-preview__row`（`inline-flex` + `align-items: center`），等号左右两侧与分式中线对齐（可编辑区 `.me-frac` 本就带 `vertical-align: middle`，不受影响）。
+- 修正导数符号弹层第 14 / 15 张卡的内容：Word 画廊这里是带标记的上方 / 下方括号，不是多行方括号。两张卡改为插入 `\overbrace{}^{}` / `\underbrace{}_{}`，节点新增 `.me-deriv__label` 标签槽（上方括号标签在记号前、下方括号标签在记号后，节点带 `.me-deriv--labeled`）；参数槽与标签槽按 `↑` / `↓` 互跳，标签槽边界同样可整块删除，序列化输出 `\overbrace{参数}^{标签}` / `\underbrace{参数}_{标签}`，解析侧把紧跟的 `^{...}` / `_{...}` 收进标签槽；移除不可用的 `\overbracket` / `\underbracket` 命令及其 CSS 括号方案。
+- 修复可编辑公式中嵌套结构按 `←` / `→` 一次跳出最外层的问题：新增槽位容器判定（`isSlotContainer` / `SLOT_CONTAINER_SELECTOR`），嵌套节点向外移动时先在外层容器的起点 / 终点创建并聚焦同级文本槽，再按一次才离开外层，`\bar{\bar{x}}`、`\overline{\overline{x}}`、`\sin{\sin{x}}`、`\left(\left[x\right]\right)` 等逐层退出；分子 / 分母、限界、根指数等既有互跳与跳出行为保持不变。
+
 ### 文档
 
+- TOOLBAR.md 新增第 10 节「导数符号弹层」（20 张重音符号卡片表与上下方位、序列化与解析规则、交互说明），导数符号按钮状态改为已支持；可编辑区能力表补充结构化导数符号及点击、方向键与整块删除说明，原第 10–12 节顺延为第 11–13 节；README.ai.md 同步导数符号节点的解析、渲染、序列化说明与回归项、测试文件清单。
+- TOOLBAR.md 导数符号章节扩充为三板块 24 卡（带框公式与顶线 / 底线卡片表、预填宽带卡与 CSS 横线说明），按钮矩阵与可编辑区能力表的命令数同步；README.ai.md 同步 `\boxed` / `\overline` / `\underline` 的解析、渲染、序列化与易错点。
+- TOOLBAR.md 导数符号章节扩至四板块 27 卡（新增「常用导数对象」卡片表、宽带卡与 Unicode `⊕` 交互说明、预览差异），更新记录追加一行；README.ai.md 同步弹层说明、测试文件清单与常用导数对象回归项。
+- TOOLBAR.md 新增第 11 节「极限和对数弹层」（6 张基础卡与 2 张常用函数宽卡、下标槽布局与导航 / 分级删除规则），按钮矩阵改为已支持；可编辑区能力表的结构化函数、方向键与整块删除说明补充下标槽，原第 11–13 节顺延为第 12–14 节；README.ai.md 同步函数下标槽的解析、渲染、序列化、槽位角色、原子导航、删除与点击说明、测试文件清单与回归项。
 - README.ai.md 文件地图补充 `vitest.config.ts` 与 `src/components/__tests__/`，验证方式新增 `pnpm test` 及 jsdom 焦点 / contenteditable 的测试注意事项。
 - README.md / README.zh-CN.md 同步 monorepo 现状：快速开始改为 pnpm 命令（`pnpm dev` / `build` / `build:lib` / `preview`）、目录结构改为 `packages/editor` + `apps/demo`、组件示例导入路径从 `@/index` 改为 `he-math-editor`、新增「作为 npm 包使用」与「许可证」章节、MathJax 服务说明更新为三级来源策略、国际化说明按库 / demo 文案拆分更新、开发约定与分支流程命令同步。
 - README.ai.md 同步 monorepo 现状：架构分层图、文件地图（全部路径改为 `packages/editor/src/*` / `apps/demo/src/*`）、常见改动路径、验证命令改为 pnpm、易错点补充 pnpm 安装 / 库内禁用 `@` 别名 / 库依赖归属 / full 入口资产重建等条目；手工回归清单新增 LaTeX 源码双向同步与 `pnpm build:lib` 产物完整性两项。
@@ -96,19 +120,46 @@
 - README / README.zh-CN / README.ai 补充结构化积分、积分弹层、限界与被积函数的导航 / 删除方式与验证项。
 - TOOLBAR.md 补充积分弹层底部「微分」通栏章节（dx / dy / dθ 三张纯文本卡），积分按钮说明更新为「双栏 18 种积分格式 + 底部微分栏 3 张纯文本卡」。
 - README / README.zh-CN / README.ai 补充结构化上下标、上下标弹层、上下标导航与删除方式、当前结构化范围与验证项。
+- TOOLBAR.md 补记大型运算符弹层章节（5 板块 40 卡、交互与序列化），大型运算符按钮状态改为已支持，可编辑公式区能力表补充结构化大型运算符及括号 / 堆栈的点击、方向键与整块删除说明。
+- TOOLBAR.md 新增第 9 节「函数弹层」（三角函数 6 卡与交互），函数按钮状态改为已支持；可编辑区能力表补充结构化函数及点击、方向键与整块删除说明，后续章节顺延为第 10 / 11 / 12 节。
+- README.ai.md 补充结构化三角函数与函数弹层的解析、渲染、序列化、点击和键盘导航说明；工具栏绑定状态、测试文件清单、当前结构化范围与手工回归清单同步更新。
+- TOOLBAR.md 函数弹层章节扩展为三板块 18 卡（三角函数 / 反函数 / 双曲函数卡片表与交互、序列化说明），函数按钮说明与可编辑区能力表的结构化函数行同步，更新记录追加一行；README.ai.md 同步反函数 / 双曲函数的解析与回归项。
+- TOOLBAR.md 函数弹层章节扩展为五板块 27 卡（新增反双曲函数与常用函数卡片表、常用模板交互与 θ Unicode 约定说明），更新记录追加一行；README.ai.md 同步反双曲函数解析与常用函数模板的回归项。
+- README.ai.md 补充大型运算符 / 括号 / 堆栈的结构化解析、渲染、序列化、点击与键盘导航说明；工具栏绑定状态、测试文件清单与当前结构化范围同步更新，手工回归清单新增大运算符 4 项。
 - README / README.zh-CN / README.ai 补充分支与提交流程：按风险选择直接提交 `master` 或 `feat/*`，包含标准命令、`--no-ff` 本地合并与双远程同步说明。
 - 新增 [README.md](README.md) / [README.zh-CN.md](README.zh-CN.md)：项目介绍、快速开始、目录结构、组件 API、公式规则与实现说明。
 - 新增 [README.ai.md](README.ai.md)：面向 AI 的架构速读、数据契约、核心机制、改动路径与易错点。
 - 新增 CHANGELOG.md（本文件），确立「每次提交同步更新版本说明」的维护规则。
+- TOOLBAR.md 可编辑区方向键说明补充嵌套结构逐层退出规则并追加一行更新记录；README.ai.md 补充嵌套符号方向键回归项与易错点说明。
 
 ### 新增
 
+- 新增公式工具栏「导数符号」弹层：四列网格 20 张卡，与 Word「导数符号」画廊一致——点 / 双点 / 三点、帽形 / 钩形、锐音符 / 钝音符、波浪线 / 短音符、横线 / 双横线、上花括号 / 下花括号、带标记的上 / 下方括号（`\overbrace{}^{}` / `\underbrace{}_{}`）、左 / 右 / 左右箭头、左 / 右鱼叉；卡片预览为记号 + 虚线占位框，带标记花括号卡显示两个占位框；点击后插入结构化重音节点并聚焦参数槽，下置记号渲染在参数下方。
+- 可编辑区支持 19 种结构化重音命令：`\dot` / `\ddot` / `\dddot` / `\hat` / `\check` / `\acute` / `\grave` / `\tilde` / `\breve` / `\bar` / `\overbrace` / `\underbrace` / `\overleftarrow` / `\overrightarrow` / `\overleftrightarrow` / `\overleftharpoon` / `\overrightharpoon`，命令表最长优先（`\overleftrightarrow` 不被 `\overleftarrow` 误判，`\dots` / `\hats` 不被短命令误判）；渲染 `.me-deriv`（`.me-deriv__mark` 记号不可编辑 / `.me-deriv__arg` 参数槽，下置记号加 `--under` 并把参数排在记号之前）；带标记花括号多一个 `.me-deriv__label` 标签槽（节点带 `--labeled`，上方括号标签在记号前、下方括号标签在记号后）；双横线卡插入 `\bar{\bar{}}` 两层嵌套并聚焦最内层参数槽；参数槽 `←` / `↑` 在开头跳出左侧、`→` / `↓` 在末尾跳出右侧，带标记花括号的参数 / 标签槽按 `↑` / `↓` 互跳；参数 / 标签槽开头 `Backspace` / 末尾 `Delete` 整块删除；序列化 `\命令{参数}`（花括号始终保留，空参数为 `\命令{}`），带标记花括号为 `\overbrace{参数}^{标签}` / `\underbrace{参数}_{标签}`，`\hat x` 单字符参数往返为 `\hat{x}`。
+- 新增 `HeFormulaEditor.derivative.test.ts` 共 64 个用例：覆盖 20 卡弹层结构与标题、开关与函数弹层互斥、17 种单记号插入与上下方位、双横线嵌套 `\bar{\bar{}}`、带标记花括号插入与标签槽、19 种命令解析往返、`\overbrace{2}^{1}` / `\underbrace{1}_{2}` 标签解析、`\bar{\bar{x}}` 嵌套往返、`\hat x` 单字符参数、`\dots` / `\hats` 与 `\overleftrightarrow` 前缀冲突、嵌套分式与函数、空参数、参数与标签槽改写、方向键跳出 / 互跳与整块删除（含相邻文本槽边界）。
+- 导数符号弹层新增「带框公式」板块（空框 `\boxed{}`、预填勾股定理的宽带卡 `\boxed{a^{2}=b^{2}+c^{2}}`）与「顶线和底线」板块（`\overline{}` / `\underline{}`），共 24 张卡；节点新增 `.me-deriv--boxed` 边框与 `.me-deriv__mark--rule` CSS 横线（随参数宽度拉伸），带框卡没有记号、宽带卡插入后光标落在预填内容末尾；弹层改为三板块并启用内部滚动，解析 / 序列化支持 `\boxed` / `\overline` / `\underline`。
+- `HeFormulaEditor.derivative.test.ts` 由 64 例扩至 76 例：新增三板块结构与 24 卡标题断言、空框与预填宽带框插入 / 序列化 / 光标位置、顶线 / 底线节点结构与横线类名、`\boxed` / `\overline` / `\underline` 解析往返、`\underline` 不误判为 `\underbrace`、空框不吞后续文本与顶线内嵌分式用例。
+- 导数符号弹层新增第四板块「常用导数对象」3 张预填顶线卡：`\overline{A}`、`\overline{ABC}` 与宽带卡 `\overline{x⊕y}`（跨两列）；复用既有 `.me-deriv` 顶线节点，解析后插入并聚焦参数末尾，预填内容可继续编辑；`⊕` 用 Unicode（可编辑区不解析 `\oplus`），卡片预览直接显示带横线的对象而非虚线占位框。导数符号弹层共 27 张卡。
+- `HeFormulaEditor.derivative.test.ts` 由 76 例扩至 84 例：新增四板块 27 卡结构与标题断言、常用导数对象宽带卡布局、3 张预填卡插入 / 序列化 / 光标落点与解析往返用例。
+- 新增公式工具栏「函数」弹层第一部分「三角函数」：sin / cos / tan / csc / sec / cot 共 6 张卡，卡片预览为直立函数名 + 虚线参数框；点击后插入结构化 `.me-func` 并聚焦参数槽。
+- 可编辑区支持结构化三角函数：解析 `\sin` / `\cos` / `\tan` / `\csc` / `\sec` / `\cot`（`isCommandAt` 保证不误判 `\sinh` 等更长命令），渲染 `.me-func`（`.me-func__name` 直立不可编辑 / `.me-func__arg` 可编辑参数槽）；参数槽 `←` / `↑` 在开头跳出左侧、`→` / `↓` 在末尾跳出右侧，开头 `Backspace` / 末尾 `Delete` 整块删除；序列化 `\sin{参数}`，参数花括号始终保留（空参数为 `\sin{}`）。
+- 新增 `HeFormulaEditor.function.test.ts`：覆盖三角函数弹层 6 卡结构与标题、六种函数插入 / 序列化 / 光标落点、解析往返与嵌套、`\sinh` 不误判、参数槽输入、跳出导航与整块删除。
+- 函数弹层新增「反函数」「双曲函数」两个板块共 12 张卡（sin⁻¹ / cos⁻¹ / tan⁻¹ / csc⁻¹ / sec⁻¹ / cot⁻¹ 与 sinh / cosh / tanh / csch / sech / coth），卡片总数增至 18 张；反函数在卡片预览与编辑区渲染为直立函数名 + `−1` 上标（`.me-func__sup`，不可编辑），序列化为 `\sin^{-1}` 等规范命令，双曲函数序列化为 `\sinh{}` 等；弹层内容增多后改用 `__body--scroll` 滚动布局，函数卡统一为标准高度。
+- 可编辑区函数解析扩展：新增反函数 `\sin^{-1}` / `\cos^{-1}` / `\tan^{-1}` / `\csc^{-1}` / `\sec^{-1}` / `\cot^{-1}` 与双曲 `\sinh` / `\cosh` / `\tanh` / `\csch` / `\sech` / `\coth`；反函数命令在命令表中先于普通命令登记，保证 `\sin^{-1}{x}` 不会被 `\sin` 抢先拆成参数 `-1`；`\sinh` / `\coth` 等更长命令仍由 `isCommandAt` 保证不被短命令误判；键盘导航、整块删除与嵌套行为与三角函数一致。
+- `HeFormulaEditor.function.test.ts` 由 23 例扩至 56 例：新增三板块 18 卡结构与标题断言、12 种新函数的插入 / 序列化 / 光标落点、反函数与双曲解析往返、`\sin^{-1}{x}` 不误判、`\sinc` 等未知命令保持文本、空参数不吞后续文本、分式嵌套、参数槽跳出与整块删除用例。
+- 函数弹层新增第四板块「反双曲函数」6 张卡（sinh⁻¹ / cosh⁻¹ / tanh⁻¹ / csch⁻¹ / sech⁻¹ / coth⁻¹）：序列化为 `\sinh^{-1}` 等规范命令，命令表先于 `\sinh` 登记保证 `\sinh^{-1}{x}` 不被拆成 `\sinh` + `^{-1}`；编辑区渲染复用 `.me-func` + `−1` 上标（`.me-func__sup`）。
+- 函数弹层新增第五板块「常用函数」3 张预填模板卡：sin θ（`\sin{θ}`）、cos 2x（`\cos{2x}`）与正切恒等式宽卡（`\tan{θ}=\frac{\sin{θ}}{\cos{θ}}`，含结构化分式，卡片跨两列）；θ 用 Unicode 保持既有约定；常用模板解析后插入并聚焦首个可编辑槽，函数弹层卡片总数增至 27 张。
+- `HeFormulaEditor.function.test.ts` 由 56 例扩至 76 例：新增五板块 27 卡结构断言、6 种反双曲函数插入 / 序列化 / 解析往返、`\sinh^{-1}{x}` 不被 `\sinh` 抢先匹配、反函数与反双曲混排往返、3 张常用模板插入与恒等式结构（分式内嵌函数）、预填参数继续编辑用例。
 - 新增可编辑竖向堆栈结构节点 `.me-stack`：支持 `\begin{cases}...\end{cases}`（左侧花括号、随行数拉伸）与 `\begin{matrix}...\end{matrix}`（无定界符）两种样式，每个 `.me-stack__row` 是独立行容器，行内可继续嵌套分式 / 上下标 / 根式 / 积分 / 括号 / 堆栈；解析时只在环境顶层按 `\\` 切行，序列化输出 `\begin{...}...\end{...}`；行间 `↑` / `↓` 上下移动，首行 `↑` / 末行 `↓` 跳出整座堆栈，首行开头 `Backspace` / 末行末尾 `Delete` 整块删除，点击留白按纵向位置聚焦最近一行。
 - 新增括号弹层第四板块「事例和堆栈」4 张卡（花括号两行事例、花括号三行事例、两行堆栈、圆括号两行堆栈）与第五板块「常用方括号」3 张宽卡（分段函数、圆括号组合数、尖括号组合数），括号按钮卡片数由 34 张增至 41 张；`HeFormulaEditor.bracket.test.ts` 同步更新卡片总数与分区断言，并新增堆栈插入、`\begin{cases}` / `\begin{matrix}` 解析往返、行间导航与整块删除用例。
+- 新增公式工具栏「大型运算符」弹层：五个板块共 40 张卡（求和 5 / 乘积和副积 10 / 并集和交集 10 / 其他大型运算符 10 / 常用模板 5）；格式卡插入结构化 `.me-bigop` 并聚焦对应限界或表达式，带上下标卡为 `\nolimits` 行内式，弹层内卡片复用既有 `.he-tool-card--tall` / `--wide` 样式。
+- 可编辑区支持结构化大型运算符：解析 `\sum` / `\prod` / `\coprod` / `\bigcup` / `\bigcap` / `\bigvee` / `\bigwedge`（最长优先匹配，兼容 `\limits` / `\nolimits`），渲染 `.me-bigop`（`.me-bigop__sub` / `__sup` / `__sign` / `__operand`）；限界 `↑` / `↓` 互跳、限界 `↓` 进表达式、表达式 `↑` / 开头 `←` 回最近限界；限界开头 `Backspace`、表达式末尾 `Delete` 整块删除；序列化 `\sum_{下}^{上}{表达式}`，行内式保留 `\nolimits`、`\limits` 往返规整，表达式花括号始终保留。
+- 大型运算符弹层新增「常用大型运算符」5 张预填模板卡（组合数求和、上下限求和、多条件求和、上下限乘积、上下限并集），解析后插入并优先聚焦第一个空槽。
+- 新增大型运算符单元测试：`HeFormulaEditor.sum.test.ts` / `prod.test.ts` / `union.test.ts` / `veeWedge.test.ts` / `commonBigop.test.ts` / `delete.test.ts`，覆盖 5 板块 40 卡结构、格式卡插入与序列化、解析往返（`\limits` 规整 / `\nolimits` 保留）、限界与表达式方向键导航、整块删除及常用模板。
 - 新增组件单元测试设施与积分弹层测试：`packages/editor` 引入 vitest 5 + @vue/test-utils + jsdom（新增 `vitest.config.ts`，根与包 `package.json` 注册 `test` 脚本）；新增 `HeFormulaEditor.integral.test.ts` 30 个用例，覆盖积分弹层 9 卡结构、五类积分插入的 DOM 结构 / 序列化 / 光标落点、`\int` / `\iint` / `\iiint` 解析（含 `\limits` 兼容与最长优先匹配）、LaTeX 序列化往返（`\limits` 规整、被积函数花括号始终保留）、限界与被积函数的方向键导航、限界开头 `Backspace` / 被积函数末尾 `Delete` 整块删除。
 - 新增自研公式输入实验页 `#/input`：直接展示 `HeFormulaEditor` UI 组件，支持键盘数字、字母与符号；`*`、`-`、`/` 在 keydown 时自动映射为 `×`、`−`、`÷`。
 - 新增 `HeFormulaEditor` UI 组件：三段展示与自研可编辑公式区、MathJax 预览、行间开关、Unicode 符号面板与校验；暴露 `focus` / `validate` / `clear`，由 `HeFormulaDialog` 与 `#/input` 共用。
-- `HeFormulaEditor` 新增顶部公式工具栏 UI：最左侧「符号」按钮（Ω）+ 分数、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵，共 12 个按钮；分数、上下标、根式、积分按钮已接入弹层，其余暂未绑定行为。
+- `HeFormulaEditor` 新增顶部公式工具栏 UI：最左侧「符号」按钮（Ω）+ 分数、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵，共 12 个按钮；分数、上下标、根式、积分按钮已接入弹层；大型运算符、括号与函数弹层见后续条目，其余暂未绑定行为。
 - 新增分数格式弹窗：标准分式、线性分式、斜分式、连分式，以及常用分数 `dy/dx`、`Δy/Δx`、`∂y/∂x`、`δy/δx`、`π/2`；标准和常用分数插入结构化分式并默认选中分子，其余格式插入文本模板。
 - 新增 KaTeX 字体资源 `src/assets/fonts/katex` 与 `src/styles/math-font.scss`，通过 `unicode-range` 组合 `HeMathFont`：数字/运算符使用 `KaTeX_Main`，字母/希腊字母使用 `KaTeX_Math Italic`。
 - 顶部导航新增「公式输入」页面，路由 `#/input`。
@@ -135,12 +186,18 @@
 
 ### 工程
 
+- 拆分 `HeFormulaEditor.vue` 的解析 / 渲染 / 序列化：新增 `packages/editor/src/components/formula/`——`types.ts`（`ParsedNode`）、`commands.ts`（分式 / 积分 / 大型运算符 / 函数 / 导数命令表与序列化反查表）、`parser.ts`（`parseLatex` 与全部读取器）、`renderer.ts`（`createFormulaRenderer(t)` 工厂 + 全部 `create*Element` / `appendNodes` / `renderInto`）、`serializer.ts`（`serializeNodes`）、`dom.ts`（槽位文本、括号段 / 堆栈行查询、`bigOpAriaKey`）与 `index.ts` barrel；SFC 只保留 `renderEditor` / `serializeEditor` 薄封装与交互逻辑，由 5765 行降至约 4386 行。渲染器通过工厂注入 `t`，不引入全局翻译状态；对外行为、DOM 结构与 LaTeX 往返不变，纯重构无 Breaking。
+- 工具栏目录数据与类型抽离到 `packages/editor/src/components/toolbar/catalog/`：原 `HeFormulaEditor.vue` 中的工具列表、符号表、10 个弹层的卡片数组与预览构建函数按模块拆为 `types.ts` / `tools.ts` / `previewUtils.ts` / 12 个模块文件 + `index.ts` barrel，SFC 由 6949 行降至约 5760 行，只保留解析 / 渲染 / 序列化与交互；对外行为、样式与导出不变，纯重构无 Breaking。
+- 工具栏弹层状态收敛为单一 `activeTool: ToolId | null`：替换原有 10 个独立布尔 ref（`fractionOpen` / `scriptsOpen` / … / `operatorOpen`），新增 `popoverToolIds` 标记已接入弹层的工具；`onToolClick` 只负责打开 / 切换 / 关闭，`onDocumentClick` 只需判断 `activeTool`，各 `pickXxx` 插入后统一置空，行为不变。
+- 工具栏弹层卡片统一抽为 `packages/editor/src/components/toolbar/ToolCard.vue`：10 个弹层的全部卡片循环改为 `<ToolCard>`（`title` + `html` / `text` + `tall` / `wide` / `span2` / `mathFont`，`pick` 事件），`.he-tool-card*` 样式与各预览族的 `:deep()` 规则一并迁入组件 scoped 样式；SFC 删除约 470 行重复卡片模板与样式，卡片外观、变体与点击行为不变。
+- 可编辑区导航改为声明式表驱动：`SLOT_ROLE_BY_CLASS` 反查槽位角色并派生 `SLOT_CONTAINER_SELECTOR` / `ATOM_SELECTOR`，`EDGE_PARTS`（`EdgeQuery`）驱动 `getEdgeSlot`，`ARROW_NAV` / `DELETE_NAV`（键 + 可选条件 → `NavTarget` / `DeleteAction`）驱动 `handleArrow` / `handleDelete`，`focusPart` 统一 `focusXxxSlot` 包装，`moveSibling` 只保留跨同级节点逻辑；新增槽位只需补表项，不再新增并列 `if` 分支。SFC 由约 4386 行降至 3727 行，方向键、分级删除与 LaTeX 往返行为不变。
 - 新增测试依赖（仅 devDependencies）：`vitest@^5`、`@vue/test-utils@^2.5`、`jsdom@^30`；根 `package.json` 新增 `test`（转发 `pnpm --filter he-math-editor test`）。
 - `createTextSlot` 的 `contenteditable` 改为 `setAttribute` 写入：浏览器行为不变；jsdom 不做 `contentEditable` property → attribute 反射，attribute 写法是单元测试中 `[contenteditable]` 选择器生效的前提。
 - 采用 **AGPL-3.0 / 商业双许可**：`packages/editor/LICENSE` 含 AGPL-3.0 全文与双许可声明（开源使用遵循 AGPL-3.0-or-later，闭源商用需购买商业授权）及第三方依赖许可清单；`packages/editor/package.json` 增加 `license` 字段。
 - 迁移包管理器为 pnpm：`packageManager` 固定 pnpm@12.15.0，删除 `package-lock.json`，新增 `pnpm-lock.yaml` 与 `pnpm-workspace.yaml`（`packages/*` + `apps/*`，`onlyBuiltDependencies` 仅放行 esbuild 与 @parcel/watcher）。
 - 新增依赖 `highlight.js@^11.12.0`（core 构建 + 按需语言模块）。
 - KaTeX 字体文件复制自 `mathlive@0.100.0`，未新增 npm 依赖。
+- 新增项目级 Qoder skill `.qoder/skills/formula-toolbar-module/`：把公式工具栏模块的开发流程固化为可调用 skill（`SKILL.md` + 结构化节点集成清单 + 测试/文档/验证参考），补充结构化节点 A–J 集成项、弹层状态接线、i18n aria 刷新、jsdom 与浏览器验收注意事项。
 
 ## [0.1.0] - 2026-10-19
 

@@ -265,6 +265,22 @@ describe('方括号的删除', () => {
 	})
 })
 
+describe('嵌套方括号的光标移动', () => {
+	it('内层括号末尾按 → 先停在外层内容槽，再按一次才离开外层', () => {
+		wrapper = mountEditor('\\left(\\left[x\\right]\\right)')
+		const inner = wrapper.find('.me-bracket__content .me-text-slot').element as HTMLElement
+		const outerContent = wrapper.findAll('.me-bracket__content')[0]!.element
+
+		placeCaret(inner, 1)
+		pressKey('ArrowRight')
+		expect(wrapper.findAll('.me-bracket')).toHaveLength(2)
+		expect(currentSlot()?.parentElement).toBe(outerContent)
+
+		pressKey('ArrowRight')
+		expect(selectionIn('.me-bracket')).toBe(false)
+	})
+})
+
 // ============ 带分隔符的方括号 ============
 
 /** 打开括号弹层里的「带分隔符」板块：前 12 张是普通括号，后 4 张是带分隔符 */
