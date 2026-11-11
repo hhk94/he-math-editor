@@ -12,7 +12,7 @@ import type {
 	StackStyle
 } from '../toolbar/catalog'
 import { bigOpSignToCommand, functionCommandById, integralSignToCommand } from './commands'
-import { getBracketContents, getStackRows, readSlotText } from './dom'
+import { getBracketContents, getMatrixCells, getStackRows, readSlotText } from './dom'
 
 /** DOM → LaTeX：与 `parseLatex` / `renderInto` 互逆，空参数花括号始终保留 */
 export const serializeNodes = (container: HTMLElement): string => {
@@ -84,9 +84,29 @@ export const serializeNodes = (container: HTMLElement): string => {
 			result += `\\left${format.left}${sep}${inner}\\right${format.right}${sepAfter}`
 			hasContent = true
 		} else if (child.classList.contains('me-stack')) {
-			const style = (child.dataset.stack ?? 'matrix') as StackStyle
+			const style = (child.dataset.stack ?? 'cases') as StackStyle
 			const rows = getStackRows(child).map((row) => serializeNodes(row))
 			result += `\\begin{${style}}${rows.join('\\\\')}\\end{${style}}`
+			hasContent = true
+		} else if (child.classList.contains('me-matrix')) {
+			// 按 dataset 行列号重排成 `&` 分隔的单元格，顶层 `\\` 切行
+			const rowMap = new Map<number, { col: number; el: HTMLElement }[]>()
+			for (const cell of getMatrixCells(child)) {
+				const row = Number(cell.dataset.row ?? 1)
+				const list = rowMap.get(row) ?? []
+				list.push({ col: Number(cell.dataset.col ?? 1), el: cell })
+				rowMap.set(row, list)
+			}
+			const rows = Array.from(rowMap.keys())
+				.sort((a, b) => a - b)
+				.map((row) =>
+					rowMap
+						.get(row)!
+						.sort((a, b) => a.col - b.col)
+						.map(({ el }) => serializeNodes(el))
+						.join('&')
+				)
+			result += `\\begin{matrix}${rows.join('\\\\')}\\end{matrix}`
 			hasContent = true
 		} else if (child.classList.contains('me-func')) {
 			const name = (child.dataset.func ?? 'sin') as FunctionFormatId
