@@ -26,7 +26,8 @@ export type Translate = (key: string) => string
 export const createFormulaRenderer = (t: Translate) => {
 	const createTextSlot = (value: string): HTMLElement => {
 		const slot = document.createElement('span')
-		slot.className = 'me-text-slot'
+		// 空槽带 --empty 标记：编辑区用虚线占位框标出（输入内容后由组件刷新移除）
+		slot.className = value ? 'me-text-slot' : 'me-text-slot me-text-slot--empty'
 		// 用 attribute 而不是 contentEditable property：浏览器中两者等价，jsdom 只认 attribute（单元测试依赖 [contenteditable] 选择器）
 		slot.setAttribute('contenteditable', 'true')
 		slot.spellcheck = false

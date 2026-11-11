@@ -692,12 +692,22 @@ const {
 	renderInto
 } = createFormulaRenderer((key) => t(key))
 
+/** 空槽挂虚线占位框标记：可见内容为空（忽略零宽占位符）时显示，输入内容后隐藏 */
+const refreshEmptySlotMarks = () => {
+	const root = editorRef.value
+	if (!root) return
+	root.querySelectorAll<HTMLElement>('.me-text-slot').forEach((slot) => {
+		slot.classList.toggle('me-text-slot--empty', readSlotText(slot) === '')
+	})
+}
+
 const renderEditor = (source: string) => {
 	const root = editorRef.value
 	if (!root) return
 	root.replaceChildren()
 	renderInto(root, source)
 	lastSerialized = source
+	refreshEmptySlotMarks()
 }
 
 const serializeEditor = (): string => {
@@ -710,6 +720,7 @@ const syncFromEditor = () => {
 	lastSerialized = next
 	text.value = next
 	error.value = ''
+	refreshEmptySlotMarks()
 }
 
 const onEditorInput = () => {
@@ -3242,9 +3253,16 @@ defineExpose({ focus, validate, clear })
 	caret-color: #3b6ef5;
 }
 
-.he-formula-editable :deep(.me-text-slot:empty::before),
-.he-formula-editable :deep(.me-frac .me-text-slot:empty::before) {
-	content: '\200b';
+.he-formula-editable :deep(.me-text-slot--empty::before) {
+	/* 空槽占位虚线框：与工具栏模板卡的虚线空框一致，输入内容后随 --empty 标记移除而隐藏 */
+	content: '';
+	display: inline-block;
+	width: 0.8em;
+	height: 0.72em;
+	margin-right: 1px;
+	border: 1px dashed #b9c0cc;
+	border-radius: 2px;
+	vertical-align: -0.04em;
 }
 
 .he-formula-editable :deep(.me-frac) {
