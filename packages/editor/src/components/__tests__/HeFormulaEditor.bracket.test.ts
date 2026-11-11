@@ -745,3 +745,44 @@ describe('常用方括号', () => {
 		expect(angle.findAll('.me-matrix__cell')).toHaveLength(2)
 	})
 })
+
+// ============ 空槽占位框标记 ============
+
+describe('空槽占位框标记', () => {
+	it('空编辑器的文本槽带 --empty 标记，输入内容后移除、清空后恢复', async () => {
+		wrapper = mountEditor('')
+
+		const slot = wrapper.find('.me-text-slot')
+		expect(slot.classes()).toContain('me-text-slot--empty')
+
+		const el = slot.element as HTMLElement
+		el.textContent = 'a'
+		await resyncFromDom(wrapper)
+		expect(slot.classes()).not.toContain('me-text-slot--empty')
+
+		el.textContent = '\u200b'
+		await resyncFromDom(wrapper)
+		expect(slot.classes()).toContain('me-text-slot--empty')
+	})
+
+	it('分式的空分子槽位带标记，有内容的分母槽位不带', () => {
+		wrapper = mountEditor('\\frac{}{x}')
+
+		const slots = wrapper.findAll('.me-frac .me-text-slot')
+		expect(slots[0]!.classes()).toContain('me-text-slot--empty')
+		expect(slots[1]!.classes()).not.toContain('me-text-slot--empty')
+	})
+
+	it('矩阵空单元格的槽位全部带标记，非空单元格不带', async () => {
+		wrapper = mountEditor('\\begin{matrix}a\\end{matrix}')
+		expect(wrapper.findAll('.me-matrix .me-text-slot')[0]!.classes()).not.toContain(
+			'me-text-slot--empty'
+		)
+
+		await wrapper.setProps({ modelValue: '\\begin{matrix}&\\\\&\\end{matrix}' })
+		await nextTick()
+		const empties = wrapper.findAll('.me-matrix .me-text-slot')
+		expect(empties).toHaveLength(4)
+		empties.forEach((slot) => expect(slot.classes()).toContain('me-text-slot--empty'))
+	})
+})
