@@ -413,18 +413,17 @@ const readDelimiterToken = (source: string, start: number): { token: string; end
 }
 
 /**
- * 解析 `\begin{cases}` / `\begin{matrix}` 竖向堆栈环境：按顶层的 `\\` 切分成多行。
+ * 解析 `\begin{cases}` 竖向堆栈环境：按顶层的 `\\` 切分成多行。
  * 嵌套环境或花括号里的 `\\` 不作为行分隔；缺少 `\end` 时返回 null 交给主循环按文本处理。
  */
 const readStack = (
 	source: string,
 	start: number
 ): { style: StackStyle; rows: string[]; end: number } | null => {
-	const matched = /^\\begin\{(cases|matrix)\}/.exec(source.slice(start))
-	if (!matched) return null
-	const style = matched[1] as StackStyle
-	const endTag = `\\end{${style}}`
-	const bodyStart = start + matched[0].length
+	if (!source.startsWith('\\begin{cases}', start)) return null
+	const style: StackStyle = 'cases'
+	const endTag = '\\end{cases}'
+	const bodyStart = start + '\\begin{cases}'.length
 	let envDepth = 0
 	let braceDepth = 0
 	let bodyEnd = -1
@@ -469,6 +468,69 @@ const readStack = (
 	}
 	rows.push(source.slice(rowStart, bodyEnd))
 	return { style, rows, end: bodyEnd + endTag.length }
+}
+
+/**
+ * 解析 `\begin{matrix}` 矩阵环境：顶层的 `\\` 切行、`&` 切列。
+ * 嵌套环境或花括号里的分隔符不参与切分；缺少 `\end` 时返回 null 交给主循环按文本处理。
+ */
+const readMatrix = (source: string, start: number): { rows: string[][]; end: number } | null => {
+	if (!source.startsWith('\\begin{matrix}', start)) return null
+	const endTag = '\\end{matrix}'
+	const bodyStart = start + '\\begin{matrix}'.length
+	let envDepth = 0
+	let braceDepth = 0
+	let bodyEnd = -1
+	const markers: { type: 'row' | 'cell'; start: number; end: number }[] = []
+	let scan = bodyStart
+	while (scan < source.length) {
+		if (source[scan] === '\\') {
+			if (isCommandAt(source, scan, '\\begin')) {
+				envDepth++
+				scan += 6
+				continue
+			}
+			if (isCommandAt(source, scan, '\\end')) {
+				if (envDepth === 0) {
+					if (!source.startsWith(endTag, scan)) return null
+					bodyEnd = scan
+					break
+				}
+				envDepth--
+				scan += 4
+				continue
+			}
+			if (envDepth === 0 && braceDepth === 0 && source[scan + 1] === '\\') {
+				markers.push({ type: 'row', start: scan, end: scan + 2 })
+				scan += 2
+				continue
+			}
+			scan += 2
+			continue
+		}
+		if (source[scan] === '{') braceDepth++
+		else if (source[scan] === '}') braceDepth--
+		else if (source[scan] === '&' && envDepth === 0 && braceDepth === 0) {
+			markers.push({ type: 'cell', start: scan, end: scan + 1 })
+		}
+		scan++
+	}
+	if (bodyEnd === -1) return null
+
+	const rows: string[][] = []
+	let cursor = bodyStart
+	let cells: string[] = []
+	for (const marker of markers) {
+		cells.push(source.slice(cursor, marker.start))
+		cursor = marker.end
+		if (marker.type === 'row') {
+			rows.push(cells)
+			cells = []
+		}
+	}
+	cells.push(source.slice(cursor, bodyEnd))
+	rows.push(cells)
+	return { rows, end: bodyEnd + endTag.length }
 }
 
 /**
@@ -691,6 +753,16 @@ export const parseLatex = (source: string): ParsedNode[] => {
 				rows: stackNode.rows.map((row) => parseLatex(row))
 			})
 			i = stackNode.end
+			continue
+		}
+		const matrixNode = readMatrix(source, i)
+		if (matrixNode) {
+			flush()
+			nodes.push({
+				type: 'matrix',
+				rows: matrixNode.rows.map((row) => row.map((cell) => parseLatex(cell)))
+			})
+			i = matrixNode.end
 			continue
 		}
 		const matched = fractionCommands.find(({ command }) => source.startsWith(command, i))

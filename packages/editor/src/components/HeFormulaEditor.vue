@@ -467,6 +467,29 @@
 					</div>
 				</div>
 			</div>
+
+			<div
+				v-if="activeTool === 'matrix'"
+				class="he-tool-popover"
+				role="dialog"
+				:aria-label="t('formula.matrix.panelTitle')"
+			>
+				<div class="he-tool-popover__header">{{ t('formula.matrix.panelTitle') }}</div>
+				<div class="he-tool-popover__body">
+					<div class="he-tool-popover__section">{{ t('formula.matrix.emptyTitle') }}</div>
+					<div class="he-tool-popover__grid he-tool-popover__grid--quarters">
+						<ToolCard
+							v-for="item in matrixFormats"
+							:key="item.id"
+							:title="t('formula.matrix.' + item.id)"
+							:html="item.preview"
+							:math-font="false"
+							:tall="true"
+							@pick="pickMatrixFormat(item)"
+						/>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<div class="he-field-label">{{ t('formula.latexSource') }}</div>
@@ -548,6 +571,7 @@ import type {
 	FunctionFormat,
 	FunctionFormatId,
 	IntegralFormat,
+	MatrixFormat,
 	OperatorFormat,
 	RootFormat,
 	ScriptFormat,
@@ -582,6 +606,7 @@ import {
 	inverseHyperbolicFunctionFormats,
 	integralFormats,
 	limitLogFormats,
+	matrixFormats,
 	operatorFormats,
 	otherFormats,
 	popoverToolIds,
@@ -598,7 +623,7 @@ import {
 	unionFormats
 } from './toolbar/catalog'
 import { functionCommandById } from './formula/commands'
-import { bigOpAriaKey, bigOpSignOf, getBracketContents, getStackRows, readSlotText, stripPlaceholder } from './formula/dom'
+import { bigOpAriaKey, bigOpSignOf, getBracketContents, getMatrixCells, getStackRows, readSlotText, stripPlaceholder } from './formula/dom'
 import { parseLatex } from './formula/parser'
 import { createFormulaRenderer } from './formula/renderer'
 import { serializeNodes } from './formula/serializer'
@@ -662,6 +687,7 @@ const {
 	createArrowElement,
 	createBracketElement,
 	createStackElement,
+	createMatrixElement,
 	appendNodes,
 	renderInto
 } = createFormulaRenderer((key) => t(key))
@@ -755,6 +781,7 @@ type SlotRole =
 	| 'bigopOperand'
 	| 'bracketContent'
 	| 'stackRow'
+	| 'matrixCell'
 	| 'funcSub'
 	| 'funcArg'
 	| 'derivArg'
@@ -779,6 +806,14 @@ type ActiveSlotInfo = {
 	/** 光标所在的堆栈行序号与总行数 */
 	stackRow: number
 	stackRows: number
+	matrix: HTMLElement | null
+	/** 光标所在的矩阵单元格（跨格导航的基准格） */
+	matrixCellEl: HTMLElement | null
+	/** 光标所在矩阵单元格的行 / 列序号与总行 / 总列数 */
+	matrixRow: number
+	matrixRows: number
+	matrixCol: number
+	matrixCols: number
 	func: HTMLElement | null
 	deriv: HTMLElement | null
 	op: HTMLElement | null
@@ -805,6 +840,7 @@ const SLOT_ROLE_BY_CLASS: Record<string, SlotRole> = {
 	'me-bigop__operand': 'bigopOperand',
 	'me-bracket__content': 'bracketContent',
 	'me-stack__row': 'stackRow',
+	'me-matrix__cell': 'matrixCell',
 	'me-func__sub': 'funcSub',
 	'me-func__arg': 'funcArg',
 	'me-deriv__arg': 'derivArg',
@@ -855,6 +891,9 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 	const stackEl = (slot.closest('.me-stack') as HTMLElement | null) ?? null
 	const stackRows = stackEl ? getStackRows(stackEl) : []
 	const stackRowIndex = stackRows.findIndex((el) => el.contains(slot))
+	const matrixEl = (slot.closest('.me-matrix') as HTMLElement | null) ?? null
+	const matrixCells = matrixEl ? getMatrixCells(matrixEl) : []
+	const matrixCellEl = matrixCells.find((el) => el.contains(slot)) ?? null
 
 	return {
 		slot,
@@ -869,6 +908,12 @@ const getActiveSlot = (): ActiveSlotInfo | null => {
 		stack: stackEl,
 		stackRow: stackRowIndex >= 0 ? stackRowIndex : 0,
 		stackRows: stackRows.length,
+		matrix: matrixEl,
+		matrixCellEl,
+		matrixRow: matrixCellEl ? Number(matrixCellEl.dataset.row ?? 1) : 0,
+		matrixRows: matrixEl ? new Set(matrixCells.map((el) => Number(el.dataset.row ?? 1))).size : 0,
+		matrixCol: matrixCellEl ? Number(matrixCellEl.dataset.col ?? 1) : 0,
+		matrixCols: matrixEl ? new Set(matrixCells.map((el) => Number(el.dataset.col ?? 1))).size : 0,
 		func: (slot.closest('.me-func') as HTMLElement | null) ?? null,
 		deriv: (slot.closest('.me-deriv') as HTMLElement | null) ?? null,
 		op: (slot.closest('.me-op') as HTMLElement | null) ?? null,
@@ -889,6 +934,7 @@ const ATOM_CLASSES = [
 	'me-bigop',
 	'me-bracket',
 	'me-stack',
+	'me-matrix',
 	'me-func',
 	'me-deriv',
 	'me-op',
@@ -934,6 +980,10 @@ const EDGE_PARTS: Record<string, { start: EdgeQuery; end: EdgeQuery }> = {
 	'me-stack': {
 		start: listEdge(':scope > .me-stack__rows > .me-stack__row'),
 		end: listEdge(':scope > .me-stack__rows > .me-stack__row')
+	},
+	'me-matrix': {
+		start: listEdge(':scope > .me-matrix__grid > .me-matrix__cell'),
+		end: listEdge(':scope > .me-matrix__grid > .me-matrix__cell')
 	},
 	'me-func': {
 		start: firstEdge('.me-func__sub', '.me-func__arg'),
@@ -1076,6 +1126,28 @@ const focusStackRow = (stack: HTMLElement, row: number, select = false): boolean
 	const rowEl = rows[Math.min(Math.max(row, 0), rows.length - 1)]
 	if (!rowEl) return false
 	focusSlot(getEdgeSlot(rowEl, 'start'), select, 'start')
+	return true
+}
+
+/** 矩阵跨格导航：rowDelta 跨行取同列（该行缺列时钳到末格），colDelta 沿行主序扁平序列移动；越界返回 false 交给调用方跳出矩阵 */
+const focusMatrixCell = (cell: HTMLElement, rowDelta: number, colDelta: number): boolean => {
+	const matrix = cell.closest('.me-matrix') as HTMLElement | null
+	if (!matrix) return false
+	const cells = getMatrixCells(matrix)
+	if (rowDelta !== 0) {
+		const row = Number(cell.dataset.row ?? 1) + rowDelta
+		const rowCells = cells.filter((el) => Number(el.dataset.row ?? 1) === row)
+		if (!rowCells.length) return false
+		const col = Number(cell.dataset.col ?? 1)
+		const target =
+			rowCells.find((el) => Number(el.dataset.col ?? 1) === col) ?? rowCells[rowCells.length - 1]
+		focusSlot(getEdgeSlot(target, 'start'), false, 'start')
+		return true
+	}
+	const target = cells[cells.indexOf(cell) + colDelta]
+	if (!target) return false
+	const edge = colDelta < 0 ? 'end' : 'start'
+	focusSlot(getEdgeSlot(target, edge), false, edge)
 	return true
 }
 
@@ -1322,6 +1394,7 @@ type NavOwner =
 	| 'bigop'
 	| 'bracket'
 	| 'stack'
+	| 'matrix'
 	| 'func'
 	| 'deriv'
 	| 'op'
@@ -1333,6 +1406,7 @@ type NavTarget =
 	| { kind: 'sibling'; direction: 'left' | 'right' }
 	| { kind: 'bracketGroup'; delta: number }
 	| { kind: 'stackRow'; delta: number }
+	| { kind: 'matrixCell'; rowDelta: number; colDelta: number }
 type ArrowRule = { key: ArrowKey; when?: NavCondition; targets: NavTarget[] }
 type ArrowSpec = { owner?: NavOwner; rules: ArrowRule[] }
 
@@ -1350,6 +1424,11 @@ const atomTo = (direction: 'left' | 'right'): NavTarget => ({ kind: 'atom', dire
 const siblingTo = (direction: 'left' | 'right'): NavTarget => ({ kind: 'sibling', direction })
 const bracketGroupTo = (delta: number): NavTarget => ({ kind: 'bracketGroup', delta })
 const stackRowTo = (delta: number): NavTarget => ({ kind: 'stackRow', delta })
+const matrixCellTo = (rowDelta: number, colDelta: number): NavTarget => ({
+	kind: 'matrixCell',
+	rowDelta,
+	colDelta
+})
 
 const focusNavTarget = (
 	info: ActiveSlotInfo,
@@ -1376,6 +1455,10 @@ const focusNavTarget = (
 			const row = info.stackRow + target.delta
 			if (!info.stack || row < 0 || row >= info.stackRows) return false
 			return focusStackRow(info.stack, row)
+		}
+		case 'matrixCell': {
+			if (!info.matrixCellEl) return false
+			return focusMatrixCell(info.matrixCellEl, target.rowDelta, target.colDelta)
 		}
 	}
 }
@@ -1553,6 +1636,15 @@ const ARROW_NAV: Partial<Record<SlotRole, ArrowSpec>> = {
 			{ key: 'ArrowDown', targets: [stackRowTo(1), atomTo('right')] },
 			{ key: 'ArrowLeft', when: atStart, targets: [siblingTo('left')] },
 			{ key: 'ArrowRight', when: atEnd, targets: [siblingTo('right')] }
+		]
+	},
+	matrixCell: {
+		owner: 'matrix',
+		rules: [
+			{ key: 'ArrowUp', targets: [matrixCellTo(-1, 0), atomTo('left')] },
+			{ key: 'ArrowDown', targets: [matrixCellTo(1, 0), atomTo('right')] },
+			{ key: 'ArrowLeft', when: atStart, targets: [matrixCellTo(0, -1), atomTo('left')] },
+			{ key: 'ArrowRight', when: atEnd, targets: [matrixCellTo(0, 1), atomTo('right')] }
 		]
 	},
 	funcSub: {
@@ -1810,6 +1902,13 @@ const DELETE_NAV: Partial<Record<SlotRole, DeleteSpec>> = {
 			{ key: 'Delete', when: atEnd, action: focusOrRemove('after', stackRowTo(1)) }
 		]
 	},
+	matrixCell: {
+		owner: 'matrix',
+		rules: [
+			{ key: 'Backspace', when: atStart, action: focusOrRemove('before', matrixCellTo(0, -1)) },
+			{ key: 'Delete', when: atEnd, action: focusOrRemove('after', matrixCellTo(0, 1)) }
+		]
+	},
 	funcSub: {
 		owner: 'func',
 		rules: [
@@ -2017,6 +2116,9 @@ const focusByPoint = (x: number) => {
 				focusBracketSlotAt(child, x)
 			} else if (child.classList.contains('me-stack')) {
 				focusStackRow(child, 0)
+			} else if (child.classList.contains('me-matrix')) {
+				const cells = getMatrixCells(child)
+				if (cells.length) focusSlot(getEdgeSlot(cells[0], 'start'), false, 'start')
 			} else if (child.classList.contains('me-func')) {
 				focusFunctionSlot(child)
 			} else if (child.classList.contains('me-deriv')) {
@@ -2075,6 +2177,26 @@ const focusStackRowAt = (stack: HTMLElement, y: number) => {
 		}
 	})
 	focusStackRow(stack, target)
+}
+
+/** 点击矩阵留白时按平面位置选最近的单元格 */
+const focusMatrixCellAt = (matrix: HTMLElement, x: number, y: number) => {
+	const cells = getMatrixCells(matrix)
+	if (!cells.length) return
+	let target = 0
+	let best = Number.POSITIVE_INFINITY
+	cells.forEach((el, index) => {
+		const rect = el.getBoundingClientRect()
+		const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0
+		const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0
+		const dist = dx * dx + dy * dy
+		if (dist < best) {
+			best = dist
+			target = index
+		}
+	})
+	const edge = cells[target].dataset.col === '1' ? 'start' : 'end'
+	focusSlot(getEdgeSlot(cells[target], edge), false, edge)
 }
 
 const insertTextAtCaret = (value: string) => {
@@ -2361,6 +2483,11 @@ const onEditorClick = (event: MouseEvent) => {
 		focusStackRowAt(stackNode, event.clientY)
 		return
 	}
+	const matrixNode = target.closest('.me-matrix') as HTMLElement | null
+	if (matrixNode) {
+		focusMatrixCellAt(matrixNode, event.clientX, event.clientY)
+		return
+	}
 	const funcNode = target.closest('.me-func') as HTMLElement | null
 	if (funcNode) {
 		focusFunctionSlot(funcNode)
@@ -2570,9 +2697,31 @@ const pickSeparatorBracket = (item: SeparatorBracketFormat) => {
 	focusBracketSlot(bracket)
 }
 
-/** 插入事例与堆栈模板：按 wrap 决定是否再套一层配对括号 */
+/** 插入事例与堆栈模板：style 为 matrix 时是 rows×1 的矩阵节点，按 wrap 决定是否再套一层配对括号 */
 const pickStackFormat = (item: StackFormat) => {
 	activeTool.value = null
+	if (item.style === 'matrix') {
+		const grid = Array.from({ length: item.rows }, () => [[] as ParsedNode[]])
+		const matrix = createMatrixElement(grid)
+		let inserted: HTMLElement = matrix
+		if (item.wrap) {
+			const format = bracketFormatById.get(item.wrap)
+			if (format) {
+				const bracket = createBracketElement(format, [[]])
+				const content = getBracketContents(bracket)[0]
+				if (content) {
+					content.textContent = ''
+					content.append(matrix)
+				}
+				inserted = bracket
+			}
+		}
+		insertNodesAtCaret([inserted])
+		syncFromEditor()
+		const first = getMatrixCells(matrix)[0]
+		if (first) focusSlot(getEdgeSlot(first, 'start'), false, 'start')
+		return
+	}
 	const rows = Array.from({ length: item.rows }, () => [] as ParsedNode[])
 	const stack = createStackElement(item.style, rows)
 	let inserted: HTMLElement = stack
@@ -2591,6 +2740,19 @@ const pickStackFormat = (item: StackFormat) => {
 	insertNodesAtCaret([inserted])
 	syncFromEditor()
 	focusStackRow(stack, 0)
+}
+
+/** 插入空矩阵模板：rows × cols 的空单元格网格，插入后聚焦左上角单元格 */
+const pickMatrixFormat = (item: MatrixFormat) => {
+	activeTool.value = null
+	const grid = Array.from({ length: item.rows }, () =>
+		Array.from({ length: item.cols }, () => [] as ParsedNode[])
+	)
+	const matrix = createMatrixElement(grid)
+	insertNodesAtCaret([matrix])
+	syncFromEditor()
+	const first = getMatrixCells(matrix)[0]
+	if (first) focusSlot(getEdgeSlot(first, 'start'), true)
 }
 
 /** 插入常用方括号公式：解析成结构化节点，填入后聚焦首个空槽（全部预填时聚焦堆栈首行） */
@@ -2722,6 +2884,9 @@ watch(locale, () => {
 	})
 	root.querySelectorAll('.me-stack__row').forEach((el) => {
 		el.setAttribute('aria-label', t('formula.aria.stackRow'))
+	})
+	root.querySelectorAll('.me-matrix__cell').forEach((el) => {
+		el.setAttribute('aria-label', t('formula.aria.matrixCell'))
 	})
 	root.querySelectorAll('.me-func__sub').forEach((el) => {
 		el.setAttribute('aria-label', t('formula.aria.funcSub'))
@@ -3456,6 +3621,41 @@ defineExpose({ focus, validate, clear })
 
 /* 堆栈里嵌套的结构逐层缩小 */
 .he-formula-editable :deep(.me-stack .me-stack) {
+	font-size: 0.9em;
+}
+
+/* 矩阵：网格布局，单元格可独立落光标；行列数参差时按显式定位对齐 */
+.he-formula-editable :deep(.me-matrix) {
+	display: inline-flex;
+	margin: 0 2px;
+	vertical-align: middle;
+}
+
+.he-formula-editable :deep(.me-matrix__grid) {
+	display: inline-grid;
+	gap: 2px 14px;
+	align-items: center;
+	justify-items: center;
+	padding: 2px 4px;
+}
+
+.he-formula-editable :deep(.me-matrix__cell) {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 1.2em;
+	min-width: 12px;
+	padding: 0 1px;
+	border-radius: 2px;
+	white-space: nowrap;
+}
+
+.he-formula-editable :deep(.me-matrix__cell:focus-within) {
+	background: #d9e6ff;
+}
+
+/* 矩阵里嵌套的结构逐层缩小 */
+.he-formula-editable :deep(.me-matrix .me-matrix) {
 	font-size: 0.9em;
 }
 

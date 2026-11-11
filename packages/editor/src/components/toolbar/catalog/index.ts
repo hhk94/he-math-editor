@@ -9,5 +9,6 @@ export * from './root'
 export * from './integral'
 export * from './bigOperator'
 export * from './operator'
+export * from './matrix'
 export * from './tools'
 

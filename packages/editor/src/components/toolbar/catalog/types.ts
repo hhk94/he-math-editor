@@ -165,6 +165,10 @@ export type CommonBracketFormula = {
 	preview: string
 }
 
+/** 矩阵模板：rows × cols 的空单元格网格（\begin{matrix} ... & ... \\ ... \end{matrix}） */
+export type MatrixFormatId = 'm1x2' | 'm2x1' | 'm1x3' | 'm3x1' | 'm2x2' | 'm2x3' | 'm3x2' | 'm3x3'
+export type MatrixFormat = { id: MatrixFormatId; preview: string; rows: number; cols: number }
+
 export type FunctionFormatId =
 	| 'sin'
 	| 'cos'

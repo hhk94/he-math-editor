@@ -15,7 +15,7 @@ export const symbols = [
 	{ label: '≠', value: '≠' }
 ]
 
-/** 工具栏按钮；分数、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符已接入弹窗，其余暂未绑定行为 */
+/** 工具栏按钮；分数、上下标、根式、积分、大型运算符、括号、函数、导数符号、极限和对数、运算符、矩阵均已接入弹窗 */
 export const tools: Tool[] = [
 	{ id: 'symbols', icon: 'Ω' },
 	{ id: 'fraction', icon: '<span class="tb-frac"><span>X</span><span>Y</span></span>' },
@@ -57,6 +57,7 @@ export const popoverToolIds = new Set<ToolId>([
 	'function',
 	'derivative',
 	'limitLog',
-	'operator'
+	'operator',
+	'matrix'
 ])
 

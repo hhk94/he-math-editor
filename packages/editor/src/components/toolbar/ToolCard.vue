@@ -262,6 +262,28 @@ const emit = defineEmits<{ (e: 'pick'): void }>()
 	opacity: 0.45;
 }
 
+/* 矩阵卡片预览：虚线空框网格，行列数由内联 grid-template 决定 */
+.he-tool-card__preview :deep(.matrix-preview) {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.he-tool-card__preview :deep(.matrix-preview__grid) {
+	display: inline-grid;
+	gap: 3px 8px;
+}
+
+.he-tool-card__preview :deep(.matrix-preview__box) {
+	display: block;
+	width: 16px;
+	height: 12px;
+	border: 1px dashed currentColor;
+	border-radius: 2px;
+	opacity: 0.45;
+}
+
 .he-tool-card {
 	height: 68px;
 	display: flex;

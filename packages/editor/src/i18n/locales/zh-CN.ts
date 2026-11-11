@@ -271,6 +271,18 @@ export default {
 			xDoubleLeftRightBelow: '双线左右箭头（下方标注）',
 			xDoubleLeftRightAbove: '双线左右箭头（上方标注）'
 		},
+		matrix: {
+			panelTitle: '矩阵',
+			emptyTitle: '空矩阵',
+			m1x2: '1×2 矩阵',
+			m2x1: '2×1 矩阵',
+			m1x3: '1×3 矩阵',
+			m3x1: '3×1 矩阵',
+			m2x2: '2×2 矩阵',
+			m2x3: '2×3 矩阵',
+			m3x2: '3×2 矩阵',
+			m3x3: '3×3 矩阵'
+		},
 		latexSource: 'LaTeX 原文',
 		editable: '可编辑公式',
 		preview: '实时预览',
@@ -316,6 +328,7 @@ export default {
 			bigwedgeSup: '与运算上限',
 			bigwedgeOperand: '与运算表达式',
 			stackRow: '堆栈行',
+			matrixCell: '矩阵单元格',
 			funcSub: '函数下标',
 			funcArg: '函数参数',
 			derivArg: '导数符号参数',

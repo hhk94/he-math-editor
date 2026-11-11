@@ -25,6 +25,10 @@ export const getBracketContents = (bracket: HTMLElement): HTMLElement[] =>
 export const getStackRows = (stack: HTMLElement): HTMLElement[] =>
 	Array.from(stack.querySelectorAll(':scope > .me-stack__rows > .me-stack__row')) as HTMLElement[]
 
+/** 矩阵的全部单元格（DOM 顺序即 row-major 顺序） */
+export const getMatrixCells = (matrix: HTMLElement): HTMLElement[] =>
+	Array.from(matrix.querySelectorAll(':scope > .me-matrix__grid > .me-matrix__cell')) as HTMLElement[]
+
 /** 过滤空槽占位用的零宽空格 */
 export const stripPlaceholder = (value: string): string => value.replace(/\u200b/g, '')
 

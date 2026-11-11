@@ -380,6 +380,32 @@ export const createFormulaRenderer = (t: Translate) => {
 		return stack
 	}
 
+	/**
+	 * 创建矩阵节点：网格布局，每个单元格是独立的行容器（里面有可落光标的文本槽），
+	 * 行列号存 dataset 供序列化与跨格导航；行数或列数参差时按显式定位对齐。
+	 */
+	const createMatrixElement = (rows: ParsedNode[][][]): HTMLElement => {
+		const matrix = document.createElement('span')
+		matrix.className = 'me-matrix'
+		const cols = rows.reduce((max, row) => Math.max(max, row.length), 1)
+		const grid = document.createElement('span')
+		grid.className = 'me-matrix__grid'
+		grid.style.gridTemplateColumns = `repeat(${cols}, minmax(1.2em, auto))`
+		rows.forEach((row, rowIndex) => {
+			row.forEach((cellNodes, colIndex) => {
+				const cell = document.createElement('span')
+				cell.className = 'me-matrix__cell'
+				cell.dataset.row = String(rowIndex + 1)
+				cell.dataset.col = String(colIndex + 1)
+				cell.setAttribute('aria-label', t('formula.aria.matrixCell'))
+				appendNodes(cell, cellNodes)
+				grid.append(cell)
+			})
+		})
+		matrix.append(grid)
+		return matrix
+	}
+
 	/** 把解析结果挂到容器上；空内容补一个空文本槽，保证光标有落点 */
 	const appendNodes = (container: HTMLElement, nodes: ParsedNode[]) => {
 		if (!nodes.length) {
@@ -402,6 +428,8 @@ export const createFormulaRenderer = (t: Translate) => {
 				if (format) container.append(createBracketElement(format, node.groups))
 			} else if (node.type === 'stack') {
 				container.append(createStackElement(node.style, node.rows))
+			} else if (node.type === 'matrix') {
+				container.append(createMatrixElement(node.rows))
 			} else if (node.type === 'func') {
 				container.append(createFunctionElement(node.name, node.argument, node.sub))
 			} else if (node.type === 'deriv') {
@@ -433,6 +461,7 @@ export const createFormulaRenderer = (t: Translate) => {
 		createArrowElement,
 		createBracketElement,
 		createStackElement,
+		createMatrixElement,
 		appendNodes,
 		renderInto
 	}

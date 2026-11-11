@@ -605,18 +605,18 @@ describe('插入事例和堆栈', () => {
 		expect(lastEmitted(wrapper)).toBe('\\begin{cases}\\\\\\end{cases}')
 	})
 
-	it('无定界符两行堆栈插入两行且没有左侧花括号', async () => {
+	it('无定界符两行堆栈插入两行一列的矩阵', async () => {
 		wrapper = mountEditor()
 		await openBracket(wrapper)
 		await pickStackCard(wrapper, 2)
 
-		const stack = wrapper.find('.me-stack')
-		expect(stack.classes()).not.toContain('me-stack--cases')
-		expect(stack.findAll('.me-stack__row')).toHaveLength(2)
+		const matrix = wrapper.find('.me-matrix')
+		expect(matrix.exists()).toBe(true)
+		expect(matrix.findAll('.me-matrix__cell')).toHaveLength(2)
 		expect(lastEmitted(wrapper)).toBe('\\begin{matrix}\\\\\\end{matrix}')
 	})
 
-	it('圆括号堆栈在外层再套一对圆括号，光标仍在堆栈行内', async () => {
+	it('圆括号堆栈在外层再套一对圆括号，光标仍在矩阵单元格内', async () => {
 		wrapper = mountEditor()
 		await openBracket(wrapper)
 		await pickStackCard(wrapper, 3)
@@ -624,8 +624,8 @@ describe('插入事例和堆栈', () => {
 		const bracket = wrapper.find('.me-bracket')
 		expect(bracket.find('.me-bracket__open').text()).toBe('(')
 		expect(bracket.find('.me-bracket__close').text()).toBe(')')
-		expect(bracket.find('.me-stack').exists()).toBe(true)
-		expect(selectionIn('.me-stack__row')).toBe(true)
+		expect(bracket.find('.me-matrix').exists()).toBe(true)
+		expect(selectionIn('.me-matrix__cell')).toBe(true)
 		expect(lastEmitted(wrapper)).toBe('\\left(\\begin{matrix}\\\\\\end{matrix}\\right)')
 	})
 })
@@ -633,9 +633,7 @@ describe('插入事例和堆栈', () => {
 describe('事例和堆栈解析与往返', () => {
 	const CASES: [string, string, number][] = [
 		['\\begin{cases}a\\\\b\\end{cases}', 'cases', 2],
-		['\\begin{cases}a\\\\b\\\\c\\end{cases}', 'cases', 3],
-		['\\begin{matrix}x\\\\y\\end{matrix}', 'matrix', 2],
-		['\\left(\\begin{matrix}n\\\\k\\end{matrix}\\right)', 'matrix', 2]
+		['\\begin{cases}a\\\\b\\\\c\\end{cases}', 'cases', 3]
 	]
 
 	it.each(CASES)('%s 解析为 %s 的 %i 行结构并原样序列化', async (latex, style, rows) => {
@@ -645,6 +643,22 @@ describe('事例和堆栈解析与往返', () => {
 		expect(stack.exists()).toBe(true)
 		expect((stack.element as HTMLElement).dataset.stack).toBe(style)
 		expect(stack.findAll('.me-stack__row')).toHaveLength(rows)
+
+		await resyncFromDom(wrapper)
+		expect(lastEmitted(wrapper)).toBe(latex)
+	})
+
+	const MATRICES: [string, number][] = [
+		['\\begin{matrix}x\\\\y\\end{matrix}', 2],
+		['\\left(\\begin{matrix}n\\\\k\\end{matrix}\\right)', 2]
+	]
+
+	it.each(MATRICES)('%s 解析为 %i 行矩阵并原样序列化', async (latex, rows) => {
+		wrapper = mountEditor(latex)
+
+		const matrix = wrapper.find('.me-matrix')
+		expect(matrix.exists()).toBe(true)
+		expect(matrix.findAll('.me-matrix__cell')).toHaveLength(rows)
 
 		await resyncFromDom(wrapper)
 		expect(lastEmitted(wrapper)).toBe(latex)
@@ -711,14 +725,14 @@ describe('常用方括号', () => {
 		expect(lastEmitted(wrapper)).toBe('f(x)=\\begin{cases}-x, x<0\\\\x, x≥0\\end{cases}')
 	})
 
-	it('圆括号组合数与尖括号组合数都插入带定界符的两行堆栈', async () => {
+	it('圆括号组合数与尖括号组合数都插入带定界符的两行矩阵', async () => {
 		wrapper = mountEditor()
 		await openBracket(wrapper)
 		await pickCommonCard(wrapper, 1)
 
 		const bracket = wrapper.find('.me-bracket')
 		expect(bracket.find('.me-bracket__open').text()).toBe('(')
-		expect(bracket.findAll('.me-stack__row')).toHaveLength(2)
+		expect(bracket.findAll('.me-matrix__cell')).toHaveLength(2)
 
 		wrapper.unmount()
 		wrapper = mountEditor()
@@ -728,6 +742,6 @@ describe('常用方括号', () => {
 		const angle = wrapper.find('.me-bracket')
 		expect(angle.find('.me-bracket__open').text()).toBe('⟨')
 		expect(angle.find('.me-bracket__close').text()).toBe('⟩')
-		expect(angle.findAll('.me-stack__row')).toHaveLength(2)
+		expect(angle.findAll('.me-matrix__cell')).toHaveLength(2)
 	})
 })

@@ -24,6 +24,7 @@ export type ParsedNode =
 	  }
 	| { type: 'bracket'; format: BracketFormatId; groups: ParsedNode[][] }
 	| { type: 'stack'; style: StackStyle; rows: ParsedNode[][] }
+	| { type: 'matrix'; rows: ParsedNode[][][] }
 	| { type: 'func'; name: FunctionFormatId; sub: ParsedNode[] | null; argument: ParsedNode[] }
 	| { type: 'deriv'; id: DerivFormatId; argument: ParsedNode[]; label: ParsedNode[] | null }
 	| { type: 'relop'; variant: 'stackrel' | 'triangleq'; top: ParsedNode[] }

@@ -271,6 +271,18 @@ export default {
 			xDoubleLeftRightBelow: 'Double left-right arrow (label below)',
 			xDoubleLeftRightAbove: 'Double left-right arrow (label above)'
 		},
+		matrix: {
+			panelTitle: 'Matrix',
+			emptyTitle: 'Empty matrix',
+			m1x2: '1×2 matrix',
+			m2x1: '2×1 matrix',
+			m1x3: '1×3 matrix',
+			m3x1: '3×1 matrix',
+			m2x2: '2×2 matrix',
+			m2x3: '2×3 matrix',
+			m3x2: '3×2 matrix',
+			m3x3: '3×3 matrix'
+		},
 		latexSource: 'LaTeX source',
 		editable: 'Editable formula',
 		preview: 'Live preview',
@@ -316,6 +328,7 @@ export default {
 			bigwedgeSup: 'And operator upper limit',
 			bigwedgeOperand: 'And operator expression',
 			stackRow: 'Stack row',
+			matrixCell: 'Matrix cell',
 			funcSub: 'Function subscript',
 			funcArg: 'Function argument',
 			derivArg: 'Accent argument',
